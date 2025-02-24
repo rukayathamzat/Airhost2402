@@ -16,7 +16,8 @@ exports.handler = async function(event, context) {
   }
 
   try {
-    const { phoneNumber, template, language } = JSON.parse(event.body);
+    const { to, template_name, language } = JSON.parse(event.body);
+    console.log('Parsed request body:', { to, template_name, language });
 
     // Récupérer la configuration WhatsApp la plus récente
     console.log('Connecting to Supabase with URL:', process.env.VITE_SUPABASE_URL);
@@ -39,7 +40,7 @@ exports.handler = async function(event, context) {
       throw new Error('Configuration WhatsApp manquante');
     }
 
-    console.log('Sending WhatsApp message with:', { phoneNumberId, template, language, to: phoneNumber });
+    console.log('Sending WhatsApp message with:', { phoneNumberId, template: template_name, language, to });
 
     const response = await fetch(
       `https://graph.facebook.com/v19.0/${phoneNumberId}/messages`,
@@ -51,10 +52,10 @@ exports.handler = async function(event, context) {
         },
         body: JSON.stringify({
           messaging_product: 'whatsapp',
-          to: phoneNumber,
+          to: to,
           type: 'template',
           template: {
-            name: template,
+            name: template_name,
             language: {
               code: language
             }
