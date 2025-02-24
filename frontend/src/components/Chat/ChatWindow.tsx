@@ -20,7 +20,6 @@ import {
   DialogActions
 } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
-import FormatListBulletedIcon from '@mui/icons-material/FormatListBulleted';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 
@@ -45,7 +44,7 @@ interface ChatWindowProps {
   conversationId: string;
   guestNumber: string;
   propertyName: string;
-  conversationStartTime: string;
+  conversationStartTime?: string;
 }
 
 export default function ChatWindow({ 
@@ -83,7 +82,7 @@ const [aiAnchorEl, setAiAnchorEl] = useState<null | HTMLElement>(null);
           table: 'messages',
           filter: `conversation_id=eq.${conversationId}`
         },
-        (payload) => {
+        () => {
           loadMessages();
         }
       )
@@ -125,7 +124,7 @@ const [aiAnchorEl, setAiAnchorEl] = useState<null | HTMLElement>(null);
   };
 
   const checkMessageWindow = () => {
-    const startTime = new Date(conversationStartTime);
+    const startTime = new Date(conversationStartTime || new Date());
     const now = new Date();
     const hoursDiff = (now.getTime() - startTime.getTime()) / (1000 * 60 * 60);
     setIsOutsideWindow(hoursDiff > 24);
@@ -216,7 +215,7 @@ const [aiAnchorEl, setAiAnchorEl] = useState<null | HTMLElement>(null);
       });
 
       // Envoyer le template via la fonction Edge
-      const response = await fetch('http://127.0.0.1:54321/functions/v1/send-whatsapp-template', {
+      const response = await fetch(`/.netlify/functions/send-whatsapp-template`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -306,7 +305,7 @@ const [aiAnchorEl, setAiAnchorEl] = useState<null | HTMLElement>(null);
           >
             <ListItemText 
               primary={`${template.name}`}
-              secondary={template.description || `${template.namespace}`}
+              secondary={template.description}
             />
           </MenuItem>
         ))}
@@ -418,7 +417,7 @@ const [aiAnchorEl, setAiAnchorEl] = useState<null | HTMLElement>(null);
             <Button
               color="inherit"
               size="small"
-              onClick={(e) => setAnchorEl(e.currentTarget)}
+              onClick={(e) => setTemplateAnchorEl(e.currentTarget)}
             >
               Utiliser un template
             </Button>

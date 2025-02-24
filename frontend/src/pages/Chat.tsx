@@ -18,18 +18,7 @@ import ChatWindow from '../components/Chat/ChatWindow';
 import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
 
-interface Conversation {
-  id: string;
-  guest_name: string;
-  guest_phone: string;
-  property: {
-    name: string;
-  };
-  check_in_date: string;
-  check_out_date: string;
-  status: string;
-  last_message_at: string;
-}
+import { Conversation } from '../types/conversation';
 
 export default function Chat() {
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
@@ -81,7 +70,10 @@ export default function Chat() {
       if (error) throw error;
 
       console.log('Conversations récupérées:', data);
-      setConversations(data || []);
+      setConversations(data?.map(item => ({
+        ...item,
+        property: Array.isArray(item.property) ? item.property : [item.property]
+      })) || []);
     } catch (err: any) {
       console.error('Erreur lors de la récupération des conversations:', err);
       setError(err.message);
@@ -230,9 +222,9 @@ export default function Chat() {
           {selectedConversation ? (
             <ChatWindow
               conversationId={selectedConversation.id}
-              guestNumber={selectedConversation.guest_number}
-              propertyName={selectedConversation.property.name}
-              conversationStartTime={selectedConversation.created_at}
+              guestNumber={selectedConversation.guest_number || ''}
+              propertyName={selectedConversation.property[0].name}
+              conversationStartTime={selectedConversation.created_at || new Date().toISOString()}
             />
           ) : (
             <Box

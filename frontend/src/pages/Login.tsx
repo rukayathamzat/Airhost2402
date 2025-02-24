@@ -9,8 +9,7 @@ import {
   Typography,
   Alert,
   Paper,
-  CircularProgress,
-  Link
+  CircularProgress
 } from '@mui/material';
 
 export default function Login() {

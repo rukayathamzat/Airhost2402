@@ -1,0 +1,8 @@
+{
+  "name": "netlify-functions",
+  "version": "1.0.0",
+  "dependencies": {
+    "node-fetch": "^2.6.1",
+    "@supabase/supabase-js": "^2.38.4"
+  }
+}

@@ -16,9 +16,10 @@ interface WhatsAppTemplate {
 }
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': 'http://localhost:5173',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Credentials': 'true',
   'Access-Control-Max-Age': '86400',
 }
 
@@ -44,7 +45,13 @@ serve(async (req) => {
       console.error('Pas de header Authorization');
       return new Response(
         JSON.stringify({ error: 'Non authentifié' }),
-        { headers: corsHeaders, status: 401 }
+        { 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders 
+          }, 
+          status: 401 
+        }
       )
     }
 

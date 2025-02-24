@@ -1,21 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { Box, List, ListItem, ListItemText, Typography, Badge } from '@mui/material';
+import { Box, List, ListItem, ListItemText, Typography } from '@mui/material';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
-interface Conversation {
-  id: string;
-  guest_name: string;
-  guest_phone: string;
-  check_in_date: string;
-  check_out_date: string;
-  status: string;
-  last_message_at: string;
-  property: {
-    name: string;
-  };
-}
+import { Conversation } from '../../types/conversation';
 
 interface ConversationListProps {
   conversations: Conversation[];
@@ -90,7 +79,7 @@ export default function ConversationList({ conversations, onSelectConversation }
                     color: 'rgba(0, 0, 0, 0.6)',
                     fontSize: '0.875rem'
                   }}>
-                    {conversation.property?.name}
+                    {conversation.property[0]?.name}
                   </div>
                   <div style={{
                     display: 'flex',
