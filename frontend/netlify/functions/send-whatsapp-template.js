@@ -2,6 +2,7 @@ const fetch = require('node-fetch');
 const { createClient } = require('@supabase/supabase-js');
 
 exports.handler = async function(event, context) {
+  console.log('Function invoked with event:', event);
   const supabase = createClient(
     process.env.VITE_SUPABASE_URL,
     process.env.VITE_SUPABASE_ANON_KEY
@@ -18,6 +19,8 @@ exports.handler = async function(event, context) {
     const { phoneNumber, template, language } = JSON.parse(event.body);
 
     // Récupérer la configuration WhatsApp la plus récente
+    console.log('Connecting to Supabase with URL:', process.env.VITE_SUPABASE_URL);
+
     const { data: whatsappConfig, error: configError } = await supabase
       .from('whatsapp_config')
       .select('*')
