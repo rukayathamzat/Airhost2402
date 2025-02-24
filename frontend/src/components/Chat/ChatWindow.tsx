@@ -77,13 +77,29 @@ const [aiAnchorEl, setAiAnchorEl] = useState<null | HTMLElement>(null);
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'INSERT',
           schema: 'public',
           table: 'messages',
           filter: `conversation_id=eq.${conversationId}`
         },
-        () => {
-          loadMessages();
+        (payload) => {
+          setMessages(currentMessages => [...currentMessages, payload.new as Message]);
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'messages',
+          filter: `conversation_id=eq.${conversationId}`
+        },
+        (payload) => {
+          setMessages(currentMessages =>
+            currentMessages.map(msg =>
+              msg.id === payload.new.id ? (payload.new as Message) : msg
+            )
+          );
         }
       )
       .subscribe();
