@@ -90,6 +90,7 @@ const [aiAnchorEl, setAiAnchorEl] = useState<null | HTMLElement>(null);
             console.log('Current messages:', currentMessages);
             const newMessages = [...currentMessages, payload.new as Message];
             console.log('Updated messages:', newMessages);
+            setTimeout(scrollToBottom, 100); // Ajout d'un petit délai pour s'assurer que le DOM est mis à jour
             return newMessages;
           });
         }
@@ -127,6 +128,11 @@ const [aiAnchorEl, setAiAnchorEl] = useState<null | HTMLElement>(null);
       supabase.removeChannel(channel);
     };
   }, [conversationId]);
+
+  // Effet pour défiler vers le bas quand les messages changent
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   const loadMessages = async () => {
     const { data, error } = await supabase
