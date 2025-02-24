@@ -55,6 +55,7 @@ export default function ChatWindow({
 }: ChatWindowProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [templates, setTemplates] = useState<Template[]>([]);
   
 const [templateAnchorEl, setTemplateAnchorEl] = useState<null | HTMLElement>(null);
@@ -66,6 +67,7 @@ const [aiAnchorEl, setAiAnchorEl] = useState<null | HTMLElement>(null);
   const messagesEndRef = useRef<null | HTMLDivElement>(null);
 
   useEffect(() => {
+    setIsInitialLoad(true); // Réinitialiser isInitialLoad à chaque changement de conversation
     loadMessages();
     loadTemplates();
     loadWhatsAppConfig();
@@ -90,7 +92,6 @@ const [aiAnchorEl, setAiAnchorEl] = useState<null | HTMLElement>(null);
             console.log('Current messages:', currentMessages);
             const newMessages = [...currentMessages, payload.new as Message];
             console.log('Updated messages:', newMessages);
-            setTimeout(scrollToBottom, 100); // Ajout d'un petit délai pour s'assurer que le DOM est mis à jour
             return newMessages;
           });
         }
@@ -148,7 +149,6 @@ const [aiAnchorEl, setAiAnchorEl] = useState<null | HTMLElement>(null);
     }
 
     setMessages((data || []).reverse());
-    scrollToBottom(true); // scroll instantané au chargement initial
   };
 
   const loadTemplates = async () => {
@@ -174,7 +174,36 @@ const [aiAnchorEl, setAiAnchorEl] = useState<null | HTMLElement>(null);
 
   const scrollToBottom = (instant: boolean = false) => {
     messagesEndRef.current?.scrollIntoView({ behavior: instant ? 'auto' : 'smooth' });
+    // Debug logs
+    setTimeout(() => {
+      const scrollContainer = messagesEndRef.current?.parentElement;
+      if (scrollContainer) {
+        console.log('Scroll position:', scrollContainer.scrollTop, 'Scroll height:', scrollContainer.scrollHeight);
+      }
+    }, 100);
   };
+
+  // Effet pour gérer le défilement initial et les nouveaux messages
+  useEffect(() => {
+    if (messages.length > 0) {
+      if (isInitialLoad) {
+        // Défilement instantané au chargement initial
+        scrollToBottom(true);
+        setIsInitialLoad(false);
+      } else {
+        // Pour les nouveaux messages, vérifier si l'utilisateur est déjà en bas
+        const scrollContainer = messagesEndRef.current?.parentElement;
+        if (scrollContainer) {
+          const isAtBottom = Math.abs(
+            (scrollContainer.scrollHeight - scrollContainer.scrollTop) - scrollContainer.clientHeight
+          ) < 50; // Marge de 50px pour être plus permissif
+          if (isAtBottom) {
+            scrollToBottom();
+          }
+        }
+      }
+    }
+  }, [messages, isInitialLoad]);
 
   const handleSendMessage = async () => {
     if (!newMessage.trim()) return;
