@@ -129,10 +129,8 @@ const [aiAnchorEl, setAiAnchorEl] = useState<null | HTMLElement>(null);
     };
   }, [conversationId]);
 
-  // Effet pour défiler vers le bas quand les messages changent
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+  // On ne veut pas de scroll automatique à chaque changement de messages
+  // car cela interfère avec la lecture des messages précédents
 
   const loadMessages = async () => {
     const { data, error } = await supabase
@@ -147,7 +145,7 @@ const [aiAnchorEl, setAiAnchorEl] = useState<null | HTMLElement>(null);
     }
 
     setMessages(data || []);
-    scrollToBottom();
+    scrollToBottom(true); // scroll instantané au chargement initial
   };
 
   const loadTemplates = async () => {
@@ -171,8 +169,8 @@ const [aiAnchorEl, setAiAnchorEl] = useState<null | HTMLElement>(null);
     setIsOutsideWindow(hoursDiff > 24);
   };
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  const scrollToBottom = (instant: boolean = false) => {
+    messagesEndRef.current?.scrollIntoView({ behavior: instant ? 'auto' : 'smooth' });
   };
 
   const handleSendMessage = async () => {
