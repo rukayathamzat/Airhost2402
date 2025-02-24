@@ -137,14 +137,17 @@ const [aiAnchorEl, setAiAnchorEl] = useState<null | HTMLElement>(null);
       .from('messages')
       .select('*')
       .eq('conversation_id', conversationId)
-      .order('created_at', { ascending: true });
+      .order('created_at', { ascending: false })
+      .limit(50); // Limite pour éviter de charger trop de messages
+
+    // On inverse l'ordre pour l'affichage (plus récents en bas)
 
     if (error) {
       console.error('Erreur lors du chargement des messages:', error);
       return;
     }
 
-    setMessages(data || []);
+    setMessages((data || []).reverse());
     scrollToBottom(true); // scroll instantané au chargement initial
   };
 
