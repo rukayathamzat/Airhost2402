@@ -72,6 +72,8 @@ const [aiAnchorEl, setAiAnchorEl] = useState<null | HTMLElement>(null);
     checkMessageWindow();
 
     // Souscrire aux nouveaux messages
+    console.log('Setting up Supabase realtime subscription for conversation:', conversationId);
+    
     const channel = supabase
       .channel('messages')
       .on(
@@ -83,7 +85,13 @@ const [aiAnchorEl, setAiAnchorEl] = useState<null | HTMLElement>(null);
           filter: `conversation_id=eq.${conversationId}`
         },
         (payload) => {
-          setMessages(currentMessages => [...currentMessages, payload.new as Message]);
+          console.log('Received new message:', payload.new);
+          setMessages(currentMessages => {
+            console.log('Current messages:', currentMessages);
+            const newMessages = [...currentMessages, payload.new as Message];
+            console.log('Updated messages:', newMessages);
+            return newMessages;
+          });
         }
       )
       .on(
@@ -95,14 +103,25 @@ const [aiAnchorEl, setAiAnchorEl] = useState<null | HTMLElement>(null);
           filter: `conversation_id=eq.${conversationId}`
         },
         (payload) => {
-          setMessages(currentMessages =>
-            currentMessages.map(msg =>
+          console.log('Received message update:', payload.new);
+          setMessages(currentMessages => {
+            const updatedMessages = currentMessages.map(msg =>
               msg.id === payload.new.id ? (payload.new as Message) : msg
-            )
-          );
+            );
+            console.log('Updated messages after update:', updatedMessages);
+            return updatedMessages;
+          });
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Supabase channel status:', status);
+      });
+
+    // Log when the subscription is cleaned up
+    return () => {
+      console.log('Cleaning up Supabase realtime subscription');
+      supabase.removeChannel(channel);
+    };
 
     return () => {
       supabase.removeChannel(channel);
