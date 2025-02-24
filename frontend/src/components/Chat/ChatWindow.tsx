@@ -209,12 +209,64 @@ const [aiAnchorEl, setAiAnchorEl] = useState<null | HTMLElement>(null);
     if (!newMessage.trim()) return;
 
     try {
-      const { error } = await supabase.rpc('send_whatsapp_message', {
-        p_conversation_id: conversationId,
-        p_content: newMessage
+      // Récupérer la session
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session?.access_token) {
+        console.error('Erreur de session:', sessionError);
+        throw new Error('Non authentifié');
+      }
+
+      // Récupérer le numéro de téléphone de la conversation
+      const { data: conversation, error: convError } = await supabase
+        .from('conversations')
+        .select('guest_phone')
+        .eq('id', conversationId)
+        .single();
+
+      if (convError || !conversation) {
+        throw new Error('Conversation non trouvée');
+      }
+
+      // Envoyer le message via la fonction Netlify
+      const response = await fetch(`/.netlify/functions/send-whatsapp-message`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          content: newMessage,
+          to: conversation.guest_phone
+        })
       });
 
-      if (error) throw error;
+      let result;
+      try {
+        result = await response.json();
+      } catch (e) {
+        console.error('Erreur lors du parsing de la réponse:', e);
+        throw new Error(`Erreur ${response.status}: ${response.statusText}`);
+      }
+
+      if (!response.ok) {
+        const errorMessage = result?.error || 'Erreur lors de l\'envoi du message';
+        console.error('Erreur de la fonction Netlify:', errorMessage);
+        throw new Error(errorMessage);
+      }
+
+      // Créer le message dans la base de données
+      const { error: msgError } = await supabase
+        .from('messages')
+        .insert({
+          conversation_id: conversationId,
+          content: newMessage,
+          direction: 'outbound',
+          type: 'text',
+          status: 'sent'
+        });
+
+      if (msgError) throw msgError;
 
       setNewMessage('');
     } catch (error) {
