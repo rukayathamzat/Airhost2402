@@ -13,8 +13,7 @@
   status = 200
 
 [functions]
-  directory = "netlify/functions"
-  included_files = ["netlify/functions/**/*"]
+  directory = "frontend/netlify/functions"
 
 [build.environment]
   NODE_VERSION = "20"
