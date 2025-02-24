@@ -27,6 +27,8 @@ exports.handler = async function(event, context) {
       .order('created_at', { ascending: false })
       .limit(1);
 
+    console.log('WhatsApp config response:', { whatsappConfig, configError });
+
     if (configError) throw new Error('Erreur lors de la récupération de la configuration WhatsApp');
     if (!whatsappConfig || whatsappConfig.length === 0) throw new Error('Aucune configuration WhatsApp trouvée');
 
@@ -36,6 +38,8 @@ exports.handler = async function(event, context) {
     if (!whatsappToken || !phoneNumberId) {
       throw new Error('Configuration WhatsApp manquante');
     }
+
+    console.log('Sending WhatsApp message with:', { phoneNumberId, template, language, to: phoneNumber });
 
     const response = await fetch(
       `https://graph.facebook.com/v19.0/${phoneNumberId}/messages`,
@@ -60,6 +64,7 @@ exports.handler = async function(event, context) {
     );
 
     const data = await response.json();
+    console.log('WhatsApp API response:', { status: response.status, data });
 
     return {
       statusCode: 200,
