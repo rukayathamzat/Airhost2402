@@ -1,22 +1,24 @@
 import { Link, useLocation } from 'react-router-dom';
+import { FaHome, FaComments, FaExclamationTriangle, FaFlask, FaCog } from 'react-icons/fa';
 import './SideMenu.css';
 
 const SideMenu = () => {
   const location = useLocation();
 
   const menuItems = [
-    { path: '/chat', label: 'Conversations', icon: '💬' },
-    { path: '/emergency', label: 'Cas d\'urgence', icon: '🚨' },
-    { path: '/sandbox', label: 'Chat Sandbox', icon: '🧪' },
-    { path: '/settings', label: 'Paramètres', icon: '⚙️' },
+    { path: '/properties', label: 'Propriétés', icon: <FaHome /> },
+    { path: '/chat', label: 'Conversations', icon: <FaComments /> },
+    { path: '/emergency', label: 'Cas d\'urgence', icon: <FaExclamationTriangle /> },
+    { path: '/sandbox', label: 'Chat Sandbox', icon: <FaFlask /> },
+    { path: '/settings', label: 'Paramètres', icon: <FaCog /> },
   ];
 
   return (
     <div className="side-menu">
       <div className="menu-header">
-        <h2>AirHost</h2>
+        <h2 className="app-title">AirHost Admin</h2>
       </div>
-      <nav>
+      <nav className="menu-nav">
         {menuItems.map((item) => (
           <Link
             key={item.path}
