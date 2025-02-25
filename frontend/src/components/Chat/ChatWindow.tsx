@@ -574,7 +574,26 @@ const [aiModalOpen, setAiModalOpen] = useState(false);
           <Tooltip title="Réponse IA">
             <IconButton 
               color="primary" 
-              onClick={() => setAiModalOpen(true)}
+              onClick={async () => {
+                console.log('Tentative d\'ouverture du modal IA');
+                if (!selectedConversation) {
+                  console.log('Conversation non chargée, chargement...');
+                  const { data, error } = await supabase
+                    .from('conversations')
+                    .select('*, property:apartments(*)')
+                    .eq('id', conversationId)
+                    .single();
+
+                  if (error) {
+                    console.error('Erreur lors du chargement de la conversation:', error);
+                    return;
+                  }
+
+                  console.log('Conversation chargée avec succès:', data);
+                  setSelectedConversation(data);
+                }
+                setAiModalOpen(true);
+              }}
               sx={{ flexShrink: 0 }}
             >
               <AutoAwesomeIcon />
