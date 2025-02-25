@@ -8,7 +8,7 @@ import {
   TextField,
   Box
 } from '@mui/material';
-import { WhatsAppService, WhatsAppConfig as Config } from '../../../services/chat/whatsapp.service';
+import { WhatsAppService } from '../../../services/chat/whatsapp.service';
 
 interface WhatsAppConfigProps {
   open: boolean;

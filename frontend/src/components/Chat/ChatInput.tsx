@@ -12,7 +12,7 @@ import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 interface ChatInputProps {
   onSendMessage: (message: string) => Promise<void>;
   onOpenAIModal: () => void;
-  onOpenTemplates: () => void;
+  onOpenTemplates: (event: React.MouseEvent<HTMLElement>) => void;
   disabled?: boolean;
 }
 
