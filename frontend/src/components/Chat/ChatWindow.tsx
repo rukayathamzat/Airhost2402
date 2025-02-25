@@ -37,7 +37,6 @@ export default function ChatWindow({
   useEffect(() => {
     loadConversation();
     loadTemplates();
-    setupRealtimeSubscription();
   }, [conversationId]);
 
   // Chargement de la conversation
@@ -71,19 +70,22 @@ export default function ChatWindow({
   };
 
   // Configuration de la subscription realtime
-  const setupRealtimeSubscription = () => {
+  useEffect(() => {
+    console.log('Setting up realtime subscription for conversation:', conversationId);
     const subscription = MessageService.subscribeToMessages(
       conversationId,
       (newMessage) => {
+        console.log('New message received:', newMessage);
         setMessages(current => [...current, newMessage]);
         setIsInitialLoad(false);
       }
     );
 
     return () => {
+      console.log('Cleaning up realtime subscription');
       subscription.unsubscribe();
     };
-  };
+  }, [conversationId]);
 
   // Gestionnaires d'événements
   const handleSendMessage = async (content: string) => {
