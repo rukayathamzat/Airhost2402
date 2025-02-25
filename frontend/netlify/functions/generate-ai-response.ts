@@ -35,7 +35,7 @@ const handler: Handler = async (event) => {
         .single(),
       supabase
         .from('messages')
-        .select('content, created_at, sender')
+        .select('content, created_at, direction')
         .eq('conversation_id', conversationId)
         .order('created_at', { ascending: true })
         .limit(10)
@@ -75,7 +75,7 @@ const handler: Handler = async (event) => {
 function buildPrompt(aiConfig: any, messages: any[]) {
   const lastMessage = messages[messages.length - 1]?.content || '';
   const conversationHistory = messages
-    .map(m => `${m.sender}: ${m.content}`)
+    .map(m => `${m.direction}: ${m.content}`)
     .join('\n');
 
   return `
