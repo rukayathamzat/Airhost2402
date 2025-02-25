@@ -490,9 +490,9 @@ const [aiModalOpen, setAiModalOpen] = useState(false);
       </Dialog>
 
       {/* Modal de l'IA */}
-      {aiModalOpen && (
+      {aiModalOpen && selectedConversation?.property[0]?.id && (
         <AIResponseModal
-          apartmentId={selectedConversation?.property[0]?.id}
+          apartmentId={selectedConversation.property[0].id}
           conversationId={conversationId}
           onSend={(response: string) => {
             setNewMessage(response);

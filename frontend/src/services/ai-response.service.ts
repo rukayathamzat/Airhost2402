@@ -84,7 +84,9 @@ ${lastMessage}
         frequency_penalty: 0.3
       });
 
-      return this.validateResponse(completion.choices[0].message.content);
+      const content = completion.choices[0].message.content;
+      if (!content) throw new Error('Réponse vide de l\'API');
+      return this.validateResponse(content);
     } catch (error) {
       console.error('Erreur OpenAI:', error);
       throw new Error('Erreur de génération AI');
