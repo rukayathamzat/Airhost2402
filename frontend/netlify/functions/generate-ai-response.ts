@@ -49,14 +49,15 @@ const handler: Handler = async (event) => {
       throw new Error('Données manquantes pour générer une réponse');
     }
 
-    // Vérifier si c'est un premier message
-    const isFirstMessage = messagesData.data.length <= 1;
+    // Vérifier si c'est un premier message de l'utilisateur
+    const userMessages = messagesData.data.filter(msg => msg.direction === 'inbound');
+    const isFirstUserMessage = userMessages.length === 1;
 
-    if (isFirstMessage) {
+    if (isFirstUserMessage) {
       // Pour un premier message, envoyer un template de bienvenue
       return {
         statusCode: 200,
-        body: JSON.stringify({ response: 'Bonjour ! Je suis votre assistant virtuel. Comment puis-je vous aider ?' })
+        body: JSON.stringify({ response: 'Bonjour ! Je suis votre assistant virtuel pour ' + apartmentData.data.name + '. Comment puis-je vous aider ?' })
       };
     }
 
