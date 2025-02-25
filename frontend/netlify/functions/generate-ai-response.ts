@@ -49,19 +49,7 @@ const handler: Handler = async (event) => {
       throw new Error('Données manquantes pour générer une réponse');
     }
 
-    // Vérifier si c'est un premier message de l'utilisateur
-    const userMessages = messagesData.data.filter(msg => msg.direction === 'inbound');
-    const isFirstUserMessage = userMessages.length === 1;
-
-    if (isFirstUserMessage) {
-      // Pour un premier message, envoyer un template de bienvenue
-      return {
-        statusCode: 200,
-        body: JSON.stringify({ response: 'Bonjour ! Je suis votre assistant virtuel pour ' + apartmentData.data.name + '. Comment puis-je vous aider ?' })
-      };
-    }
-
-    // Pour les autres messages, générer une réponse IA
+    // Générer une réponse IA
     const prompt = buildPrompt(apartmentData.data, messagesData.data);
     const response = await getAIResponse(prompt, messagesData.data);
 
