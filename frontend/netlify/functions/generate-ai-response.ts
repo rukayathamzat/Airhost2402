@@ -106,7 +106,7 @@ ${lastMessage}
 async function getAIResponse(prompt: string) {
   try {
     const completion = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo", // On commence avec 3.5 pour tester, moins cher et plus rapide
+      model: "gpt-4o-mini", // Version optimisée de GPT-4, rapide et économique
       messages: [
         { 
           role: "system", 
