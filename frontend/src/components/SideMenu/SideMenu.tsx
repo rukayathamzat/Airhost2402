@@ -1,23 +1,29 @@
 import { Link, useLocation } from 'react-router-dom';
-import { FaHome, FaComments, FaExclamationTriangle, FaFlask, FaCog, FaWhatsapp, FaSignOutAlt } from 'react-icons/fa';
+import { FaHome, FaComments, FaExclamationTriangle, FaFlask, FaWhatsapp, FaSignOutAlt } from 'react-icons/fa';
 import './SideMenu.css';
+
+interface MenuItem {
+  path: string;
+  label: string;
+  icon: JSX.Element;
+}
 
 const SideMenu = () => {
   const location = useLocation();
 
-  const mainMenuItems = [
+  const mainMenuItems: MenuItem[] = [
     { path: '/chat', label: 'Conversations', icon: <FaComments /> },
     { path: '/properties', label: 'Propriétés', icon: <FaHome /> },
     { path: '/emergency', label: 'Cas d\'urgence', icon: <FaExclamationTriangle /> },
     { path: '/sandbox', label: 'Chat Sandbox', icon: <FaFlask /> },
   ];
 
-  const bottomMenuItems = [
+  const bottomMenuItems: MenuItem[] = [
     { path: '/whatsapp-config', label: 'Configuration WhatsApp', icon: <FaWhatsapp /> },
     { path: '/logout', label: 'SE DÉCONNECTER', icon: <FaSignOutAlt /> },
   ];
 
-  const renderMenuItem = (item) => (
+  const renderMenuItem = (item: MenuItem) => (
     <Link
       key={item.path}
       to={item.path}
