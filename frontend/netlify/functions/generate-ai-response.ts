@@ -31,7 +31,7 @@ const handler: Handler = async (event) => {
     const [apartmentData, messagesData] = await Promise.all([
       supabase
         .from('properties')
-        .select('ai_instructions, name, language')
+        .select('ai_instructions, name, language, description, amenities, rules, faq')
         .eq('id', apartmentId)
         .single(),
       supabase
@@ -75,25 +75,35 @@ const handler: Handler = async (event) => {
 
 function buildPrompt(propertyData: any, messages: any[]) {
   const lastMessage = messages[messages.length - 1]?.content || '';
+  const amenities = propertyData.amenities ? JSON.parse(propertyData.amenities) : {};
+  const rules = propertyData.rules ? JSON.parse(propertyData.rules) : {};
+  const faq = propertyData.faq ? JSON.parse(propertyData.faq) : {};
 
   return `
-Contexte pour la réponse au message suivant :
+Tu es un assistant virtuel pour la propriété suivante :
 
-[CONFIGURATION]
-Propriété: ${propertyData.name || 'Non spécifié'}
+[PROPRIÉTÉ]
+Nom: ${propertyData.name || 'Non spécifié'}
+Description: ${propertyData.description || 'Non spécifiée'}
 Langue: ${propertyData.language || 'fr'}
 
-Instructions IA:
-${propertyData.ai_instructions || 'Aucune instruction spécifique'}
+[COMMODITÉS]
+${Object.entries(amenities).map(([key, value]) => `- ${key}: ${value}`).join('\n')}
+
+[RÈGLES]
+${Object.entries(rules).map(([key, value]) => `- ${key}: ${value}`).join('\n')}
+
+[FAQ]
+${Object.entries(faq).map(([key, value]) => `Q: ${key}\nR: ${value}`).join('\n')}
 
 [INSTRUCTIONS]
-1. Réponds de manière concise (max 3 phrases)
-2. Utilise un ton professionnel et amical
-3. Intègre les règles et FAQ si pertinent
-4. Sois précis et factuel
-5. Assure une continuité avec la conversation précédente
+1. Réponds UNIQUEMENT à la question posée
+2. Sois précis et factuel, pas de message générique
+3. Utilise les informations de la propriété ci-dessus
+4. Si tu ne connais pas la réponse, dis-le clairement
+5. Pas de formule de politesse si ce n'est pas une première interaction
 
-[MESSAGE ACTUEL]
+[QUESTION ACTUELLE]
 ${lastMessage}
 `;
 }
@@ -110,7 +120,12 @@ async function getAIResponse(prompt: string, messages: any[]) {
     const chatMessages = [
       { 
         role: "system", 
-        content: "Tu es un assistant virtuel professionnel pour un hôte Airbnb. Tu dois être concis, précis et utile. Utilise le contexte de la conversation pour personnaliser tes réponses."
+        content: "Tu es un assistant virtuel professionnel pour un hôte Airbnb. Tu dois :
+1. Répondre UNIQUEMENT aux questions posées
+2. Être précis et factuel, pas de réponses génériques
+3. Utiliser les informations de la propriété fournies
+4. Ne pas inventer d'informations
+5. Éviter les formules de politesse inutiles après la première interaction"
       },
       ...messageHistory, // Inclure l'historique des messages
       { 
