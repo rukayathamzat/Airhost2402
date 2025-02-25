@@ -65,7 +65,7 @@ function App() {
               <Layout>
                 <Routes>
                   <Route path="/chat" element={<Chat />} />
-                  <Route path="/emergency" element={<div>Cas d'urgence (à venir)</div>} />
+                  <Route path="/emergency" element={<div>Cas d&apos;urgence (à venir)</div>} />
                   <Route path="/sandbox" element={<div>Chat Sandbox (à venir)</div>} />
                   <Route path="/settings" element={<div>Paramètres (à venir)</div>} />
                 </Routes>
@@ -74,24 +74,6 @@ function App() {
               <Navigate to="/login" replace />
             )
           }
-        />
-          element={
-            session ? (
-              <Chat />
-            ) : (
-              <Navigate to="/login" replace />
-            )
-          }
-        />
-        <Route 
-          path="/" 
-          element={
-            session ? (
-              <Chat />
-            ) : (
-              <Navigate to="/login" replace />
-            )
-          } 
         />
       </Routes>
     </Router>
