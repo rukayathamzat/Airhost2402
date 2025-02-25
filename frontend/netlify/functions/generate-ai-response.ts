@@ -48,7 +48,7 @@ const handler: Handler = async (event) => {
       throw new Error('Données manquantes pour générer une réponse');
     }
 
-    const prompt = buildPrompt(apartmentData.data.ai_config, messagesData.data);
+    const prompt = buildPrompt(apartmentData.data, messagesData.data);
     const response = await getAIResponse(prompt);
 
     // Log de la réponse
@@ -72,7 +72,7 @@ const handler: Handler = async (event) => {
   }
 };
 
-function buildPrompt(aiConfig: any, messages: any[]) {
+function buildPrompt(propertyData: any, messages: any[]) {
   const lastMessage = messages[messages.length - 1]?.content || '';
   const conversationHistory = messages
     .map(m => `${m.direction}: ${m.content}`)
