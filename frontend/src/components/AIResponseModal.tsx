@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { AIResponseService } from '../services/ai-response.service';
 import './AIResponseModal.css';
 

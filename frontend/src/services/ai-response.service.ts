@@ -23,6 +23,10 @@ export class AIResponseService {
     if (apartmentData.error) throw new Error('Erreur de configuration : ' + apartmentData.error.message);
     if (messagesData.error) throw new Error('Erreur messages : ' + messagesData.error.message);
 
+    if (!apartmentData.data?.ai_config || !messagesData.data) {
+      throw new Error('Données manquantes pour générer une réponse');
+    }
+
     const prompt = this.buildPrompt(apartmentData.data.ai_config, messagesData.data);
     const response = await this.getAIResponse(prompt);
 

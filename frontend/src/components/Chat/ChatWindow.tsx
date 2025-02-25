@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { supabase } from '../../lib/supabase';
+import AIResponseModal from '../AIResponseModal';
 import { 
   Box, 
   TextField, 
@@ -30,6 +31,11 @@ interface Message {
   direction: 'inbound' | 'outbound';
 }
 
+interface Conversation {
+  id: string;
+  property: Array<{ id: string }>;
+}
+
 interface Template {
   id: string;
   name: string;
@@ -53,6 +59,7 @@ export default function ChatWindow({
   propertyName,
   conversationStartTime 
 }: ChatWindowProps) {
+  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [isInitialLoad, setIsInitialLoad] = useState(true);
@@ -72,6 +79,7 @@ const [aiModalOpen, setAiModalOpen] = useState(false);
     loadTemplates();
     loadWhatsAppConfig();
     checkMessageWindow();
+    loadConversation();
 
     // Souscrire aux nouveaux messages
     console.log('Setting up Supabase realtime subscription for conversation:', conversationId);
@@ -132,6 +140,21 @@ const [aiModalOpen, setAiModalOpen] = useState(false);
 
   // On ne veut pas de scroll automatique à chaque changement de messages
   // car cela interfère avec la lecture des messages précédents
+
+  const loadConversation = async () => {
+    const { data, error } = await supabase
+      .from('conversations')
+      .select('id, property:property_id ( id )')
+      .eq('id', conversationId)
+      .single();
+
+    if (error) {
+      console.error('Erreur lors du chargement de la conversation:', error);
+      return;
+    }
+
+    setSelectedConversation(data);
+  };
 
   const loadMessages = async () => {
     const { data, error } = await supabase
@@ -471,7 +494,7 @@ const [aiModalOpen, setAiModalOpen] = useState(false);
         <AIResponseModal
           apartmentId={selectedConversation?.property[0]?.id}
           conversationId={conversationId}
-          onSend={(response) => {
+          onSend={(response: string) => {
             setNewMessage(response);
             setAiModalOpen(false);
           }}
