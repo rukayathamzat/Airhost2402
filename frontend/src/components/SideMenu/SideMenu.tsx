@@ -1,17 +1,32 @@
 import { Link, useLocation } from 'react-router-dom';
-import { FaHome, FaComments, FaExclamationTriangle, FaFlask, FaCog } from 'react-icons/fa';
+import { FaHome, FaComments, FaExclamationTriangle, FaFlask, FaCog, FaWhatsapp, FaSignOutAlt } from 'react-icons/fa';
 import './SideMenu.css';
 
 const SideMenu = () => {
   const location = useLocation();
 
-  const menuItems = [
-    { path: '/properties', label: 'Propriétés', icon: <FaHome /> },
+  const mainMenuItems = [
     { path: '/chat', label: 'Conversations', icon: <FaComments /> },
+    { path: '/properties', label: 'Propriétés', icon: <FaHome /> },
     { path: '/emergency', label: 'Cas d\'urgence', icon: <FaExclamationTriangle /> },
     { path: '/sandbox', label: 'Chat Sandbox', icon: <FaFlask /> },
-    { path: '/settings', label: 'Paramètres', icon: <FaCog /> },
   ];
+
+  const bottomMenuItems = [
+    { path: '/whatsapp-config', label: 'Configuration WhatsApp', icon: <FaWhatsapp /> },
+    { path: '/logout', label: 'SE DÉCONNECTER', icon: <FaSignOutAlt /> },
+  ];
+
+  const renderMenuItem = (item) => (
+    <Link
+      key={item.path}
+      to={item.path}
+      className={`menu-item ${location.pathname === item.path ? 'active' : ''}`}
+    >
+      <span className="menu-icon">{item.icon}</span>
+      <span className="menu-label">{item.label}</span>
+    </Link>
+  );
 
   return (
     <div className="side-menu">
@@ -19,16 +34,10 @@ const SideMenu = () => {
         <h2 className="app-title">AirHost Admin</h2>
       </div>
       <nav className="menu-nav">
-        {menuItems.map((item) => (
-          <Link
-            key={item.path}
-            to={item.path}
-            className={`menu-item ${location.pathname === item.path ? 'active' : ''}`}
-          >
-            <span className="menu-icon">{item.icon}</span>
-            <span className="menu-label">{item.label}</span>
-          </Link>
-        ))}
+        {mainMenuItems.map(renderMenuItem)}
+      </nav>
+      <nav className="menu-nav bottom-nav">
+        {bottomMenuItems.map(renderMenuItem)}
       </nav>
     </div>
   );
