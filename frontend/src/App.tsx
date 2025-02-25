@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import SetPassword from './pages/SetPassword';
 import Chat from './pages/Chat';
 import Login from './pages/Login';
+import Layout from './components/Layout/Layout';
 import { supabase } from './lib/supabase';
 import { Session } from '@supabase/supabase-js';
 import './App.css'
@@ -41,14 +42,39 @@ function App() {
           path="/login" 
           element={
             session ? (
-              <Navigate to="/" replace />
+              <Navigate to="/chat" replace />
             ) : (
               <Login />
             )
           } 
         />
-        <Route 
-          path="/chat"
+        <Route
+          path="/"
+          element={
+            session ? (
+              <Navigate to="/chat" replace />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
+        />
+        <Route
+          path="/*"
+          element={
+            session ? (
+              <Layout>
+                <Routes>
+                  <Route path="/chat" element={<Chat />} />
+                  <Route path="/emergency" element={<div>Cas d'urgence (à venir)</div>} />
+                  <Route path="/sandbox" element={<div>Chat Sandbox (à venir)</div>} />
+                  <Route path="/settings" element={<div>Paramètres (à venir)</div>} />
+                </Routes>
+              </Layout>
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
+        />
           element={
             session ? (
               <Chat />
