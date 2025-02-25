@@ -96,7 +96,7 @@ ${lastMessage}
 
 [INSTRUCTIONS]
 1. Réponds de manière concise (max 3 phrases)
-2. Utilise le ton ${aiConfig.response_tone}
+2. Utilise un ton professionnel et amical
 3. Intègre les règles et FAQ si pertinent
 4. Sois précis et factuel
 `;
