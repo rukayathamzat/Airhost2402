@@ -120,12 +120,7 @@ async function getAIResponse(prompt: string, messages: any[]) {
     const chatMessages = [
       { 
         role: "system", 
-        content: "Tu es un assistant virtuel professionnel pour un hôte Airbnb. Tu dois :
-1. Répondre UNIQUEMENT aux questions posées
-2. Être précis et factuel, pas de réponses génériques
-3. Utiliser les informations de la propriété fournies
-4. Ne pas inventer d'informations
-5. Éviter les formules de politesse inutiles après la première interaction"
+        content: "Tu es un assistant virtuel professionnel pour un hôte Airbnb. Tu dois :\n1. Répondre UNIQUEMENT aux questions posées\n2. Être précis et factuel, pas de réponses génériques\n3. Utiliser les informations de la propriété fournies\n4. Ne pas inventer d'informations\n5. Éviter les formules de politesse inutiles après la première interaction"
       },
       ...messageHistory, // Inclure l'historique des messages
       { 
