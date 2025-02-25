@@ -145,13 +145,13 @@ async function getAIResponse(prompt: string, messages: any[]) {
     ];
 
     console.log('Envoi de la requête OpenAI avec les paramètres:', {
-      model: 'gpt-3.5-turbo',
+      model: 'gpt-4o-mini',
       messagesCount: chatMessages.length,
       lastMessage: chatMessages[chatMessages.length - 1]?.content
     });
 
     const completion = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo", // Modèle plus économique
+      model: "gpt-4o-mini", // Modèle optimisé pour la rapidité
       messages: chatMessages,
       temperature: 0.7,
       max_tokens: 150,
