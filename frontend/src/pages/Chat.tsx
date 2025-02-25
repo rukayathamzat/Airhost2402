@@ -28,6 +28,7 @@ export default function Chat() {
   const [configOpen, setConfigOpen] = useState(false);
   const [phoneNumberId, setPhoneNumberId] = useState('');
   const [whatsappToken, setWhatsappToken] = useState('');
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -241,6 +242,7 @@ export default function Chat() {
           )}
         </Box>
       </Paper>
+
     </Container>
   );
 }

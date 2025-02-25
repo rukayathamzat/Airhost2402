@@ -59,7 +59,7 @@ export default function ChatWindow({
   const [templates, setTemplates] = useState<Template[]>([]);
   
 const [templateAnchorEl, setTemplateAnchorEl] = useState<null | HTMLElement>(null);
-const [aiAnchorEl, setAiAnchorEl] = useState<null | HTMLElement>(null);
+const [aiModalOpen, setAiModalOpen] = useState(false);
   const [isOutsideWindow, setIsOutsideWindow] = useState(false);
   const [configOpen, setConfigOpen] = useState(false);
   const [phoneNumberId, setPhoneNumberId] = useState('');
@@ -466,29 +466,18 @@ const [aiAnchorEl, setAiAnchorEl] = useState<null | HTMLElement>(null);
         </DialogActions>
       </Dialog>
 
-      {/* Menu de l'IA */}
-      <Menu
-        anchorEl={aiAnchorEl}
-        open={Boolean(aiAnchorEl)}
-        onClose={() => setAiAnchorEl(null)}
-      >
-        <MenuItem disabled sx={{ opacity: 1 }}>
-          <ListItemIcon>
-            <AutoAwesomeIcon />
-          </ListItemIcon>
-          <ListItemText 
-            primary="Assistant IA"
-            secondary="Générer une réponse automatique"
-          />
-        </MenuItem>
-        <Divider />
-        <MenuItem disabled>
-          <ListItemText 
-            primary="Fonctionnalité à venir"
-            secondary="L'assistant IA sera bientôt disponible"
-          />
-        </MenuItem>
-      </Menu>
+      {/* Modal de l'IA */}
+      {aiModalOpen && (
+        <AIResponseModal
+          apartmentId={selectedConversation?.property[0]?.id}
+          conversationId={conversationId}
+          onSend={(response) => {
+            setNewMessage(response);
+            setAiModalOpen(false);
+          }}
+          onClose={() => setAiModalOpen(false)}
+        />
+      )}
 
       {/* Messages */}
       <Box sx={{ 
@@ -562,7 +551,7 @@ const [aiAnchorEl, setAiAnchorEl] = useState<null | HTMLElement>(null);
           <Tooltip title="Réponse IA">
             <IconButton 
               color="primary" 
-              onClick={(e) => setAiAnchorEl(e.currentTarget)}
+              onClick={() => setAiModalOpen(true)}
               sx={{ flexShrink: 0 }}
             >
               <AutoAwesomeIcon />
