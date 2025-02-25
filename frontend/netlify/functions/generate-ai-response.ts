@@ -75,26 +75,40 @@ const handler: Handler = async (event) => {
 
 function buildPrompt(propertyData: any, messages: any[]) {
   const lastMessage = messages[messages.length - 1]?.content || '';
-  const amenities = propertyData.amenities ? JSON.parse(propertyData.amenities) : {};
-  const rules = propertyData.rules ? JSON.parse(propertyData.rules) : {};
-  const faq = propertyData.faq ? JSON.parse(propertyData.faq) : {};
+  
+  // Gestion sécurisée des données JSON
+  const safeParseJson = (data: any) => {
+    if (!data) return {};
+    try {
+      return typeof data === 'string' ? JSON.parse(data) : data;
+    } catch {
+      return {};
+    }
+  };
+
+  // Récupération sécurisée des données
+  const amenities = safeParseJson(propertyData.amenities);
+  const rules = safeParseJson(propertyData.rules);
+  const faq = safeParseJson(propertyData.faq);
+
+  // Construction des sections si les données existent
+  const buildSection = (title: string, data: Record<string, any>, format: (k: string, v: any) => string = (k, v) => `- ${k}: ${v}`) => {
+    const entries = Object.entries(data);
+    return entries.length > 0 ? `\n[${title}]\n${entries.map(([k, v]) => format(k, v)).join('\n')}` : '';
+  };
+
+  const amenitiesSection = buildSection('COMMODITÉS', amenities);
+  const rulesSection = buildSection('RÈGLES', rules);
+  const faqSection = buildSection('FAQ', faq, (q, a) => `Q: ${q}\nR: ${a}`);
 
   return `
 Tu es un assistant virtuel pour la propriété suivante :
 
 [PROPRIÉTÉ]
 Nom: ${propertyData.name || 'Non spécifié'}
-Description: ${propertyData.description || 'Non spécifiée'}
+Description: ${propertyData.description || ''}
 Langue: ${propertyData.language || 'fr'}
-
-[COMMODITÉS]
-${Object.entries(amenities).map(([key, value]) => `- ${key}: ${value}`).join('\n')}
-
-[RÈGLES]
-${Object.entries(rules).map(([key, value]) => `- ${key}: ${value}`).join('\n')}
-
-[FAQ]
-${Object.entries(faq).map(([key, value]) => `Q: ${key}\nR: ${value}`).join('\n')}
+${amenitiesSection}${rulesSection}${faqSection}
 
 [INSTRUCTIONS]
 1. Réponds UNIQUEMENT à la question posée
