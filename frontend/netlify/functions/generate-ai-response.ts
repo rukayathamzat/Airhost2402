@@ -29,8 +29,8 @@ const handler: Handler = async (event) => {
     // Récupération des données en parallèle
     const [apartmentData, messagesData] = await Promise.all([
       supabase
-        .from('apartments')
-        .select('ai_config')
+        .from('properties')
+        .select('ai_instructions, name, language')
         .eq('id', apartmentId)
         .single(),
       supabase
@@ -44,7 +44,7 @@ const handler: Handler = async (event) => {
     if (apartmentData.error) throw new Error('Erreur de configuration : ' + apartmentData.error.message);
     if (messagesData.error) throw new Error('Erreur messages : ' + messagesData.error.message);
 
-    if (!apartmentData.data?.ai_config || !messagesData.data) {
+    if (!apartmentData.data || !messagesData.data) {
       throw new Error('Données manquantes pour générer une réponse');
     }
 
@@ -82,13 +82,11 @@ function buildPrompt(aiConfig: any, messages: any[]) {
 Tu es un assistant virtuel pour un hôte Airbnb. Réponds au dernier message du client.
 
 [CONFIGURATION]
-Règles de la maison:
-${aiConfig.house_rules || 'Aucune règle spécifiée'}
+Propriété: ${apartmentData.data.name || 'Non spécifié'}
+Langue: ${apartmentData.data.language || 'fr'}
 
-FAQ:
-${Array.isArray(aiConfig.faq) ? aiConfig.faq.join('\n') : 'Aucune FAQ spécifiée'}
-
-Ton de réponse souhaité: ${aiConfig.response_tone || 'professionnel'}
+Instructions IA:
+${apartmentData.data.ai_instructions || 'Aucune instruction spécifique'}
 
 [CONVERSATION RÉCENTE]
 ${conversationHistory}
