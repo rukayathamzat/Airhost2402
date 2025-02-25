@@ -144,14 +144,25 @@ async function getAIResponse(prompt: string, messages: any[]) {
       }
     ];
 
+    console.log('Envoi de la requête OpenAI avec les paramètres:', {
+      model: 'gpt-4-turbo-preview',
+      messagesCount: chatMessages.length,
+      lastMessage: chatMessages[chatMessages.length - 1]?.content
+    });
+
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini", // Modèle optimisé pour la rapidité
+      model: "gpt-4-turbo-preview", // Modèle le plus récent et rapide
       messages: chatMessages,
       temperature: 0.7,
       max_tokens: 150,
-      presence_penalty: 0.7, // Augmenté pour plus de variété
-      frequency_penalty: 0.5, // Augmenté pour éviter les répétitions
-      response_format: { type: "text" } // Force une réponse en texte
+      presence_penalty: 0.7,
+      frequency_penalty: 0.5,
+      response_format: { type: "text" }
+    });
+
+    console.log('Réponse OpenAI reçue:', {
+      status: 'success',
+      content: completion.choices[0].message.content
     });
 
     const content = completion.choices[0].message.content;
@@ -159,7 +170,11 @@ async function getAIResponse(prompt: string, messages: any[]) {
     
     return validateResponse(content);
   } catch (error: any) {
-    console.error('Erreur OpenAI:', error?.response?.data || error);
+    console.error('Erreur OpenAI:', {
+      error: error?.response?.data || error,
+      message: error?.message,
+      status: error?.response?.status
+    });
     throw new Error(error?.response?.data?.error?.message || 'Erreur de génération AI');
   }
 }
