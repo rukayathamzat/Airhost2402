@@ -82,11 +82,11 @@ function buildPrompt(propertyData: any, messages: any[]) {
 Tu es un assistant virtuel pour un hôte Airbnb. Réponds au dernier message du client.
 
 [CONFIGURATION]
-Propriété: ${apartmentData.data.name || 'Non spécifié'}
-Langue: ${apartmentData.data.language || 'fr'}
+Propriété: ${propertyData.name || 'Non spécifié'}
+Langue: ${propertyData.language || 'fr'}
 
 Instructions IA:
-${apartmentData.data.ai_instructions || 'Aucune instruction spécifique'}
+${propertyData.ai_instructions || 'Aucune instruction spécifique'}
 
 [CONVERSATION RÉCENTE]
 ${conversationHistory}
