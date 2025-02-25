@@ -83,12 +83,12 @@ Tu es un assistant virtuel pour un hôte Airbnb. Réponds au dernier message du 
 
 [CONFIGURATION]
 Règles de la maison:
-${aiConfig.house_rules}
+${aiConfig.house_rules || 'Aucune règle spécifiée'}
 
 FAQ:
-${aiConfig.faq.join('\n')}
+${Array.isArray(aiConfig.faq) ? aiConfig.faq.join('\n') : 'Aucune FAQ spécifiée'}
 
-Ton de réponse souhaité: ${aiConfig.response_tone}
+Ton de réponse souhaité: ${aiConfig.response_tone || 'professionnel'}
 
 [CONVERSATION RÉCENTE]
 ${conversationHistory}
