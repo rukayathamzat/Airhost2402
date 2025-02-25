@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 
 export class AIResponseService {
   private static openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY
+    apiKey: import.meta.env.VITE_OPENAI_API_KEY
   });
 
   static async generateResponse(apartmentId: string, conversationId: string) {
