@@ -24,5 +24,4 @@ export class AIResponseService {
       throw error;
     }
   }
-  }
 }
