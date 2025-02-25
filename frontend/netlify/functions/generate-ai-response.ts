@@ -50,7 +50,7 @@ const handler: Handler = async (event) => {
     }
 
     const prompt = buildPrompt(apartmentData.data, messagesData.data);
-    const response = await getAIResponse(prompt);
+    const response = await getAIResponse(prompt, messagesData.data);
 
     // Log de la réponse
     await supabase.from('ai_responses_log').insert({
@@ -75,12 +75,9 @@ const handler: Handler = async (event) => {
 
 function buildPrompt(propertyData: any, messages: any[]) {
   const lastMessage = messages[messages.length - 1]?.content || '';
-  const conversationHistory = messages
-    .map(m => `${m.direction}: ${m.content}`)
-    .join('\n');
 
   return `
-Tu es un assistant virtuel pour un hôte Airbnb. Réponds au dernier message du client.
+Contexte pour la réponse au message suivant :
 
 [CONFIGURATION]
 Propriété: ${propertyData.name || 'Non spécifié'}
@@ -89,38 +86,46 @@ Langue: ${propertyData.language || 'fr'}
 Instructions IA:
 ${propertyData.ai_instructions || 'Aucune instruction spécifique'}
 
-[CONVERSATION RÉCENTE]
-${conversationHistory}
-
-[DERNIER MESSAGE]
-${lastMessage}
-
 [INSTRUCTIONS]
 1. Réponds de manière concise (max 3 phrases)
 2. Utilise un ton professionnel et amical
 3. Intègre les règles et FAQ si pertinent
 4. Sois précis et factuel
+5. Assure une continuité avec la conversation précédente
+
+[MESSAGE ACTUEL]
+${lastMessage}
 `;
 }
 
-async function getAIResponse(prompt: string) {
+async function getAIResponse(prompt: string, messages: any[]) {
   try {
+    // Convertir l'historique des messages en format ChatGPT
+    const messageHistory = messages.map(msg => ({
+      role: msg.direction === 'inbound' ? 'user' : 'assistant',
+      content: msg.content
+    }));
+
+    // Ajouter le contexte système et le prompt actuel
+    const chatMessages = [
+      { 
+        role: "system", 
+        content: "Tu es un assistant virtuel professionnel pour un hôte Airbnb. Tu dois être concis, précis et utile. Utilise le contexte de la conversation pour personnaliser tes réponses."
+      },
+      ...messageHistory, // Inclure l'historique des messages
+      { 
+        role: "user", 
+        content: prompt 
+      }
+    ];
+
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini", // Version optimisée de GPT-4, rapide et économique
-      messages: [
-        { 
-          role: "system", 
-          content: "Tu es un assistant virtuel professionnel pour un hôte Airbnb. Tu dois être concis, précis et utile."
-        },
-        { 
-          role: "user", 
-          content: prompt 
-        }
-      ],
+      messages: chatMessages,
       temperature: 0.7,
       max_tokens: 150,
-      presence_penalty: 0.5,
-      frequency_penalty: 0.3,
+      presence_penalty: 0.7, // Augmenté pour plus de variété
+      frequency_penalty: 0.5, // Augmenté pour éviter les répétitions
       response_format: { type: "text" } // Force une réponse en texte
     });
 
