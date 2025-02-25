@@ -20,15 +20,19 @@ export default function AIResponseModal({
   const [error, setError] = useState('');
 
   const handleGenerate = async () => {
+    console.log('Génération démarrée avec:', { apartmentId, conversationId });
     try {
       setLoading(true);
       setError('');
+      console.log('Appel du service AI...');
       const aiResponse = await AIResponseService.generateResponse(
         apartmentId, 
         conversationId
       );
+      console.log('Réponse reçue:', aiResponse);
       setResponse(aiResponse);
     } catch (err: any) {
+      console.error('Erreur lors de la génération:', err);
       setError(err.message || 'Erreur de génération');
     } finally {
       setLoading(false);

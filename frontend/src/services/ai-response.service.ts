@@ -1,6 +1,8 @@
 export class AIResponseService {
   static async generateResponse(apartmentId: string, conversationId: string) {
+    console.log('Début de generateResponse avec:', { apartmentId, conversationId });
     try {
+      console.log('Envoi de la requête à la fonction Netlify...');
       const response = await fetch('/.netlify/functions/generate-ai-response', {
         method: 'POST',
         headers: {
@@ -12,12 +14,16 @@ export class AIResponseService {
         })
       });
 
+      console.log('Réponse reçue, status:', response.status);
+      
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Erreur lors de la génération de la réponse');
+        const errorData = await response.json();
+        console.error('Erreur serveur:', errorData);
+        throw new Error(errorData.error || 'Erreur lors de la génération de la réponse');
       }
 
       const data = await response.json();
+      console.log('Données reçues:', data);
       return data.response;
     } catch (error) {
       console.error('Erreur lors de la génération de la réponse:', error);
