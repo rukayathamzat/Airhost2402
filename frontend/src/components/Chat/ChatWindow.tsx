@@ -59,7 +59,7 @@ export default function ChatWindow({
   propertyName,
   conversationStartTime 
 }: ChatWindowProps) {
-  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
+
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [isInitialLoad, setIsInitialLoad] = useState(true);
@@ -69,40 +69,18 @@ const [templateAnchorEl, setTemplateAnchorEl] = useState<null | HTMLElement>(nul
 const [aiModalOpen, setAiModalOpen] = useState(false);
   const [isOutsideWindow, setIsOutsideWindow] = useState(false);
   const [configOpen, setConfigOpen] = useState(false);
+  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [phoneNumberId, setPhoneNumberId] = useState('');
   const [whatsappToken, setWhatsappToken] = useState('');
   const messagesEndRef = useRef<null | HTMLDivElement>(null);
 
   useEffect(() => {
-    const initializeChat = async () => {
-      console.log('Initialisation du chat...');
-      setIsInitialLoad(true);
-      
-      // Charger la conversation en premier
-      const { data: convData, error: convError } = await supabase
-        .from('conversations')
-        .select('*, property:apartments(*)')
-        .eq('id', conversationId)
-        .single();
+    setIsInitialLoad(true); // Réinitialiser isInitialLoad à chaque changement de conversation
+    loadMessages();
+    loadTemplates();
+    loadWhatsAppConfig();
+    checkMessageWindow();
 
-      if (convError) {
-        console.error('Erreur lors du chargement de la conversation:', convError);
-      } else {
-        console.log('Conversation chargée:', convData);
-        setSelectedConversation(convData);
-      }
-
-      // Charger le reste des données
-      await Promise.all([
-        loadMessages(),
-        loadTemplates(),
-        loadWhatsAppConfig()
-      ]);
-      
-      checkMessageWindow();
-    };
-
-    initializeChat();
 
     // Souscrire aux nouveaux messages
     console.log('Setting up Supabase realtime subscription for conversation:', conversationId);
@@ -164,20 +142,7 @@ const [aiModalOpen, setAiModalOpen] = useState(false);
   // On ne veut pas de scroll automatique à chaque changement de messages
   // car cela interfère avec la lecture des messages précédents
 
-  const loadConversation = async () => {
-    const { data, error } = await supabase
-      .from('conversations')
-      .select('id, property:property_id ( id )')
-      .eq('id', conversationId)
-      .single();
 
-    if (error) {
-      console.error('Erreur lors du chargement de la conversation:', error);
-      return;
-    }
-
-    setSelectedConversation(data);
-  };
 
   const loadMessages = async () => {
     const { data, error } = await supabase
