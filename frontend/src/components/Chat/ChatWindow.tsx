@@ -74,12 +74,35 @@ const [aiModalOpen, setAiModalOpen] = useState(false);
   const messagesEndRef = useRef<null | HTMLDivElement>(null);
 
   useEffect(() => {
-    setIsInitialLoad(true); // Réinitialiser isInitialLoad à chaque changement de conversation
-    loadMessages();
-    loadTemplates();
-    loadWhatsAppConfig();
-    checkMessageWindow();
-    loadConversation();
+    const initializeChat = async () => {
+      console.log('Initialisation du chat...');
+      setIsInitialLoad(true);
+      
+      // Charger la conversation en premier
+      const { data: convData, error: convError } = await supabase
+        .from('conversations')
+        .select('*, property:apartments(*)')
+        .eq('id', conversationId)
+        .single();
+
+      if (convError) {
+        console.error('Erreur lors du chargement de la conversation:', convError);
+      } else {
+        console.log('Conversation chargée:', convData);
+        setSelectedConversation(convData);
+      }
+
+      // Charger le reste des données
+      await Promise.all([
+        loadMessages(),
+        loadTemplates(),
+        loadWhatsAppConfig()
+      ]);
+      
+      checkMessageWindow();
+    };
+
+    initializeChat();
 
     // Souscrire aux nouveaux messages
     console.log('Setting up Supabase realtime subscription for conversation:', conversationId);
