@@ -145,7 +145,7 @@ async function getAIResponse(prompt: string, messages: any[]) {
     ];
 
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini", // Version optimisée de GPT-4, rapide et économique
+      model: "gpt-4", // Utilisation de GPT-4 standard
       messages: chatMessages,
       temperature: 0.7,
       max_tokens: 150,
