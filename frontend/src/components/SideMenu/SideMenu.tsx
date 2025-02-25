@@ -1,3 +1,4 @@
+import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { FaHome, FaComments, FaExclamationTriangle, FaFlask, FaWhatsapp, FaSignOutAlt } from 'react-icons/fa';
 import './SideMenu.css';
@@ -5,10 +6,10 @@ import './SideMenu.css';
 interface MenuItem {
   path: string;
   label: string;
-  icon: JSX.Element;
+  icon: React.ReactElement;
 }
 
-const SideMenu = () => {
+const SideMenu: React.FC = () => {
   const location = useLocation();
 
   const mainMenuItems: MenuItem[] = [
