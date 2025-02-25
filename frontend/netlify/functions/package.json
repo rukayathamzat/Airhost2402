@@ -2,8 +2,9 @@
   "name": "netlify-functions",
   "version": "1.0.0",
   "dependencies": {
+    "@netlify/functions": "^2.0.0",
+    "@supabase/supabase-js": "^2.49.1",
     "node-fetch": "^2.6.1",
-    "@supabase/supabase-js": "^2.38.4",
-    "@netlify/functions": "^2.0.0"
+    "openai": "^4.85.4"
   }
 }
