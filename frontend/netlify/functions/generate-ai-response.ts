@@ -49,6 +49,18 @@ const handler: Handler = async (event) => {
       throw new Error('Données manquantes pour générer une réponse');
     }
 
+    // Vérifier si c'est un premier message
+    const isFirstMessage = messagesData.data.length <= 1;
+
+    if (isFirstMessage) {
+      // Pour un premier message, envoyer un template de bienvenue
+      return {
+        statusCode: 200,
+        body: JSON.stringify({ response: 'Bonjour ! Je suis votre assistant virtuel. Comment puis-je vous aider ?' })
+      };
+    }
+
+    // Pour les autres messages, générer une réponse IA
     const prompt = buildPrompt(apartmentData.data, messagesData.data);
     const response = await getAIResponse(prompt, messagesData.data);
 
@@ -144,7 +156,7 @@ async function getAIResponse(prompt: string, messages: any[]) {
     ];
 
     const completion = await openai.chat.completions.create({
-      model: "gpt-4", // Utilisation de GPT-4 pour des réponses de haute qualité
+      model: "gpt-4o-mini", // Version optimisée de GPT-4, rapide et économique
       messages: chatMessages,
       temperature: 0.7,
       max_tokens: 150,
