@@ -34,10 +34,11 @@ interface Message {
 interface Conversation {
   id: string;
   property_id: string;
-  apartments?: {
+  properties?: {
     id: string;
     ai_instructions?: string;
-    ai_enabled: boolean;
+    name: string;
+    language: string;
   };
 }
 
@@ -483,9 +484,9 @@ const [aiModalOpen, setAiModalOpen] = useState(false);
       </Dialog>
 
       {/* Modal de l'IA */}
-      {aiModalOpen && selectedConversation?.apartments?.id && (
+      {aiModalOpen && selectedConversation?.properties?.id && (
         <AIResponseModal
-          apartmentId={selectedConversation.apartments.id}
+          apartmentId={selectedConversation.properties.id}
           conversationId={conversationId}
           onSend={(response: string) => {
             setNewMessage(response);
@@ -573,7 +574,7 @@ const [aiModalOpen, setAiModalOpen] = useState(false);
                   console.log('Conversation non chargée, chargement...');
                   const { data, error } = await supabase
                     .from('conversations')
-                    .select('*, apartments!conversations_property_id_fkey(*)')
+                    .select('*, properties(*)')
                     .eq('id', conversationId)
                     .single();
 
