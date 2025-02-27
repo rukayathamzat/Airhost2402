@@ -1,7 +1,6 @@
 import { 
   Menu, 
   MenuItem, 
-  ListItemIcon, 
   ListItemText,
   Divider,
   Typography,
