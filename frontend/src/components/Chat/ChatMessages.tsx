@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
-import { Box, Typography } from '@mui/material';
+import { Box, Typography, Paper } from '@mui/material';
+import { format } from 'date-fns';
 import { Message } from '../../services/chat/message.service';
 
 interface ChatMessagesProps {
@@ -41,7 +42,8 @@ export default function ChatMessages({ messages, isInitialLoad }: ChatMessagesPr
       p: 2,
       display: 'flex',
       flexDirection: 'column',
-      gap: 1
+      gap: 1.5,
+      backgroundColor: '#f8f9fa'
     }}>
       {messages.map((message) => (
         <Box
@@ -49,23 +51,36 @@ export default function ChatMessages({ messages, isInitialLoad }: ChatMessagesPr
           sx={{
             display: 'flex',
             justifyContent: message.direction === 'outbound' ? 'flex-end' : 'flex-start',
-            mb: 1
+            mb: 0.5
           }}
         >
-          <Box
+          <Paper
+            elevation={0}
             sx={{
               maxWidth: '70%',
-              p: 2,
+              p: 1.5,
               borderRadius: 2,
-              bgcolor: message.direction === 'outbound' ? 'primary.main' : 'grey.100',
-              color: message.direction === 'outbound' ? 'white' : 'text.primary'
+              bgcolor: message.direction === 'outbound' ? '#3b82f6' : '#ffffff',
+              color: message.direction === 'outbound' ? 'white' : 'text.primary',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
             }}
           >
-            <Typography variant="body1">{message.content}</Typography>
-            <Typography variant="caption" sx={{ opacity: 0.7 }}>
-              {new Date(message.created_at).toLocaleTimeString()}
+            <Typography variant="body1" sx={{ wordBreak: 'break-word' }}>
+              {message.content}
             </Typography>
-          </Box>
+            <Typography 
+              variant="caption" 
+              sx={{ 
+                display: 'block',
+                textAlign: 'right',
+                mt: 0.5,
+                opacity: 0.8,
+                fontSize: '0.7rem'
+              }}
+            >
+              {format(new Date(message.created_at), 'HH:mm')}
+            </Typography>
+          </Paper>
         </Box>
       ))}
       <div ref={messagesEndRef} />
