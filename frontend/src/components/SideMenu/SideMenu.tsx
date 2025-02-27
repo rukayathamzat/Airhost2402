@@ -19,9 +19,6 @@ const SideMenu: React.FC = () => {
   const [configOpen, setConfigOpen] = useState(false);
   const [phoneNumberId, setPhoneNumberId] = useState('');
   const [whatsappToken, setWhatsappToken] = useState('');
-  const [apiKey, setApiKey] = useState('');
-  const [verificationToken, setVerificationToken] = useState('');
-  const [enabled, setEnabled] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const handleLogout = async () => {
@@ -41,6 +38,9 @@ const SideMenu: React.FC = () => {
   };
 
   const openWhatsAppConfig = async () => {
+    console.log('Ouverture de la configuration WhatsApp');
+    toast.info('Chargement de la configuration WhatsApp...');
+    
     try {
       const { data, error } = await supabase
         .from('whatsapp_config')
@@ -53,14 +53,16 @@ const SideMenu: React.FC = () => {
       }
 
       if (data) {
+        console.log('Configuration WhatsApp chargée:', data);
         setPhoneNumberId(data.phone_number_id || '');
         setWhatsappToken(data.token || '');
-        setApiKey(data.api_key || '');
-        setVerificationToken(data.verification_token || '');
-        setEnabled(data.enabled || false);
+      } else {
+        console.log('Aucune configuration WhatsApp trouvée, utilisation des valeurs par défaut');
       }
 
+      // Force l'ouverture de la popup
       setConfigOpen(true);
+      console.log('État configOpen:', true);
     } catch (error) {
       console.error('Erreur:', error);
       toast.error('Une erreur est survenue');
@@ -74,27 +76,24 @@ const SideMenu: React.FC = () => {
       const { error } = await supabase
         .from('whatsapp_config')
         .upsert({
-          id: 1, // ID fixe pour une configuration unique
           phone_number_id: phoneNumberId,
           token: whatsappToken,
-          api_key: apiKey,
-          verification_token: verificationToken,
-          enabled: enabled,
           updated_at: new Date().toISOString()
         });
 
       if (error) {
         console.error('Erreur lors de la sauvegarde de la configuration:', error);
         toast.error('Erreur lors de la sauvegarde');
+        setSaving(false);
         return;
       }
 
       toast.success('Configuration sauvegardée avec succès');
       setConfigOpen(false);
+      setSaving(false);
     } catch (error) {
       console.error('Erreur:', error);
       toast.error('Une erreur est survenue');
-    } finally {
       setSaving(false);
     }
   };
@@ -148,7 +147,16 @@ const SideMenu: React.FC = () => {
       </div>
 
       {/* Dialog de configuration WhatsApp */}
-      <Dialog open={configOpen} onClose={() => setConfigOpen(false)} maxWidth="sm" fullWidth>
+      <Dialog 
+        open={configOpen} 
+        onClose={() => {
+          console.log('Fermeture du dialog');
+          setConfigOpen(false);
+        }} 
+        maxWidth="sm" 
+        fullWidth
+        sx={{ zIndex: 1400 }}
+      >
         <DialogTitle>Configuration WhatsApp</DialogTitle>
         <DialogContent>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
@@ -169,37 +177,17 @@ const SideMenu: React.FC = () => {
               type="password"
               placeholder="Entrez votre token WhatsApp"
             />
-            <TextField
-              label="Clé API"
-              variant="outlined"
-              fullWidth
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              type="password"
-              placeholder="Entrez votre clé API WhatsApp"
-            />
-            <TextField
-              label="Token de vérification"
-              variant="outlined"
-              fullWidth
-              value={verificationToken}
-              onChange={(e) => setVerificationToken(e.target.value)}
-              placeholder="Token pour webhook verification"
-            />
-            <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
-              <input
-                type="checkbox"
-                id="enabled"
-                checked={enabled}
-                onChange={(e) => setEnabled(e.target.checked)}
-                style={{ marginRight: '8px' }}
-              />
-              <label htmlFor="enabled">Activer l'intégration WhatsApp</label>
-            </Box>
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setConfigOpen(false)}>Annuler</Button>
+          <Button 
+            onClick={() => {
+              console.log('Annulation de la configuration');
+              setConfigOpen(false);
+            }}
+          >
+            Annuler
+          </Button>
           <Button 
             onClick={handleSaveConfig} 
             variant="contained" 

@@ -6,13 +6,7 @@ import {
   Button, 
   Typography, 
   CircularProgress,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField
 } from '@mui/material';
-import SettingsIcon from '@mui/icons-material/Settings';
 import ConversationList from '../components/Chat/ConversationList';
 import ChatWindow from '../components/Chat/ChatWindow';
 import { supabase } from '../lib/supabase';
@@ -25,16 +19,12 @@ export default function Chat() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [configOpen, setConfigOpen] = useState(false);
-  const [phoneNumberId, setPhoneNumberId] = useState('');
-  const [whatsappToken, setWhatsappToken] = useState('');
 
   const navigate = useNavigate();
 
   useEffect(() => {
     checkSession();
     fetchConversations();
-    loadWhatsAppConfig();
   }, []);
 
   const checkSession = async () => {
@@ -83,42 +73,6 @@ export default function Chat() {
     }
   };
 
-  const loadWhatsAppConfig = async () => {
-    const { data, error } = await supabase
-      .from('whatsapp_config')
-      .select('phone_number_id, token')
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
-
-    if (error) {
-      console.error('Erreur lors du chargement de la configuration WhatsApp:', error);
-      return;
-    }
-
-    if (data) {
-      setPhoneNumberId(data.phone_number_id || '');
-      setWhatsappToken(data.token || '');
-    }
-  };
-
-  const handleSaveConfig = async () => {
-    const { error } = await supabase
-      .from('whatsapp_config')
-      .upsert({
-        phone_number_id: phoneNumberId,
-        token: whatsappToken,
-        updated_at: new Date().toISOString()
-      });
-
-    if (error) {
-      console.error('Erreur lors de la sauvegarde de la configuration:', error);
-      return;
-    }
-
-    setConfigOpen(false);
-  };
-
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate('/login');
@@ -154,47 +108,9 @@ export default function Chat() {
   return (
     <Container maxWidth="xl" sx={{ height: '100vh', py: 3 }}>
       <Box sx={{ mb: 2, display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
-        <Button 
-          startIcon={<SettingsIcon />}
-          onClick={() => setConfigOpen(true)}
-          variant="outlined"
-        >
-          Configuration WhatsApp
-        </Button>
         <Button onClick={handleLogout} variant="contained" color="primary">Se déconnecter</Button>
       </Box>
 
-      {/* Dialog de configuration WhatsApp */}
-      <Dialog open={configOpen} onClose={() => setConfigOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Configuration WhatsApp</DialogTitle>
-        <DialogContent>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
-            <TextField
-              label="Phone Number ID"
-              variant="outlined"
-              fullWidth
-              value={phoneNumberId}
-              onChange={(e) => setPhoneNumberId(e.target.value)}
-              placeholder="Entrez votre Phone Number ID WhatsApp"
-            />
-            <TextField
-              label="Token WhatsApp"
-              variant="outlined"
-              fullWidth
-              value={whatsappToken}
-              onChange={(e) => setWhatsappToken(e.target.value)}
-              type="password"
-              placeholder="Entrez votre token WhatsApp"
-            />
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setConfigOpen(false)}>Annuler</Button>
-          <Button onClick={handleSaveConfig} variant="contained" color="primary">
-            Enregistrer
-          </Button>
-        </DialogActions>
-      </Dialog>
       <Paper sx={{ 
         height: 'calc(100% - 48px)', 
         display: 'flex',
