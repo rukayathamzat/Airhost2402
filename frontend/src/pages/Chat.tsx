@@ -151,34 +151,7 @@ export default function Chat() {
 
   return (
     <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <Box sx={{ 
-        p: 2, 
-        display: 'flex', 
-        justifyContent: 'flex-end', 
-        gap: 2,
-        borderBottom: '1px solid',
-        borderColor: 'divider',
-        bgcolor: 'white'
-      }}>
-        <Button 
-          startIcon={<SettingsIcon />}
-          onClick={() => setConfigOpen(true)}
-          variant="outlined"
-          size="small"
-        >
-          Configuration WhatsApp
-        </Button>
-        <Button 
-          onClick={handleLogout} 
-          variant="contained" 
-          color="primary"
-          size="small"
-        >
-          Se déconnecter
-        </Button>
-      </Box>
-
-      {/* Dialog de configuration WhatsApp */}
+      {/* Dialog de configuration WhatsApp - conservé mais caché par défaut */}
       <Dialog open={configOpen} onClose={() => setConfigOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>Configuration WhatsApp</DialogTitle>
         <DialogContent>
@@ -210,10 +183,12 @@ export default function Chat() {
         </DialogActions>
       </Dialog>
       
+      {/* Contenu principal - uniquement la partie dans le cadre rouge */}
       <Box sx={{ 
         flexGrow: 1, 
         display: 'flex',
-        overflow: 'hidden'
+        overflow: 'hidden',
+        height: '100vh' // Assurer que ça prend toute la hauteur
       }}>
         {/* Liste des conversations */}
         <Box sx={{ 
@@ -234,7 +209,7 @@ export default function Chat() {
           flexGrow: 1,
           display: 'flex',
           flexDirection: 'column',
-          bgcolor: '#f8f9fa',
+          bgcolor: '#ffffff',
           overflow: 'hidden'
         }}>
           {selectedConversation ? (
