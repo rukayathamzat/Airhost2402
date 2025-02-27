@@ -76,7 +76,18 @@ export default function ChatWindow({
       conversationId,
       (newMessage) => {
         console.log('New message received:', newMessage);
-        setMessages(current => [...current, newMessage]);
+        // Vérifier si le message n'existe pas déjà dans la liste
+        setMessages(current => {
+          // Si le message existe déjà (même ID), ne pas l'ajouter
+          const messageExists = current.some(msg => msg.id === newMessage.id);
+          if (messageExists) {
+            console.log('Message déjà dans la liste, ignoré:', newMessage.id);
+            return current;
+          }
+          // Sinon, l'ajouter à la liste
+          console.log('Ajout du nouveau message à la liste:', newMessage.id);
+          return [...current, newMessage];
+        });
         setIsInitialLoad(false);
       }
     );
@@ -108,11 +119,21 @@ export default function ChatWindow({
       ]);
       
       console.log('Message envoyé avec succès:', newMessage);
+      console.log('Message ID:', newMessage?.id, '- Ce message sera ajouté localement');
       
       // Si la subscription temps réel ne fonctionne pas correctement,
       // ajoutons manuellement le message à la liste
       if (newMessage) {
-        setMessages(msgs => [...msgs, newMessage]);
+        setMessages(msgs => {
+          // Vérifier si le message n'existe pas déjà (par sécurité)
+          const messageExists = msgs.some(msg => msg.id === newMessage.id);
+          if (messageExists) {
+            console.log('Message déjà présent dans la liste (manuel), pas d\'ajout');
+            return msgs;
+          }
+          console.log('Ajout manuel du message à la liste:', newMessage.id);
+          return [...msgs, newMessage];
+        });
       }
     } catch (error) {
       console.error('Erreur lors de l\'envoi du message:', error);
