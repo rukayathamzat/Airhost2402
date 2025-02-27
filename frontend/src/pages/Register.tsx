@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import {
   Container,
@@ -20,6 +20,7 @@ export default function Register() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,7 +46,10 @@ export default function Register() {
         email,
         password,
         options: {
-          emailRedirectTo: window.location.origin
+          emailRedirectTo: `${window.location.origin}/login`,
+          data: {
+            registration_timestamp: new Date().toISOString()
+          }
         }
       });
 
@@ -57,6 +61,7 @@ export default function Register() {
     } catch (err: any) {
       console.error('Erreur d\'inscription:', err);
       setError(err.message);
+      navigate('/verification-error', { replace: true });
     } finally {
       setLoading(false);
     }
