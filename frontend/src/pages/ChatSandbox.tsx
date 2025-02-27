@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Paper, Typography, Box, FormControl, Select, MenuItem, Switch, FormControlLabel, Button, TextField, IconButton, Collapse } from '@mui/material';
+import { Typography, Box, FormControl, Select, MenuItem, Switch, FormControlLabel, Button, TextField, IconButton, Collapse } from '@mui/material';
 import { supabase } from '../lib/supabase';
 import { ExpandMore, Send, DeleteOutline, SettingsOutlined } from '@mui/icons-material';
 import { toast } from 'react-toastify';
