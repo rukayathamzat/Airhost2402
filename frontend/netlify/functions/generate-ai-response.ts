@@ -3,8 +3,8 @@ import OpenAI from 'openai';
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+  process.env.SUPABASE_URL || '',
+  process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 );
 
 const openai = new OpenAI({
@@ -32,11 +32,8 @@ export const handler: Handler = async (event, context) => {
 
     console.log(`Traitement de la requête pour l'appartement ${apartmentId} et la conversation ${conversationId}`);
 
-    // Initialiser le client Supabase
-    const supabase = createClient(
-      process.env.SUPABASE_URL || '',
-      process.env.SUPABASE_SERVICE_KEY || ''
-    );
+    // Utilisation de l'instance Supabase déjà initialisée en haut du fichier
+    // au lieu d'en créer une nouvelle
 
     // Récupérer les données de l'appartement
     const { data: propertyData, error: propertyError } = await supabase
