@@ -10,7 +10,6 @@ import {
   DialogActions,
   TextField
 } from '@mui/material';
-import SettingsIcon from '@mui/icons-material/Settings';
 import ConversationList from '../components/Chat/ConversationList';
 import ChatWindow from '../components/Chat/ChatWindow';
 import { supabase } from '../lib/supabase';
@@ -115,11 +114,6 @@ export default function Chat() {
     }
 
     setConfigOpen(false);
-  };
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate('/login');
   };
 
   if (loading) {
