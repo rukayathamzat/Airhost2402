@@ -101,7 +101,7 @@ const SideMenu: React.FC = () => {
 
   const mainMenuItems: MenuItem[] = [
     { path: '/chat', label: 'Conversations', icon: <FaComments /> },
-    { path: '/properties', label: 'Propriétés', icon: <FaHome /> },
+    { path: '/properties', label: 'Appartements', icon: <FaHome /> },
     { path: '/emergency', label: 'Cas d\'urgence', icon: <FaExclamationTriangle /> },
     { path: '/sandbox', label: 'Chat Sandbox', icon: <FaFlask /> },
   ];

@@ -4,6 +4,7 @@ import SetPassword from './pages/SetPassword';
 import Chat from './pages/Chat';
 import Login from './pages/Login';
 import ChatSandbox from './pages/ChatSandbox';
+import Properties from './pages/Properties';
 import Layout from './components/Layout/Layout';
 import { supabase } from './lib/supabase';
 import { Session } from '@supabase/supabase-js';
@@ -71,6 +72,7 @@ function App() {
                   <Route path="/chat" element={<Chat />} />
                   <Route path="/emergency" element={<div>Cas d&apos;urgence (à venir)</div>} />
                   <Route path="/sandbox" element={<ChatSandbox />} />
+                  <Route path="/properties" element={<Properties />} />
                   <Route path="/settings" element={<div>Paramètres (à venir)</div>} />
                 </Routes>
               </Layout>
