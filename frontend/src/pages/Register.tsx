@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import {
   Container,
@@ -13,90 +13,49 @@ import {
   Link as MuiLink
 } from '@mui/material';
 
-export default function Login() {
+export default function Register() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
-  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setSuccess(false);
-    setLoading(true);
-
-    try {
-      console.log('Tentative de connexion avec:', { email, password });
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
-
-      if (error) throw error;
-
-      console.log('Connexion réussie:', data);
-      setSuccess(true);
-      navigate('/');
-    } catch (err: any) {
-      console.error('Erreur de connexion:', err);
-      setError(err.message);
-    } finally {
-      setLoading(false);
+    
+    // Validation
+    if (password !== confirmPassword) {
+      setError('Les mots de passe ne correspondent pas');
+      return;
     }
-  };
-
-  const handleMagicLink = async () => {
-    if (!email) {
-      setError('Veuillez entrer votre email');
+    
+    if (password.length < 6) {
+      setError('Le mot de passe doit contenir au moins 6 caractères');
       return;
     }
 
-    setError(null);
-    setSuccess(false);
     setLoading(true);
 
     try {
-      console.log('Envoi du magic link à:', email);
-      const { error } = await supabase.auth.signInWithOtp({
+      console.log('Tentative d\'inscription avec:', { email });
+      const { data, error } = await supabase.auth.signUp({
         email,
+        password,
         options: {
-          emailRedirectTo: 'http://localhost:5174'
+          emailRedirectTo: window.location.origin
         }
       });
 
       if (error) throw error;
 
+      console.log('Inscription réussie:', data);
       setSuccess(true);
-      setError('Un lien de connexion a été envoyé à votre email');
+      setError('Un email de confirmation a été envoyé à votre adresse. Veuillez vérifier votre boîte de réception.');
     } catch (err: any) {
-      console.error('Erreur magic link:', err);
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleResetPassword = async () => {
-    if (!email) {
-      setError('Veuillez entrer votre email');
-      return;
-    }
-
-    setError(null);
-    setSuccess(false);
-    setLoading(true);
-
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email);
-
-      if (error) throw error;
-
-      setSuccess(true);
-      setError('Les instructions de réinitialisation du mot de passe ont été envoyées à votre email');
-    } catch (err: any) {
-      console.error('Erreur réinitialisation:', err);
+      console.error('Erreur d\'inscription:', err);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -123,7 +82,7 @@ export default function Login() {
           }}
         >
           <Typography variant="h4" component="h1" gutterBottom align="center">
-            Connexion
+            Créer un compte
           </Typography>
 
           {error && (
@@ -153,6 +112,18 @@ export default function Login() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             margin="normal"
+            required
+            disabled={loading}
+          />
+
+          <TextField
+            fullWidth
+            label="Confirmer le mot de passe"
+            type="password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            margin="normal"
+            required
             disabled={loading}
           />
 
@@ -161,40 +132,18 @@ export default function Login() {
               fullWidth
               variant="contained"
               type="submit"
-              disabled={!email || !password || loading}
+              disabled={!email || !password || !confirmPassword || loading}
             >
               {loading ? (
                 <CircularProgress size={24} color="inherit" />
               ) : (
-                'Se connecter'
+                'S\'inscrire'
               )}
-            </Button>
-
-            <Button
-              fullWidth
-              variant="outlined"
-              onClick={handleMagicLink}
-              disabled={!email || loading}
-            >
-              {loading ? (
-                <CircularProgress size={24} color="inherit" />
-              ) : (
-                'Recevoir un lien magique'
-              )}
-            </Button>
-
-            <Button
-              fullWidth
-              variant="text"
-              onClick={handleResetPassword}
-              disabled={!email || loading}
-            >
-              Réinitialiser le mot de passe
             </Button>
 
             <Box sx={{ mt: 2, textAlign: 'center' }}>
-              <MuiLink component={Link} to="/register" variant="body2">
-                Pas encore de compte ? S'inscrire
+              <MuiLink component={Link} to="/login" variant="body2">
+                Déjà un compte ? Se connecter
               </MuiLink>
             </Box>
           </Box>

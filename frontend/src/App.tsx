@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import SetPassword from './pages/SetPassword';
 import Chat from './pages/Chat';
 import Login from './pages/Login';
+import Register from './pages/Register';
 import ChatSandbox from './pages/ChatSandbox';
 import Properties from './pages/Properties';
 import Layout from './components/Layout/Layout';
@@ -50,6 +51,16 @@ function App() {
               <Navigate to="/chat" replace />
             ) : (
               <Login />
+            )
+          } 
+        />
+        <Route 
+          path="/register" 
+          element={
+            session ? (
+              <Navigate to="/chat" replace />
+            ) : (
+              <Register />
             )
           } 
         />
