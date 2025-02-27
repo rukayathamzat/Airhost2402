@@ -3,6 +3,7 @@ import { Typography, Box, FormControl, Select, MenuItem, Switch, FormControlLabe
 import { supabase } from '../lib/supabase';
 import { ExpandMore, Send, DeleteOutline, SettingsOutlined } from '@mui/icons-material';
 import { toast } from 'react-toastify';
+import { useNavigate } from 'react-router-dom';
 
 interface Property {
   id: string;
@@ -29,10 +30,21 @@ const ChatSandbox: React.FC = () => {
   const [advancedSettingsOpen, setAdvancedSettingsOpen] = useState<boolean>(false);
   const [customInstructions, setCustomInstructions] = useState<string>('');
 
+  const navigate = useNavigate();
+
   // Charger les propriétés
   useEffect(() => {
     const loadProperties = async () => {
       try {
+        // Vérifier que l'utilisateur est authentifié
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (!sessionData?.session) {
+          console.error('Utilisateur non authentifié');
+          toast.error("Vous devez être connecté pour accéder à cette page");
+          navigate('/login');
+          return;
+        }
+
         const { data, error } = await supabase
           .from('properties')
           .select('id, name, location, ai_instructions');
