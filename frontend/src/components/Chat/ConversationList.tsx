@@ -78,7 +78,7 @@ export default function ConversationList({ conversations, onSelectConversation }
       ) : (
         <List sx={{ width: '100%', p: 0, overflowY: 'auto' }}>
           {conversations.map((conversation) => (
-            <React.Fragment key={conversation.id}>
+            <div key={conversation.id}>
               <ListItem
                 onClick={() => onSelectConversation(conversation)}
                 sx={{
@@ -153,7 +153,7 @@ export default function ConversationList({ conversations, onSelectConversation }
                 />
               </ListItem>
               <Divider />
-            </React.Fragment>
+            </div>
           ))}
         </List>
       )}
