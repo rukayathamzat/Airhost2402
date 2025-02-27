@@ -6,6 +6,8 @@ import Login from './pages/Login';
 import Layout from './components/Layout/Layout';
 import { supabase } from './lib/supabase';
 import { Session } from '@supabase/supabase-js';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import './App.css'
 
 function App() {
@@ -36,6 +38,7 @@ function App() {
 
   return (
     <Router>
+      <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} closeOnClick pauseOnHover />
       <Routes>
         <Route path="/set-password" element={<SetPassword />} />
         <Route 
