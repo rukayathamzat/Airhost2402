@@ -2,7 +2,8 @@
   display: flex;
   min-height: 100vh;
   width: 100%;
-  background-color: #f8f9fa;
+  background-color: #ffffff;
+  overflow: hidden; /* Empêcher les scrollbars inutiles */
 }
 
 .main-content {
@@ -12,10 +13,12 @@
   background-color: #ffffff;
   transition: margin-left 0.3s ease;
   overflow: hidden;
+  padding: 0; /* Supprimer tout padding */
+  margin: 0; /* Supprimer toutes les marges */
 }
 
 @media (max-width: 768px) {
   .main-content {
-    margin-left: 60px;
+    margin-left: 60px; /* Conserver la marge pour le menu mobile */
   }
 }
