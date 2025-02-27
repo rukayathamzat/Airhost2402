@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Box, Paper } from '@mui/material';
+import { Paper } from '@mui/material';
 import { supabase } from '../../lib/supabase';
 import AIResponseModal from '../AIResponseModal';
 import ChatHeader from './ChatHeader';
