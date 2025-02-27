@@ -90,13 +90,33 @@ export default function ChatWindow({
   // Gestionnaires d'événements
   const handleSendMessage = async (content: string) => {
     try {
-      if (!selectedConversation) throw new Error('Conversation non chargée');
-      await Promise.all([
+      console.log('Tentative d\'envoi de message:', content);
+      
+      if (!selectedConversation) {
+        throw new Error('Conversation non chargée');
+      }
+      
+      if (!content.trim()) {
+        console.warn('Tentative d\'envoi d\'un message vide');
+        return;
+      }
+      
+      // Envoi local dans la BDD et à WhatsApp
+      const [newMessage] = await Promise.all([
         MessageService.sendMessage(conversationId, content),
         WhatsAppService.sendMessage(selectedConversation.guest_phone, content)
       ]);
+      
+      console.log('Message envoyé avec succès:', newMessage);
+      
+      // Si la subscription temps réel ne fonctionne pas correctement,
+      // ajoutons manuellement le message à la liste
+      if (newMessage) {
+        setMessages(msgs => [...msgs, newMessage]);
+      }
     } catch (error) {
       console.error('Erreur lors de l\'envoi du message:', error);
+      // Notification d'erreur pourrait être ajoutée ici
     }
   };
 
@@ -162,7 +182,13 @@ export default function ChatWindow({
           apartmentId={selectedConversation.properties.id}
           conversationId={conversationId}
           onSend={(response: string) => {
-            handleSendMessage(response);
+            console.log('Réponse IA à envoyer:', response);
+            // S'assurer que la réponse n'est pas vide
+            if (response.trim()) {
+              handleSendMessage(response);
+            } else {
+              console.warn('Tentative d\'envoi d\'une réponse IA vide');
+            }
             setAiModalOpen(false);
           }}
           onClose={() => setAiModalOpen(false)}
