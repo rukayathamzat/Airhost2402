@@ -4,6 +4,8 @@ import SetPassword from './pages/SetPassword';
 import Chat from './pages/Chat';
 import Login from './pages/Login';
 import Layout from './components/Layout/Layout';
+import WhatsAppConfig from './pages/WhatsAppConfig';
+import Logout from './pages/Logout';
 import { supabase } from './lib/supabase';
 import { Session } from '@supabase/supabase-js';
 import './App.css'
@@ -68,6 +70,8 @@ function App() {
                   <Route path="/emergency" element={<div>Cas d&apos;urgence (à venir)</div>} />
                   <Route path="/sandbox" element={<div>Chat Sandbox (à venir)</div>} />
                   <Route path="/settings" element={<div>Paramètres (à venir)</div>} />
+                  <Route path="/whatsapp-config" element={<WhatsAppConfig />} />
+                  <Route path="/logout" element={<Logout />} />
                 </Routes>
               </Layout>
             ) : (
