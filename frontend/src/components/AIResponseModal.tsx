@@ -25,16 +25,30 @@ export default function AIResponseModal({
     try {
       setLoading(true);
       setError('');
+      setResponse(''); // Réinitialiser toute réponse existante
+      
       console.log('Appel du service AI...');
       const aiResponse = await AIResponseService.generateResponse(
         apartmentId, 
         conversationId
       );
-      console.log('Réponse reçue:', aiResponse);
+      
+      console.log('Réponse IA reçue avec succès:', aiResponse);
+      
+      // Validation supplémentaire de la réponse
+      if (!aiResponse || aiResponse.trim() === '') {
+        throw new Error('La réponse générée est vide');
+      }
+      
+      if (aiResponse.startsWith('Template envoyé:')) {
+        throw new Error('Type de réponse incorrect');
+      }
+      
       setResponse(aiResponse);
     } catch (err: any) {
       console.error('Erreur lors de la génération:', err);
       setError(err.message || 'Erreur de génération');
+      setResponse(''); // Réinitialiser en cas d'erreur
     } finally {
       setLoading(false);
     }
