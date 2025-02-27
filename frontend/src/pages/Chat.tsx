@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { 
   Box, 
+  Container, 
+  Paper, 
   Button, 
   Typography, 
   CircularProgress,
@@ -10,6 +12,7 @@ import {
   DialogActions,
   TextField
 } from '@mui/material';
+import SettingsIcon from '@mui/icons-material/Settings';
 import ConversationList from '../components/Chat/ConversationList';
 import ChatWindow from '../components/Chat/ChatWindow';
 import { supabase } from '../lib/supabase';
@@ -116,6 +119,11 @@ export default function Chat() {
     setConfigOpen(false);
   };
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate('/login');
+  };
+
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
@@ -144,8 +152,19 @@ export default function Chat() {
   }
 
   return (
-    <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
-      {/* Dialog de configuration WhatsApp - conservé mais caché par défaut */}
+    <Container maxWidth="xl" sx={{ height: '100vh', py: 3 }}>
+      <Box sx={{ mb: 2, display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
+        <Button 
+          startIcon={<SettingsIcon />}
+          onClick={() => setConfigOpen(true)}
+          variant="outlined"
+        >
+          Configuration WhatsApp
+        </Button>
+        <Button onClick={handleLogout} variant="contained" color="primary">Se déconnecter</Button>
+      </Box>
+
+      {/* Dialog de configuration WhatsApp */}
       <Dialog open={configOpen} onClose={() => setConfigOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>Configuration WhatsApp</DialogTitle>
         <DialogContent>
@@ -176,22 +195,17 @@ export default function Chat() {
           </Button>
         </DialogActions>
       </Dialog>
-      
-      {/* Contenu principal */}
-      <Box sx={{ 
+      <Paper sx={{ 
+        height: 'calc(100% - 48px)', 
         display: 'flex',
-        overflow: 'hidden',
-        height: '100vh', 
-        width: '100%'
+        overflow: 'hidden'
       }}>
         {/* Liste des conversations */}
         <Box sx={{ 
-          width: 320, 
+          width: 360, 
           borderRight: 1, 
           borderColor: 'divider',
-          overflow: 'auto',
-          bgcolor: 'white',
-          height: '100%'
+          overflow: 'auto'
         }}>
           <ConversationList
             conversations={conversations}
@@ -204,9 +218,7 @@ export default function Chat() {
           flexGrow: 1,
           display: 'flex',
           flexDirection: 'column',
-          bgcolor: '#ffffff',
-          overflow: 'hidden',
-          height: '100%'
+          bgcolor: 'grey.50'
         }}>
           {selectedConversation ? (
             <ChatWindow
@@ -219,30 +231,18 @@ export default function Chat() {
             <Box
               sx={{
                 display: 'flex',
-                flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
                 height: '100%',
-                color: 'text.secondary',
-                p: 3,
-                textAlign: 'center'
+                color: 'text.secondary'
               }}
             >
-              <img 
-                src="https://cdn-icons-png.flaticon.com/512/1041/1041916.png" 
-                alt="Chat" 
-                style={{ width: 120, height: 120, opacity: 0.5, marginBottom: 24 }}
-              />
-              <Typography variant="h6" color="text.secondary" gutterBottom>
-                Aucune conversation sélectionnée
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Sélectionnez une conversation dans la liste pour commencer à discuter
-              </Typography>
+              Sélectionnez une conversation pour commencer
             </Box>
           )}
         </Box>
-      </Box>
-    </Box>
+      </Paper>
+
+    </Container>
   );
 }
