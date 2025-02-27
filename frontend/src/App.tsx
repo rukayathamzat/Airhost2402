@@ -4,6 +4,7 @@ import SetPassword from './pages/SetPassword';
 import Chat from './pages/Chat';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import VerificationError from './pages/VerificationError';
 import ChatSandbox from './pages/ChatSandbox';
 import Properties from './pages/Properties';
 import Layout from './components/Layout/Layout';
@@ -61,6 +62,16 @@ function App() {
               <Navigate to="/chat" replace />
             ) : (
               <Register />
+            )
+          } 
+        />
+        <Route 
+          path="/verification-error" 
+          element={
+            session ? (
+              <Navigate to="/chat" replace />
+            ) : (
+              <VerificationError />
             )
           } 
         />
