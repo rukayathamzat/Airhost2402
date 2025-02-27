@@ -152,16 +152,32 @@ export default function Chat() {
   }
 
   return (
-    <Container maxWidth="xl" sx={{ height: '100vh', py: 3 }}>
-      <Box sx={{ mb: 2, display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
+    <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <Box sx={{ 
+        p: 2, 
+        display: 'flex', 
+        justifyContent: 'flex-end', 
+        gap: 2,
+        borderBottom: '1px solid',
+        borderColor: 'divider',
+        bgcolor: 'white'
+      }}>
         <Button 
           startIcon={<SettingsIcon />}
           onClick={() => setConfigOpen(true)}
           variant="outlined"
+          size="small"
         >
           Configuration WhatsApp
         </Button>
-        <Button onClick={handleLogout} variant="contained" color="primary">Se déconnecter</Button>
+        <Button 
+          onClick={handleLogout} 
+          variant="contained" 
+          color="primary"
+          size="small"
+        >
+          Se déconnecter
+        </Button>
       </Box>
 
       {/* Dialog de configuration WhatsApp */}
@@ -195,17 +211,19 @@ export default function Chat() {
           </Button>
         </DialogActions>
       </Dialog>
-      <Paper sx={{ 
-        height: 'calc(100% - 48px)', 
+      
+      <Box sx={{ 
+        flexGrow: 1, 
         display: 'flex',
         overflow: 'hidden'
       }}>
         {/* Liste des conversations */}
         <Box sx={{ 
-          width: 360, 
+          width: 320, 
           borderRight: 1, 
           borderColor: 'divider',
-          overflow: 'auto'
+          overflow: 'auto',
+          bgcolor: 'white'
         }}>
           <ConversationList
             conversations={conversations}
@@ -218,7 +236,8 @@ export default function Chat() {
           flexGrow: 1,
           display: 'flex',
           flexDirection: 'column',
-          bgcolor: 'grey.50'
+          bgcolor: '#f8f9fa',
+          overflow: 'hidden'
         }}>
           {selectedConversation ? (
             <ChatWindow
@@ -231,18 +250,30 @@ export default function Chat() {
             <Box
               sx={{
                 display: 'flex',
+                flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
                 height: '100%',
-                color: 'text.secondary'
+                color: 'text.secondary',
+                p: 3,
+                textAlign: 'center'
               }}
             >
-              Sélectionnez une conversation pour commencer
+              <img 
+                src="https://cdn-icons-png.flaticon.com/512/1041/1041916.png" 
+                alt="Chat" 
+                style={{ width: 120, height: 120, opacity: 0.5, marginBottom: 24 }}
+              />
+              <Typography variant="h6" color="text.secondary" gutterBottom>
+                Aucune conversation sélectionnée
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Sélectionnez une conversation dans la liste pour commencer à discuter
+              </Typography>
             </Box>
           )}
         </Box>
-      </Paper>
-
-    </Container>
+      </Box>
+    </Box>
   );
 }
