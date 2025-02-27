@@ -12,14 +12,17 @@ const openai = new OpenAI({
   organization: process.env.OPENAI_ORG_ID // Optionnel mais recommandé
 });
 
-const handler: Handler = async (event) => {
-  if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, body: 'Method Not Allowed' };
-  }
-
+export const handler: Handler = async (event, context) => {
   try {
-    const { apartmentId, conversationId } = JSON.parse(event.body || '{}');
+    // Vérifier la méthode et cors
+    if (event.httpMethod !== 'POST') {
+      return { statusCode: 405, body: 'Méthode non autorisée' };
+    }
 
+    console.log('Reçu une requête pour generate-ai-response');
+    
+    // Extraire les paramètres de la requête
+    const { apartmentId, conversationId } = JSON.parse(event.body || '{}');
     if (!apartmentId || !conversationId) {
       return {
         statusCode: 400,
@@ -27,49 +30,78 @@ const handler: Handler = async (event) => {
       };
     }
 
-    // Récupération des données en parallèle
-    const [apartmentData, messagesData] = await Promise.all([
-      supabase
-        .from('properties')
-        .select('ai_instructions, name, language, description, amenities, rules, faq')
-        .eq('id', apartmentId)
-        .single(),
-      supabase
-        .from('messages')
-        .select('content, created_at, direction')
-        .eq('conversation_id', conversationId)
-        .order('created_at', { ascending: true })
-        .limit(10)
-    ]);
+    console.log(`Traitement de la requête pour l'appartement ${apartmentId} et la conversation ${conversationId}`);
 
-    if (apartmentData.error) throw new Error('Erreur de configuration : ' + apartmentData.error.message);
-    if (messagesData.error) throw new Error('Erreur messages : ' + messagesData.error.message);
+    // Initialiser le client Supabase
+    const supabase = createClient(
+      process.env.SUPABASE_URL || '',
+      process.env.SUPABASE_SERVICE_KEY || ''
+    );
 
-    if (!apartmentData.data || !messagesData.data) {
-      throw new Error('Données manquantes pour générer une réponse');
+    // Récupérer les données de l'appartement
+    const { data: propertyData, error: propertyError } = await supabase
+      .from('properties')
+      .select('*')
+      .eq('id', apartmentId)
+      .single();
+
+    if (propertyError || !propertyData) {
+      console.error('Erreur lors de la récupération des données de l\'appartement:', propertyError);
+      return {
+        statusCode: 404,
+        body: JSON.stringify({ error: 'Appartement non trouvé' })
+      };
     }
 
-    // Générer une réponse IA
-    const prompt = buildPrompt(apartmentData.data, messagesData.data);
-    const response = await getAIResponse(prompt, messagesData.data);
+    console.log(`Appartement récupéré: ${propertyData.name}`);
 
-    // Log de la réponse
-    await supabase.from('ai_responses_log').insert({
-      apartment_id: apartmentId,
+    // Récupérer les messages de la conversation
+    const { data: messagesData, error: messagesError } = await supabase
+      .from('messages')
+      .select('*')
+      .eq('conversation_id', conversationId)
+      .order('created_at', { ascending: true });
+
+    if (messagesError) {
+      console.error('Erreur lors de la récupération des messages:', messagesError);
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ error: 'Erreur lors de la récupération des messages' })
+      };
+    }
+
+    console.log(`${messagesData.length} messages récupérés pour la conversation ${conversationId}`);
+
+    // Construire le prompt en intégrant les informations de l'appartement
+    const prompt = buildPrompt(propertyData, messagesData);
+    console.log('Prompt construit (début):', prompt.substring(0, 200) + '...');
+
+    // Ajouter le prompt comme message système dans l'historique pour OpenAI
+    const augmentedMessages = [...messagesData];
+    
+    // Ajouter une entrée spéciale pour le prompt système
+    augmentedMessages.unshift({
+      id: 'system-prompt',
       conversation_id: conversationId,
-      generated_response: response,
-      prompt_context: prompt
+      direction: 'system',
+      content: prompt,
+      created_at: new Date().toISOString(),
+      read: true
     });
+
+    // Obtenir la réponse AI avec l'historique augmenté
+    const response = await getAIResponse(prompt, augmentedMessages);
+    console.log('Réponse AI générée:', response.substring(0, 100) + '...');
 
     return {
       statusCode: 200,
       body: JSON.stringify({ response })
     };
-  } catch (error) {
-    console.error('Erreur:', error);
+  } catch (error: any) {
+    console.error('Erreur générale:', error);
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: error instanceof Error ? error.message : 'Erreur inconnue' })
+      body: JSON.stringify({ error: error.message || 'Erreur interne du serveur' })
     };
   }
 };
@@ -145,6 +177,14 @@ ${lastMessage}
 
 async function getAIResponse(prompt: string, messages: any[]) {
   try {
+    // Debug: Afficher les 5 derniers messages de la conversation
+    console.log('Messages récents de la conversation:', 
+      messages.slice(-5).map(m => ({ 
+        direction: m.direction, 
+        content: m.content.substring(0, 50) + (m.content.length > 50 ? '...' : '') 
+      }))
+    );
+    
     // Convertir l'historique des messages en format ChatGPT
     const messageHistory = messages.map(msg => ({
       role: msg.direction === 'inbound' ? 'user' : 'assistant',
@@ -155,24 +195,32 @@ async function getAIResponse(prompt: string, messages: any[]) {
     const filteredHistory = messageHistory.filter(msg => 
       !msg.content.startsWith('Template envoyé:')
     );
+    
+    console.log('Historique filtré pour OpenAI:', 
+      filteredHistory.slice(-5).map(m => ({ 
+        role: m.role, 
+        content: m.content.substring(0, 50) + (m.content.length > 50 ? '...' : '') 
+      }))
+    );
 
-    // Ajouter le contexte système et le prompt actuel
+    // Message système qui contient toutes les informations sur la propriété
+    const systemMessage = {
+      role: "system",
+      content: "Tu es un assistant virtuel professionnel pour un hôte Airbnb. Tu dois :\n1. Répondre de manière personnalisée et spécifique\n2. Utiliser les informations fournies sur la propriété\n3. Être chaleureux et professionnel\n4. Te concentrer sur les besoins exprimés par l'invité\n5. Utiliser un ton conversationnel naturel"
+    };
+    
+    // Ne pas mettre le prompt complet dans un message utilisateur
+    // car cela remplacerait la conversation
     const chatMessages = [
-      { 
-        role: "system", 
-        content: "Tu es un assistant virtuel professionnel pour un hôte Airbnb. Tu dois :\n1. Répondre de manière personnalisée et spécifique\n2. Utiliser les informations fournies sur la propriété\n3. Être chaleureux et professionnel\n4. Te concentrer sur les besoins exprimés par l'invité\n5. Utiliser un ton conversationnel naturel"
-      },
-      ...filteredHistory, // Inclure l'historique filtré des messages
-      { 
-        role: "user", 
-        content: prompt 
-      }
+      systemMessage,
+      ...filteredHistory // Inclure uniquement l'historique filtré sans ajouter de nouveau message utilisateur
     ];
-
-    console.log('Envoi de la requête OpenAI avec les paramètres:', {
+    
+    console.log('Structure finale des messages envoyés à OpenAI:', {
       model: 'gpt-4o-mini',
-      messagesCount: chatMessages.length,
-      lastMessage: chatMessages[chatMessages.length - 1]?.content.substring(0, 100) + '...'
+      messageCount: chatMessages.length,
+      systemMessagePreview: chatMessages[0].content.substring(0, 50) + '...',
+      lastMessage: chatMessages[chatMessages.length - 1]?.content.substring(0, 50) + '...'
     });
 
     const completion = await openai.chat.completions.create({
@@ -214,5 +262,3 @@ function validateResponse(text: string): string {
     .replace(/\n{3,}/g, '\n\n')  // Remplacer 3+ sauts de ligne par 2
     .trim();
 }
-
-export { handler };
