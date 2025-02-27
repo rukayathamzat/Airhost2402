@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { AIResponseService } from '../services/ai-response.service';
 import './AIResponseModal.css';
+import { AutoAwesome, Send, Edit, Close } from '@mui/icons-material';
 
 interface AIResponseModalProps {
   apartmentId: string;
@@ -49,7 +50,9 @@ export default function AIResponseModal({
       <div className="ai-modal">
         <div className="ai-modal-header">
           <h3>Réponse IA</h3>
-          <button onClick={onClose} className="close-btn">✖</button>
+          <button onClick={onClose} className="close-btn">
+            <Close />
+          </button>
         </div>
 
         <div className="ai-modal-content">
@@ -61,7 +64,8 @@ export default function AIResponseModal({
                 className="generate-btn"
                 disabled={loading}
               >
-                {loading ? '⚡ Génération...' : '✨ Générer'}
+                <AutoAwesome fontSize="small" />
+                {loading ? 'Génération...' : 'Générer'}
               </button>
             </div>
           )}
@@ -77,7 +81,7 @@ export default function AIResponseModal({
             <div className="error-section">
               <p className="error-message">{error}</p>
               <button onClick={handleGenerate} className="retry-btn">
-                🔄 Réessayer
+                Réessayer
               </button>
             </div>
           )}
@@ -89,10 +93,12 @@ export default function AIResponseModal({
               </div>
               <div className="action-buttons">
                 <button onClick={handleSend} className="send-btn">
-                  📤 Envoyer
+                  <Send fontSize="small" />
+                  Envoyer
                 </button>
                 <button onClick={() => setResponse('')} className="edit-btn">
-                  ✏️ Régénérer
+                  <Edit fontSize="small" />
+                  Régénérer
                 </button>
               </div>
             </div>
