@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Box } from '@mui/material';
+import { Box, Paper } from '@mui/material';
 import { supabase } from '../../lib/supabase';
 import AIResponseModal from '../AIResponseModal';
 import ChatHeader from './ChatHeader';
@@ -114,7 +114,17 @@ export default function ChatWindow({
   };
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', maxWidth: 800 }}>
+    <Paper 
+      elevation={0} 
+      sx={{ 
+        display: 'flex', 
+        flexDirection: 'column', 
+        height: '100%', 
+        maxWidth: '100%',
+        borderRadius: 0,
+        overflow: 'hidden'
+      }}
+    >
       <ChatHeader 
         guestNumber={guestNumber}
         propertyName={propertyName}
@@ -158,6 +168,6 @@ export default function ChatWindow({
           onClose={() => setAiModalOpen(false)}
         />
       )}
-    </Box>
+    </Paper>
   );
 }
