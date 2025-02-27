@@ -22,7 +22,7 @@ export const handler: Handler = async (event, context) => {
     console.log('Reçu une requête pour generate-ai-response');
     
     // Extraire les paramètres de la requête
-    const { apartmentId, conversationId } = JSON.parse(event.body || '{}');
+    const { apartmentId, conversationId, messages: directMessages, customInstructions, isReservation } = JSON.parse(event.body || '{}');
     if (!apartmentId || !conversationId) {
       return {
         statusCode: 400,
@@ -31,6 +31,7 @@ export const handler: Handler = async (event, context) => {
     }
 
     console.log(`Traitement de la requête pour l'appartement ${apartmentId} et la conversation ${conversationId}`);
+    console.log(`Mode Sandbox: ${directMessages ? 'Oui' : 'Non'}`);
 
     // Utilisation de l'instance Supabase déjà initialisée en haut du fichier
     // au lieu d'en créer une nouvelle
@@ -52,25 +53,31 @@ export const handler: Handler = async (event, context) => {
 
     console.log(`Appartement récupéré: ${propertyData.name}`);
 
-    // Récupérer les messages de la conversation
-    const { data: messagesData, error: messagesError } = await supabase
-      .from('messages')
-      .select('*')
-      .eq('conversation_id', conversationId)
-      .order('created_at', { ascending: true });
+    // Récupérer les messages de la conversation (sauf si fournis directement)
+    let messagesData = directMessages;
+    if (!messagesData) {
+      const { data, error: messagesError } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('conversation_id', conversationId)
+        .order('created_at', { ascending: true });
 
-    if (messagesError) {
-      console.error('Erreur lors de la récupération des messages:', messagesError);
-      return {
-        statusCode: 500,
-        body: JSON.stringify({ error: 'Erreur lors de la récupération des messages' })
-      };
+      if (messagesError) {
+        console.error('Erreur lors de la récupération des messages:', messagesError);
+        return {
+          statusCode: 500,
+          body: JSON.stringify({ error: 'Erreur lors de la récupération des messages' })
+        };
+      }
+      
+      messagesData = data;
+      console.log(`${messagesData.length} messages récupérés pour la conversation ${conversationId}`);
+    } else {
+      console.log(`Utilisation de ${messagesData.length} messages fournis directement`);
     }
 
-    console.log(`${messagesData.length} messages récupérés pour la conversation ${conversationId}`);
-
     // Construire le prompt en intégrant les informations de l'appartement
-    const prompt = buildPrompt(propertyData, messagesData);
+    const prompt = buildPrompt(propertyData, messagesData, customInstructions, isReservation);
     console.log('Prompt construit (début):', prompt.substring(0, 200) + '...');
 
     // Ajouter le prompt comme message système dans l'historique pour OpenAI
@@ -103,7 +110,7 @@ export const handler: Handler = async (event, context) => {
   }
 };
 
-function buildPrompt(propertyData: any, messages: any[]) {
+function buildPrompt(propertyData: any, messages: any[], customInstructions: string, isReservation: boolean) {
   // Récupérer les 5 derniers messages pour fournir un contexte plus riche
   const recentMessages = messages.slice(-5).map(msg => 
     `${msg.direction === 'inbound' ? 'INVITÉ' : 'HÔTE'}: ${msg.content}`
@@ -163,6 +170,12 @@ ${recentMessages}
 
 [DERNIÈRE QUESTION DE L'INVITÉ]
 ${lastMessage}
+
+[INSTRUCTIONS PERSONNALISÉES]
+${customInstructions || ''}
+
+[MODE RÉSERVATION]
+${isReservation ? 'Actif' : 'Inactif'}
 
 [TA RÉPONSE DOIT ÊTRE]
 - Personnalisée pour ${propertyData.name || 'cet hébergement'}
