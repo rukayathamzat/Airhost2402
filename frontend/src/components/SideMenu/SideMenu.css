@@ -1,7 +1,7 @@
 .side-menu {
   width: 250px;
   height: 100vh;
-  background-color: #1c2536;
+  background-color: #1e293b;
   padding: 1.5rem 1rem;
   position: fixed;
   left: 0;
@@ -10,6 +10,8 @@
   display: flex;
   flex-direction: column;
   transition: all 0.3s ease;
+  z-index: 100;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
 
 .menu-header {
@@ -23,6 +25,7 @@
   color: #fff;
   font-size: 1.25rem;
   font-weight: 600;
+  letter-spacing: 0.5px;
 }
 
 .menu-nav {
@@ -55,19 +58,19 @@
 }
 
 .menu-item.active {
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: #3b82f6;
   color: #fff;
   font-weight: 500;
 }
 
 /* Style spécifique pour le bouton de déconnexion */
 .bottom-nav .menu-item:last-child {
-  color: #ff4d4f;
+  color: #f87171;
 }
 
 .bottom-nav .menu-item:last-child:hover {
-  background-color: rgba(255, 77, 79, 0.1);
-  color: #ff6b6b;
+  background-color: rgba(248, 113, 113, 0.1);
+  color: #fca5a5;
 }
 
 .menu-icon {
@@ -114,4 +117,3 @@
     padding-top: 0.5rem;
   }
 }
-
