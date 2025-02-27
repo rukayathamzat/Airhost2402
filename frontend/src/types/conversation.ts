@@ -12,4 +12,7 @@ export interface Conversation {
   last_message_at: string;
   created_at?: string;
   guest_number?: string;
+  last_message?: string;
+  unread_count?: number;
 }
+
