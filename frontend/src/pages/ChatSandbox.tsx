@@ -8,7 +8,7 @@ import { useNavigate } from 'react-router-dom';
 interface Property {
   id: string;
   name: string;
-  location: string;
+  address: string;
   ai_instructions?: string;
 }
 
@@ -47,7 +47,7 @@ const ChatSandbox: React.FC = () => {
 
         const { data, error } = await supabase
           .from('properties')
-          .select('id, name, location, ai_instructions');
+          .select('id, name, address, ai_instructions');
         
         if (error) throw error;
         
@@ -243,7 +243,7 @@ const ChatSandbox: React.FC = () => {
                 {properties.find(p => p.id === selectedProperty)?.name}
               </Typography>
               <Typography variant="body2" color="textSecondary">
-                {properties.find(p => p.id === selectedProperty)?.location}
+                {properties.find(p => p.id === selectedProperty)?.address}
               </Typography>
             </Box>
             <IconButton onClick={handleClearConversation} title="Effacer la conversation">
