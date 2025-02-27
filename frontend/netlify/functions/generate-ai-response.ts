@@ -131,13 +131,18 @@ async function getAIResponse(prompt: string, messages: any[]) {
       content: msg.content
     }));
 
+    // Filtrer les messages qui contiennent "Template envoyé:" pour éviter la confusion
+    const filteredHistory = messageHistory.filter(msg => 
+      !msg.content.startsWith('Template envoyé:')
+    );
+
     // Ajouter le contexte système et le prompt actuel
     const chatMessages = [
       { 
         role: "system", 
         content: "Tu es un assistant virtuel professionnel pour un hôte Airbnb. Tu dois :\n1. Répondre UNIQUEMENT aux questions posées\n2. Être précis et factuel, pas de réponses génériques\n3. Utiliser les informations de la propriété fournies\n4. Ne pas inventer d'informations\n5. Éviter les formules de politesse inutiles après la première interaction"
       },
-      ...messageHistory, // Inclure l'historique des messages
+      ...filteredHistory, // Inclure l'historique filtré des messages
       { 
         role: "user", 
         content: prompt 
