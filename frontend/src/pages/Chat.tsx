@@ -182,7 +182,8 @@ export default function Chat() {
         flexGrow: 1, 
         display: 'flex',
         overflow: 'hidden',
-        height: '100vh' // Assurer que ça prend toute la hauteur
+        height: '100vh', // Assurer que ça prend toute la hauteur
+        marginLeft: { xs: '60px', md: '250px' } // Marge correspondant à la largeur du menu
       }}>
         {/* Liste des conversations */}
         <Box sx={{ 
