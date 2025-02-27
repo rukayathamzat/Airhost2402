@@ -4,11 +4,12 @@
   width: 100%;
   background-color: #ffffff;
   overflow: hidden; /* Empêcher les scrollbars inutiles */
+  position: relative; /* Important pour le positionnement correct */
 }
 
 .main-content {
   flex: 1;
-  margin-left: 250px; /* Marge pour aligner le contenu à côté du menu latéral */
+  margin-left: 250px; /* Marge correspondant exactement à la largeur du menu latéral */
   min-height: 100vh;
   background-color: #ffffff;
   transition: margin-left 0.3s ease;

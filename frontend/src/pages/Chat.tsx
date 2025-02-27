@@ -177,13 +177,12 @@ export default function Chat() {
         </DialogActions>
       </Dialog>
       
-      {/* Contenu principal - uniquement la partie dans le cadre rouge */}
+      {/* Contenu principal */}
       <Box sx={{ 
-        flexGrow: 1, 
         display: 'flex',
         overflow: 'hidden',
-        height: '100vh', // Assurer que ça prend toute la hauteur
-        marginLeft: { xs: '60px', md: '250px' } // Marge correspondant à la largeur du menu
+        height: '100vh', 
+        width: '100%'
       }}>
         {/* Liste des conversations */}
         <Box sx={{ 
@@ -191,7 +190,8 @@ export default function Chat() {
           borderRight: 1, 
           borderColor: 'divider',
           overflow: 'auto',
-          bgcolor: 'white'
+          bgcolor: 'white',
+          height: '100%'
         }}>
           <ConversationList
             conversations={conversations}
@@ -205,7 +205,8 @@ export default function Chat() {
           display: 'flex',
           flexDirection: 'column',
           bgcolor: '#ffffff',
-          overflow: 'hidden'
+          overflow: 'hidden',
+          height: '100%'
         }}>
           {selectedConversation ? (
             <ChatWindow
