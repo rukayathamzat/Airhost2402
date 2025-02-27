@@ -41,7 +41,17 @@ export default function AIResponseModal({
   };
 
   const handleSend = () => {
+    if (!response.trim()) {
+      setError('La réponse est vide. Veuillez générer une réponse avant d\'envoyer.');
+      return;
+    }
+    
+    console.log('Envoi de la réponse générée par IA:', response);
+    
+    // Envoyer la réponse au parent
     onSend(response);
+    
+    // Fermer la modal
     onClose();
   };
 

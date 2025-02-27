@@ -11,17 +11,28 @@ export interface Message {
 
 export class MessageService {
   static async sendMessage(conversationId: string, content: string, type: 'text' | 'template' = 'text') {
-    const { error } = await supabase
-      .from('messages')
-      .insert({
-        conversation_id: conversationId,
-        content,
-        direction: 'outbound',
-        type,
-        status: 'sent'
-      });
+    console.log('Envoi du message:', { conversationId, content, type });
+    
+    try {
+      const { data, error } = await supabase
+        .from('messages')
+        .insert({
+          conversation_id: conversationId,
+          content,
+          direction: 'outbound',
+          type,
+          status: 'sent'
+        })
+        .select();
 
-    if (error) throw error;
+      if (error) throw error;
+      
+      console.log('Message envoyé avec succès:', data);
+      return data[0];
+    } catch (error) {
+      console.error('Erreur lors de l\'envoi du message:', error);
+      throw error;
+    }
   }
 
   static async getMessages(conversationId: string, limit = 50) {
@@ -37,6 +48,8 @@ export class MessageService {
   }
 
   static subscribeToMessages(conversationId: string, callback: (message: Message) => void) {
+    console.log('Mise en place de la souscription pour les messages:', conversationId);
+    
     return supabase
       .channel(`messages:${conversationId}`)
       .on('postgres_changes', {
@@ -45,6 +58,7 @@ export class MessageService {
         table: 'messages',
         filter: `conversation_id=eq.${conversationId}`
       }, payload => {
+        console.log('Nouveau message reçu via subscription:', payload.new);
         callback(payload.new as Message);
       })
       .subscribe();
