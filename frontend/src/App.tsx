@@ -28,9 +28,17 @@ function App() {
 
     // Écouter les changements de session
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      console.log('Changement de session:', session);
+      console.log('Changement de session:', _event, session);
       setSession(session);
       setLoading(false);
+      
+      // Nettoyer l'URL après une authentification réussie
+      if (_event === 'SIGNED_IN' || _event === 'TOKEN_REFRESHED') {
+        const currentUrl = window.location.href;
+        if (currentUrl.includes('#access_token=')) {
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }
+      }
     });
 
     return () => subscription.unsubscribe();
