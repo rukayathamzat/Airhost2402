@@ -19,6 +19,27 @@ function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Vérifier si l'URL contient un code d'authentification
+    const handleAuthRedirect = async () => {
+      const url = new URL(window.location.href);
+      const code = url.searchParams.get('code');
+      
+      if (code) {
+        console.log('Code d\'authentification détecté:', code);
+        try {
+          // Attendre que Supabase traite le code
+          await supabase.auth.getSession();
+          // Nettoyer l'URL
+          window.history.replaceState({}, document.title, window.location.pathname);
+        } catch (error) {
+          console.error('Erreur lors du traitement du code d\'authentification:', error);
+        }
+      }
+    };
+    
+    // Exécuter la vérification du code d'authentification
+    handleAuthRedirect();
+    
     // Vérifier la session actuelle
     supabase.auth.getSession().then(({ data: { session } }) => {
       console.log('Session initiale:', session);
@@ -35,7 +56,7 @@ function App() {
       // Nettoyer l'URL après une authentification réussie
       if (_event === 'SIGNED_IN' || _event === 'TOKEN_REFRESHED') {
         const currentUrl = window.location.href;
-        if (currentUrl.includes('#access_token=')) {
+        if (currentUrl.includes('#access_token=') || currentUrl.includes('?code=')) {
           window.history.replaceState({}, document.title, window.location.pathname);
         }
       }
