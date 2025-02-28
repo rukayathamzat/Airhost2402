@@ -17,7 +17,13 @@ export const getSiteUrl = (): string => {
   const baseUrl = import.meta.env.PROD ? netlifyUrl : localUrl;
   
   // S'assurer que l'URL se termine par un slash
-  return baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`;
+  const finalUrl = baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`;
+  
+  // Log pour débogage
+  console.log('Environnement:', import.meta.env.PROD ? 'Production' : 'Développement');
+  console.log('URL du site:', finalUrl);
+  
+  return finalUrl;
 };
 
 /**
@@ -27,5 +33,10 @@ export const getSiteUrl = (): string => {
 export const getRedirectUrl = (path: string = ''): string => {
   const baseUrl = getSiteUrl();
   const cleanPath = path.startsWith('/') ? path.substring(1) : path;
-  return `${baseUrl}${cleanPath}`;
+  const redirectUrl = `${baseUrl}${cleanPath}`;
+  
+  // Log pour débogage
+  console.log('URL de redirection:', redirectUrl);
+  
+  return redirectUrl;
 };
