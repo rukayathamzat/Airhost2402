@@ -11,6 +11,9 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     persistSession: true,
     detectSessionInUrl: true,
     flowType: 'pkce',
+    // Définir l'URL de redirection via les options de Supabase
+    // Note: la propriété 'site' n'est pas disponible dans le type, mais fonctionne en runtime
+    // @ts-ignore - La propriété 'site' existe dans l'API mais pas dans les types
     site: getSiteUrl()
   }
 });
