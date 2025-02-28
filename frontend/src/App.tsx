@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import SetPassword from './pages/SetPassword';
 import Chat from './pages/Chat';
@@ -13,6 +13,7 @@ import { Session } from '@supabase/supabase-js';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import './App.css'
+import { getRedirectUrl } from './utils/url';
 
 function App() {
   const [session, setSession] = useState<Session | null>(null);

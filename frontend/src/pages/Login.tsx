@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { getRedirectUrl } from '../utils/url';
 import {
   Container,
   Box,
@@ -43,17 +44,16 @@ export default function Login() {
       console.log('Tentative de connexion avec:', { email, password });
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
-        password
+        password,
       });
 
       if (error) throw error;
 
       console.log('Connexion réussie:', data);
-      setSuccess(true);
-      navigate('/');
-    } catch (err: any) {
-      console.error('Erreur de connexion:', err);
-      setError(err.message);
+      navigate('/chat');
+    } catch (error: any) {
+      console.error('Erreur de connexion:', error);
+      setError(error.message || 'Une erreur est survenue lors de la connexion');
     } finally {
       setLoading(false);
     }
@@ -65,26 +65,26 @@ export default function Login() {
       return;
     }
 
+    setLoading(true);
     setError(null);
     setSuccess(false);
-    setLoading(true);
 
     try {
       console.log('Envoi du magic link à:', email);
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          emailRedirectTo: 'http://localhost:5174'
-        }
+          emailRedirectTo: getRedirectUrl('chat'),
+        },
       });
 
       if (error) throw error;
 
       setSuccess(true);
-      setError('Un lien de connexion a été envoyé à votre email');
-    } catch (err: any) {
-      console.error('Erreur magic link:', err);
-      setError(err.message);
+      setError('Un lien de connexion a été envoyé à votre adresse email.');
+    } catch (error: any) {
+      console.error('Erreur d\'envoi du lien magique:', error);
+      setError(error.message || 'Une erreur est survenue lors de l\'envoi du lien de connexion');
     } finally {
       setLoading(false);
     }
@@ -96,20 +96,22 @@ export default function Login() {
       return;
     }
 
+    setLoading(true);
     setError(null);
     setSuccess(false);
-    setLoading(true);
 
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email);
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: getRedirectUrl('set-password'),
+      });
 
       if (error) throw error;
 
       setSuccess(true);
-      setError('Les instructions de réinitialisation du mot de passe ont été envoyées à votre email');
-    } catch (err: any) {
-      console.error('Erreur réinitialisation:', err);
-      setError(err.message);
+      setError('Un lien de réinitialisation a été envoyé à votre adresse email.');
+    } catch (error: any) {
+      console.error('Erreur de réinitialisation du mot de passe:', error);
+      setError(error.message || 'Une erreur est survenue lors de la réinitialisation du mot de passe');
     } finally {
       setLoading(false);
     }

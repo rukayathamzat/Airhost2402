@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { getRedirectUrl } from '../utils/url';
 import {
   Container,
   Box,
@@ -37,31 +38,28 @@ export default function Register() {
       setError('Le mot de passe doit contenir au moins 6 caractères');
       return;
     }
-
+    
     setLoading(true);
-
+    
     try {
       console.log('Tentative d\'inscription avec:', { email });
+      
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/login`,
-          data: {
-            registration_timestamp: new Date().toISOString()
-          }
+          emailRedirectTo: getRedirectUrl(),
         }
       });
-
+      
       if (error) throw error;
-
+      
       console.log('Inscription réussie:', data);
       setSuccess(true);
       setError('Un email de confirmation a été envoyé à votre adresse. Veuillez vérifier votre boîte de réception.');
-    } catch (err: any) {
-      console.error('Erreur d\'inscription:', err);
-      setError(err.message);
-      navigate('/verification-error', { replace: true });
+    } catch (error: any) {
+      console.error('Erreur d\'inscription:', error);
+      setError(error.message || 'Une erreur est survenue lors de l\'inscription');
     } finally {
       setLoading(false);
     }
