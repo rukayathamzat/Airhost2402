@@ -71,10 +71,15 @@ export default function Login() {
 
     try {
       console.log('Envoi du magic link à:', email);
+      
+      // Récupérer l'URL de redirection avant de l'utiliser
+      const redirectTo = getRedirectUrl('chat');
+      console.log('URL de redirection pour le magic link:', redirectTo);
+      
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          emailRedirectTo: getRedirectUrl('chat'),
+          emailRedirectTo: redirectTo,
         },
       });
 
@@ -101,8 +106,12 @@ export default function Login() {
     setSuccess(false);
 
     try {
+      // Récupérer l'URL de redirection avant de l'utiliser
+      const redirectTo = getRedirectUrl('set-password');
+      console.log('URL de redirection pour la réinitialisation:', redirectTo);
+      
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: getRedirectUrl('set-password'),
+        redirectTo: redirectTo,
       });
 
       if (error) throw error;

@@ -43,11 +43,15 @@ export default function Register() {
     try {
       console.log('Tentative d\'inscription avec:', { email });
       
+      // Récupérer l'URL de redirection avant de l'utiliser
+      const redirectTo = getRedirectUrl();
+      console.log('URL de redirection pour l\'inscription:', redirectTo);
+      
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: getRedirectUrl(),
+          emailRedirectTo: redirectTo,
         }
       });
       
