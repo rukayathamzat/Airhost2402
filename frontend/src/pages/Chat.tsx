@@ -73,11 +73,6 @@ export default function Chat() {
     }
   };
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate('/login');
-  };
-
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
@@ -107,12 +102,8 @@ export default function Chat() {
 
   return (
     <Container maxWidth="xl" sx={{ height: '100vh', py: 3 }}>
-      <Box sx={{ mb: 2, display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
-        <Button onClick={handleLogout} variant="contained" color="primary">Se déconnecter</Button>
-      </Box>
-
       <Paper sx={{ 
-        height: 'calc(100% - 48px)', 
+        height: '100%', 
         display: 'flex',
         overflow: 'hidden'
       }}>
