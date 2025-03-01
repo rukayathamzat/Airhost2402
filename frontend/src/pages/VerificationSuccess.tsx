@@ -8,8 +8,7 @@ import {
   Typography,
   Alert,
   Paper,
-  CircularProgress,
-  Link as MuiLink
+  CircularProgress
 } from '@mui/material';
 
 export default function VerificationSuccess() {
@@ -26,7 +25,7 @@ export default function VerificationSuccess() {
         
         if (session) {
           console.log('Session active détectée:', session);
-          setUserEmail(session.user.email);
+          setUserEmail(session.user.email || null);
           
           // Vérifier si l'utilisateur existe dans la base de données
           const { data: user, error: userError } = await supabase
