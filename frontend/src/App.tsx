@@ -5,6 +5,7 @@ import Chat from './pages/Chat';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import VerificationError from './pages/VerificationError';
+import VerificationSuccess from './pages/VerificationSuccess';
 import ChatSandbox from './pages/ChatSandbox';
 import Properties from './pages/Properties';
 import Layout from './components/Layout/Layout';
@@ -29,8 +30,16 @@ function App() {
         try {
           // Attendre que Supabase traite le code
           await supabase.auth.getSession();
-          // Nettoyer l'URL
-          window.history.replaceState({}, document.title, window.location.pathname);
+          
+          // Rediriger vers la page de succès de vérification si c'est une vérification d'email
+          // On garde l'URL telle quelle pour que la page VerificationSuccess puisse la traiter
+          const type = url.searchParams.get('type');
+          if (type === 'signup' || type === 'recovery') {
+            window.location.href = '/verification-success';
+          } else {
+            // Nettoyer l'URL pour les autres types d'authentification
+            window.history.replaceState({}, document.title, window.location.pathname);
+          }
         } catch (error) {
           console.error('Erreur lors du traitement du code d\'authentification:', error);
         }
@@ -57,7 +66,11 @@ function App() {
       if (_event === 'SIGNED_IN' || _event === 'TOKEN_REFRESHED') {
         const currentUrl = window.location.href;
         if (currentUrl.includes('#access_token=') || currentUrl.includes('?code=')) {
-          window.history.replaceState({}, document.title, window.location.pathname);
+          // Ne pas nettoyer l'URL si on est en train de traiter une vérification d'email
+          // La logique de redirection est gérée dans handleAuthRedirect
+          if (!currentUrl.includes('type=signup') && !currentUrl.includes('type=recovery')) {
+            window.history.replaceState({}, document.title, window.location.pathname);
+          }
         }
       }
     });
@@ -103,6 +116,10 @@ function App() {
               <VerificationError />
             )
           } 
+        />
+        <Route 
+          path="/verification-success" 
+          element={<VerificationSuccess />} 
         />
         <Route
           path="/"
