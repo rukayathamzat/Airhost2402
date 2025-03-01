@@ -21,6 +21,20 @@ console.log(import.meta.env);
 const envSupabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const defaultSupabaseUrl = 'https://tornfqtvnzkgnwfudxdb.supabase.co';
 
+// Vérifier si l'URL Supabase est un placeholder ou une URL incorrecte
+if (envSupabaseUrl && (
+  envSupabaseUrl.includes('your-project.supabase.co') ||
+  envSupabaseUrl.includes('example.supabase.co') ||
+  !envSupabaseUrl.includes('.supabase.co')
+)) {
+  console.error('ERREUR DE CONFIGURATION: L\'URL Supabase semble incorrecte:', envSupabaseUrl);
+  console.error('Veuillez vérifier la variable d\'environnement VITE_SUPABASE_URL dans le dashboard Netlify');
+  // Afficher une alerte pour les développeurs en mode développement
+  if (import.meta.env.DEV) {
+    alert('ERREUR DE CONFIGURATION SUPABASE: L\'URL Supabase est incorrecte. Vérifiez la console pour plus de détails.');
+  }
+}
+
 // Utiliser les variables d'environnement pour l'URL et la clé Supabase
 // Valeur par défaut pour la production
 const supabaseUrl = envSupabaseUrl || defaultSupabaseUrl;
