@@ -2,7 +2,7 @@
   display: flex;
   min-height: 100vh;
   width: 100%;
-  background-color: #ffffff;
+  background-color: #FFFFFF;
   overflow: hidden; /* Empêcher les scrollbars inutiles */
   position: relative; /* Important pour le positionnement correct */
 }
@@ -11,10 +11,12 @@
   flex: 1;
   margin-left: 250px; /* Marge correspondant exactement à la largeur du menu latéral */
   min-height: 100vh;
-  background-color: #ffffff;
+  background-color: #FFFFFF;
   transition: margin-left 0.3s ease;
   overflow: hidden;
   padding: 0; /* Supprimer tout padding */
+  display: flex;
+  flex-direction: column;
 }
 
 @media (max-width: 768px) {
