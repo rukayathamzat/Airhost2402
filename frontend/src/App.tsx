@@ -31,14 +31,21 @@ function App() {
           // Attendre que Supabase traite le code
           await supabase.auth.getSession();
           
-          // Rediriger vers la page de succès de vérification si c'est une vérification d'email
-          // On garde l'URL telle quelle pour que la page VerificationSuccess puisse la traiter
-          const type = url.searchParams.get('type');
-          if (type === 'signup' || type === 'recovery') {
-            window.location.href = '/verification-success';
+          // Si l'URL contient déjà 'verification-success', ne pas rediriger à nouveau
+          if (window.location.pathname.includes('verification-success')) {
+            console.log('Déjà sur la page de confirmation, pas de redirection nécessaire');
+            // Juste nettoyer les paramètres d'URL
+            // window.history.replaceState({}, document.title, window.location.pathname);
           } else {
-            // Nettoyer l'URL pour les autres types d'authentification
-            window.history.replaceState({}, document.title, window.location.pathname);
+            // Rediriger vers la page de succès de vérification si c'est une vérification d'email
+            const type = url.searchParams.get('type');
+            if (type === 'signup' || type === 'recovery') {
+              console.log('Redirection vers la page de confirmation');
+              window.location.href = '/verification-success';
+            } else {
+              // Nettoyer l'URL pour les autres types d'authentification
+              window.history.replaceState({}, document.title, window.location.pathname);
+            }
           }
         } catch (error) {
           console.error('Erreur lors du traitement du code d\'authentification:', error);
