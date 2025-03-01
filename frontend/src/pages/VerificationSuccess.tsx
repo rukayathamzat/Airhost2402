@@ -27,36 +27,52 @@ export default function VerificationSuccess() {
           console.log('Session active détectée:', session);
           setUserEmail(session.user.email || null);
           
-          // Vérifier si l'utilisateur existe dans la base de données
-          const { data: user, error: userError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
-            
-          if (userError && userError.code !== 'PGRST116') {
-            console.error('Erreur lors de la vérification du profil:', userError);
-            setError('Erreur lors de la vérification de votre profil.');
-          } else if (!user) {
-            console.log('Profil utilisateur non trouvé, création en cours...');
-            
-            // Créer un profil utilisateur si nécessaire
-            const { error: insertError } = await supabase
+          try {
+            // Vérifier si l'utilisateur existe dans la base de données
+            const { data: user, error: userError } = await supabase
               .from('profiles')
-              .insert([
-                { 
-                  id: session.user.id,
-                  email: session.user.email,
-                  created_at: new Date().toISOString()
-                }
-              ]);
+              .select('*')
+              .eq('id', session.user.id)
+              .single();
               
-            if (insertError) {
-              console.error('Erreur lors de la création du profil:', insertError);
-              setError('Erreur lors de la création de votre profil.');
+            if (userError) {
+              // Si l'erreur est due à l'absence de la table ou à une entrée non trouvée
+              if (userError.code === 'PGRST116' || userError.message?.includes('404') || userError.details?.includes('not found')) {
+                console.log('Profil utilisateur non trouvé ou table manquante, création en cours...');
+                
+                try {
+                  // Créer un profil utilisateur si nécessaire
+                  const { error: insertError } = await supabase
+                    .from('profiles')
+                    .insert([
+                      { 
+                        id: session.user.id,
+                        email: session.user.email,
+                        created_at: new Date().toISOString()
+                      }
+                    ]);
+                    
+                  if (insertError) {
+                    // Si la table n'existe pas encore, ce n'est pas grave, on continue
+                    console.log('Note: La table profiles n\'existe peut-être pas encore:', insertError);
+                    // On ne définit pas d'erreur pour ne pas bloquer l'utilisateur
+                  } else {
+                    console.log('Profil utilisateur créé avec succès');
+                  }
+                } catch (insertErr) {
+                  console.error('Exception lors de la création du profil:', insertErr);
+                  // On ne définit pas d'erreur pour ne pas bloquer l'utilisateur
+                }
+              } else {
+                console.error('Erreur lors de la vérification du profil:', userError);
+                // On ne définit pas d'erreur pour ne pas bloquer l'utilisateur
+              }
+            } else if (user) {
+              console.log('Profil utilisateur trouvé:', user);
             }
-          } else {
-            console.log('Profil utilisateur trouvé:', user);
+          } catch (err) {
+            console.error('Exception lors de la vérification/création du profil:', err);
+            // On ne définit pas d'erreur pour ne pas bloquer l'utilisateur
           }
         } else {
           console.log('Aucune session active');
