@@ -1,8 +1,8 @@
 .layout {
   display: flex;
-  min-height: 100vh;
+  min-height: 100vh; /* min-h-screen */
   width: 100%;
-  background-color: #FFFFFF;
+  background-color: #F9FAFB; /* bg-gray-50 */
   overflow: hidden; /* Empêcher les scrollbars inutiles */
   position: relative; /* Important pour le positionnement correct */
 }
@@ -10,8 +10,8 @@
 .main-content {
   flex: 1;
   margin-left: 250px; /* Marge correspondant exactement à la largeur du menu latéral */
-  min-height: 100vh;
-  background-color: #FFFFFF;
+  min-height: 100vh; /* min-h-screen */
+  background-color: #F9FAFB; /* bg-gray-50 */
   transition: margin-left 0.3s ease;
   overflow: hidden;
   padding: 0; /* Supprimer tout padding */

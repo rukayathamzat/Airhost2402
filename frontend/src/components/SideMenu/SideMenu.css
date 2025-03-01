@@ -1,17 +1,17 @@
 .side-menu {
   width: 250px;
-  height: 100vh;
-  background-color: #18374D;
-  padding: 1.5rem 1rem;
+  height: 100vh; /* h-full, min-h-screen */
+  background-color: #111827; /* bg-gray-900 */
+  padding: 1rem; /* p-4 */
   position: fixed;
   left: 0;
   top: 0;
-  color: #fff;
+  color: #FFFFFF; /* text-white */
   display: flex;
   flex-direction: column;
   transition: all 0.3s ease;
   z-index: 1000;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
 }
 
 .menu-header {
@@ -22,9 +22,9 @@
 
 .app-title {
   margin: 0;
-  color: #fff;
-  font-size: 1.25rem;
-  font-weight: 600;
+  color: #FFFFFF; /* text-white */
+  font-size: 1.25rem; /* text-xl */
+  font-weight: 700; /* font-bold */
   letter-spacing: 0.5px;
 }
 
@@ -44,10 +44,10 @@
 .menu-item {
   display: flex;
   align-items: center;
-  padding: 0.75rem 1rem;
+  padding: 0.75rem 1rem; /* px-4 py-3 */
   text-decoration: none;
-  color: rgba(255, 255, 255, 0.7);
-  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.9); /* text-white avec légère transparence */
+  border-radius: 0.5rem; /* rounded-lg */
   transition: all 0.2s ease;
   font-size: 0.9rem;
 }
@@ -58,8 +58,8 @@
 }
 
 .menu-item.active {
-  background-color: #48A8EF;
-  color: #fff;
+  background-color: #60A5FA; /* text-blue-400 */
+  color: #FFFFFF; /* text-white */
   font-weight: 500;
 }
 
@@ -69,7 +69,7 @@
 }
 
 .bottom-nav .menu-item:last-child:hover {
-  background-color: rgba(248, 113, 113, 0.2);
+  background-color: rgba(248, 113, 113, 0.1);
   color: #fca5a5;
 }
 
@@ -78,6 +78,7 @@
   font-size: 1.1rem;
   display: flex;
   align-items: center;
+  color: #60A5FA; /* text-blue-400 */
 }
 
 .menu-label {
