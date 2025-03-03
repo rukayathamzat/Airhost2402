@@ -20,7 +20,7 @@
 
 [build.environment]
   NODE_VERSION = "20"
-  VITE_SUPABASE_URL = "https://your-project.supabase.co"
+  VITE_SUPABASE_URL = "${env:VITE_SUPABASE_URL}"
   SUPABASE_URL = "${env:VITE_SUPABASE_URL}"
   SUPABASE_SERVICE_ROLE_KEY = "${env:SUPABASE_SERVICE_ROLE_KEY}"
 
