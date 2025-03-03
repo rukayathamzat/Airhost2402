@@ -17,44 +17,52 @@ console.log('Est en PROD:', import.meta.env.PROD ? 'Oui' : 'Non');
 console.log('Toutes les variables d\'environnement:');
 console.log(import.meta.env);
 
-// Récupérer l'URL Supabase avec plus de contrôle
 // Définir des valeurs par défaut pour la production
 const defaultSupabaseUrl = 'https://tornfqtvnzkgnwfudxdb.supabase.co';
 const defaultSupabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvcm5mcXR2bnprZ253ZnVkeGRiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzk3ODM2NDUsImV4cCI6MjA1NTM1OTY0NX0.ZAXvm4bVRZFyg8WNxiam_vgQ2iItuN06UTL2AzKyPsE';
 
-// Récupérer les variables d'environnement
-let envSupabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-let envSupabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// Déterminer les valeurs à utiliser selon l'environnement
+let supabaseUrl: string;
+let supabaseAnonKey: string;
 
-// Vérifier si l'URL Supabase est un placeholder, une URL incorrecte ou une variable non substituée
-if (!envSupabaseUrl || 
-    envSupabaseUrl.includes('your-project.supabase.co') ||
-    envSupabaseUrl.includes('example.supabase.co') ||
-    envSupabaseUrl.includes('${env:') ||
-    !envSupabaseUrl.includes('.supabase.co')) {
-  console.error('ERREUR DE CONFIGURATION: L\'URL Supabase semble incorrecte:', envSupabaseUrl);
-  console.error('Utilisation de l\'URL par défaut:', defaultSupabaseUrl);
-  envSupabaseUrl = defaultSupabaseUrl;
-  // Afficher une alerte pour les développeurs en mode développement
-  if (import.meta.env.DEV) {
+// En mode développement, essayer d'utiliser les variables d'environnement
+if (import.meta.env.DEV) {
+  // Récupérer les variables d'environnement
+  const envSupabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const envSupabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+  
+  // Vérifier si l'URL Supabase est valide
+  if (envSupabaseUrl && 
+      !envSupabaseUrl.includes('your-project.supabase.co') &&
+      !envSupabaseUrl.includes('example.supabase.co') &&
+      !envSupabaseUrl.includes('${env:') &&
+      envSupabaseUrl.includes('.supabase.co')) {
+    supabaseUrl = envSupabaseUrl;
+  } else {
+    console.error('ERREUR DE CONFIGURATION: L\'URL Supabase semble incorrecte:', envSupabaseUrl);
+    console.error('Utilisation de l\'URL par défaut:', defaultSupabaseUrl);
+    supabaseUrl = defaultSupabaseUrl;
     alert('ERREUR DE CONFIGURATION SUPABASE: L\'URL Supabase est incorrecte. Vérifiez la console pour plus de détails.');
   }
+  
+  // Vérifier si la clé Supabase est valide
+  if (envSupabaseAnonKey && !envSupabaseAnonKey.includes('${env:')) {
+    supabaseAnonKey = envSupabaseAnonKey;
+  } else {
+    console.error('ERREUR DE CONFIGURATION: La clé Supabase semble incorrecte');
+    console.error('Utilisation de la clé par défaut');
+    supabaseAnonKey = defaultSupabaseAnonKey;
+  }
+} else {
+  // En production, utiliser directement les valeurs par défaut pour éviter les problèmes
+  console.log('Environnement de production détecté, utilisation des valeurs par défaut');
+  supabaseUrl = defaultSupabaseUrl;
+  supabaseAnonKey = defaultSupabaseAnonKey;
 }
-
-// Vérifier si la clé Supabase est une variable non substituée
-if (!envSupabaseAnonKey || envSupabaseAnonKey.includes('${env:')) {
-  console.error('ERREUR DE CONFIGURATION: La clé Supabase semble incorrecte');
-  console.error('Utilisation de la clé par défaut');
-  envSupabaseAnonKey = defaultSupabaseAnonKey;
-}
-
-// Utiliser les variables d'environnement pour l'URL et la clé Supabase
-const supabaseUrl = envSupabaseUrl;
-const supabaseAnonKey = envSupabaseAnonKey;
 
 // Logs pour comprendre la source de l'URL
 console.log('Source de l\'URL Supabase:');
-console.log('- URL depuis variable d\'environnement:', envSupabaseUrl);
+console.log('- Mode d\'environnement:', import.meta.env.DEV ? 'Développement' : 'Production');
 console.log('- URL par défaut:', defaultSupabaseUrl);
 console.log('- URL finale utilisée:', supabaseUrl);
 
