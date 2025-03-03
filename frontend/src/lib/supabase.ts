@@ -18,27 +18,39 @@ console.log('Toutes les variables d\'environnement:');
 console.log(import.meta.env);
 
 // Récupérer l'URL Supabase avec plus de contrôle
-const envSupabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+// Définir des valeurs par défaut pour la production
 const defaultSupabaseUrl = 'https://tornfqtvnzkgnwfudxdb.supabase.co';
+const defaultSupabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvcm5mcXR2bnprZ253ZnVkeGRiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzk3ODM2NDUsImV4cCI6MjA1NTM1OTY0NX0.ZAXvm4bVRZFyg8WNxiam_vgQ2iItuN06UTL2AzKyPsE';
 
-// Vérifier si l'URL Supabase est un placeholder ou une URL incorrecte
-if (envSupabaseUrl && (
-  envSupabaseUrl.includes('your-project.supabase.co') ||
-  envSupabaseUrl.includes('example.supabase.co') ||
-  !envSupabaseUrl.includes('.supabase.co')
-)) {
+// Récupérer les variables d'environnement
+let envSupabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+let envSupabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+// Vérifier si l'URL Supabase est un placeholder, une URL incorrecte ou une variable non substituée
+if (!envSupabaseUrl || 
+    envSupabaseUrl.includes('your-project.supabase.co') ||
+    envSupabaseUrl.includes('example.supabase.co') ||
+    envSupabaseUrl.includes('${env:') ||
+    !envSupabaseUrl.includes('.supabase.co')) {
   console.error('ERREUR DE CONFIGURATION: L\'URL Supabase semble incorrecte:', envSupabaseUrl);
-  console.error('Veuillez vérifier la variable d\'environnement VITE_SUPABASE_URL dans le dashboard Netlify');
+  console.error('Utilisation de l\'URL par défaut:', defaultSupabaseUrl);
+  envSupabaseUrl = defaultSupabaseUrl;
   // Afficher une alerte pour les développeurs en mode développement
   if (import.meta.env.DEV) {
     alert('ERREUR DE CONFIGURATION SUPABASE: L\'URL Supabase est incorrecte. Vérifiez la console pour plus de détails.');
   }
 }
 
+// Vérifier si la clé Supabase est une variable non substituée
+if (!envSupabaseAnonKey || envSupabaseAnonKey.includes('${env:')) {
+  console.error('ERREUR DE CONFIGURATION: La clé Supabase semble incorrecte');
+  console.error('Utilisation de la clé par défaut');
+  envSupabaseAnonKey = defaultSupabaseAnonKey;
+}
+
 // Utiliser les variables d'environnement pour l'URL et la clé Supabase
-// Valeur par défaut pour la production
-const supabaseUrl = envSupabaseUrl || defaultSupabaseUrl;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvcm5mcXR2bnprZ253ZnVkeGRiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzk3ODM2NDUsImV4cCI6MjA1NTM1OTY0NX0.ZAXvm4bVRZFyg8WNxiam_vgQ2iItuN06UTL2AzKyPsE';
+const supabaseUrl = envSupabaseUrl;
+const supabaseAnonKey = envSupabaseAnonKey;
 
 // Logs pour comprendre la source de l'URL
 console.log('Source de l\'URL Supabase:');

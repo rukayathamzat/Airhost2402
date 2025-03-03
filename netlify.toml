@@ -20,11 +20,8 @@
 
 [build.environment]
   NODE_VERSION = "20"
-  VITE_SUPABASE_URL = "${env:VITE_SUPABASE_URL}"
-  VITE_SUPABASE_ANON_KEY = "${env:VITE_SUPABASE_ANON_KEY}"
-  VITE_SITE_URL = "${env:VITE_SITE_URL}"
-  SUPABASE_URL = "${env:VITE_SUPABASE_URL}"
-  SUPABASE_SERVICE_ROLE_KEY = "${env:SUPABASE_SERVICE_ROLE_KEY}"
+  # Les variables d'environnement doivent être configurées dans le dashboard Netlify
+  # Ne pas définir les variables ici car elles ne sont pas correctement substituées
 
 [dev]
   framework = "vite"
