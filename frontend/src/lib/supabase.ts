@@ -54,10 +54,29 @@ if (import.meta.env.DEV) {
     supabaseAnonKey = defaultSupabaseAnonKey;
   }
 } else {
-  // En production, utiliser directement les valeurs par défaut pour éviter les problèmes
-  console.log('Environnement de production détecté, utilisation des valeurs par défaut');
-  supabaseUrl = defaultSupabaseUrl;
-  supabaseAnonKey = defaultSupabaseAnonKey;
+  // En production, essayer d'utiliser les variables d'environnement si elles sont valides
+  const envSupabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const envSupabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+  
+  // Vérifier si l'URL Supabase est valide
+  if (envSupabaseUrl && 
+      !envSupabaseUrl.includes('your-project.supabase.co') &&
+      !envSupabaseUrl.includes('example.supabase.co') &&
+      !envSupabaseUrl.includes('${env:') &&
+      envSupabaseUrl.includes('.supabase.co')) {
+    console.log('Environnement de production détecté, utilisation de l\'URL fournie:', envSupabaseUrl);
+    supabaseUrl = envSupabaseUrl;
+  } else {
+    console.log('Environnement de production détecté, utilisation de l\'URL par défaut');
+    supabaseUrl = defaultSupabaseUrl;
+  }
+  
+  // Vérifier si la clé Supabase est valide
+  if (envSupabaseAnonKey && !envSupabaseAnonKey.includes('${env:')) {
+    supabaseAnonKey = envSupabaseAnonKey;
+  } else {
+    supabaseAnonKey = defaultSupabaseAnonKey;
+  }
 }
 
 // Logs pour comprendre la source de l'URL
