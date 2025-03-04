@@ -16,13 +16,17 @@ interface ChatWindowProps {
   guestNumber: string;
   propertyName: string;
   conversationStartTime?: string;
+  isMobile?: boolean;
+  onBack?: () => void;
 }
 
 export default function ChatWindow({ 
   conversationId, 
   guestNumber,
   propertyName,
-  conversationStartTime 
+  conversationStartTime,
+  isMobile = false,
+  onBack
 }: ChatWindowProps) {
   // États
   const [messages, setMessages] = useState<Message[]>([]);
@@ -160,17 +164,17 @@ export default function ChatWindow({
       sx={{ 
         display: 'flex', 
         flexDirection: 'column', 
-        height: { xs: '100vh', sm: '100%' },
-        width: { xs: '100vw', sm: '100%' },
+        height: isMobile ? '100vh' : '100%',
+        width: isMobile ? '100vw' : '100%',
         maxWidth: '100%',
         borderRadius: 0,
         overflow: 'hidden',
-        position: 'fixed',
-        top: 0,
-        bottom: 0,
-        left: 0,
-        right: 0,
-        zIndex: 1000,
+        position: isMobile ? 'fixed' : 'relative',
+        top: isMobile ? 0 : 'auto',
+        bottom: isMobile ? 0 : 'auto',
+        left: isMobile ? 0 : 'auto',
+        right: isMobile ? 0 : 'auto',
+        zIndex: isMobile ? 1000 : 1,
         m: 0,
         p: 0,
         boxSizing: 'border-box'
@@ -180,6 +184,8 @@ export default function ChatWindow({
         guestNumber={guestNumber}
         propertyName={propertyName}
         conversationStartTime={conversationStartTime}
+        showBackButton={isMobile}
+        onBack={onBack}
       />
 
       <ChatMessages 

@@ -6,6 +6,8 @@ import {
   Button, 
   Typography, 
   CircularProgress,
+  useMediaQuery,
+  useTheme
 } from '@mui/material';
 import ConversationList from '../components/Chat/ConversationList';
 import ChatWindow from '../components/Chat/ChatWindow';
@@ -19,6 +21,8 @@ export default function Chat() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const navigate = useNavigate();
 
@@ -100,6 +104,10 @@ export default function Chat() {
     );
   }
 
+  const handleBackFromChat = () => {
+    setSelectedConversation(null);
+  };
+
   return (
     <Container maxWidth="xl" sx={{ height: '100vh', py: 3 }}>
       <Paper sx={{ 
@@ -107,12 +115,14 @@ export default function Chat() {
         display: 'flex',
         overflow: 'hidden'
       }}>
-        {/* Liste des conversations */}
+        {/* Liste des conversations - cachée en mobile quand une conversation est sélectionnée */}
         <Box sx={{ 
           width: 360, 
           borderRight: 1, 
           borderColor: 'divider',
-          overflow: 'auto'
+          overflow: 'auto',
+          display: (isMobile && selectedConversation) ? 'none' : 'block',
+          flexShrink: 0
         }}>
           <ConversationList
             conversations={conversations}
@@ -120,12 +130,13 @@ export default function Chat() {
           />
         </Box>
 
-        {/* Fenêtre de chat */}
+        {/* Fenêtre de chat - plein écran en mobile, cachée si aucune conversation n'est sélectionnée */}
         <Box sx={{ 
           flexGrow: 1,
-          display: 'flex',
+          display: (isMobile && !selectedConversation) ? 'none' : 'flex',
           flexDirection: 'column',
-          bgcolor: 'grey.50'
+          bgcolor: 'grey.50',
+          height: '100%'
         }}>
           {selectedConversation ? (
             <ChatWindow
@@ -133,6 +144,8 @@ export default function Chat() {
               guestNumber={selectedConversation.guest_number || ''}
               propertyName={selectedConversation.property[0].name}
               conversationStartTime={selectedConversation.created_at || new Date().toISOString()}
+              isMobile={isMobile}
+              onBack={handleBackFromChat}
             />
           ) : (
             <Box

@@ -1,4 +1,5 @@
-import { Box, Typography, Divider, Avatar } from '@mui/material';
+import { Box, Typography, Divider, Avatar, IconButton } from '@mui/material';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
@@ -6,12 +7,16 @@ interface ChatHeaderProps {
   guestNumber: string;
   propertyName: string;
   conversationStartTime?: string;
+  showBackButton?: boolean;
+  onBack?: () => void;
 }
 
 export default function ChatHeader({ 
   guestNumber, 
   propertyName, 
-  conversationStartTime 
+  conversationStartTime,
+  showBackButton = false,
+  onBack
 }: ChatHeaderProps) {
   // Formater le numéro de téléphone pour l'affichage
   const formatPhoneNumber = (phone: string) => {
@@ -39,6 +44,18 @@ export default function ChatHeader({
         width: '100%',
         boxSizing: 'border-box'
       }}>
+        {showBackButton && (
+          <IconButton 
+            onClick={onBack} 
+            size="small"
+            sx={{ 
+              mr: 0.5,
+              color: '#3b82f6'
+            }}
+          >
+            <ArrowBackIcon />
+          </IconButton>
+        )}
         <Avatar 
           sx={{ 
             bgcolor: '#3b82f6',
