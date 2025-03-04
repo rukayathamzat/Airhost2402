@@ -7,9 +7,33 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 );
 
+// Vérifier la clé API OpenAI
+const openaiApiKey = process.env.OPENAI_API_KEY || '';
+
+// Logs pour le débogage (masquer la plupart de la clé)
+const maskedKey = openaiApiKey ? 
+  `${openaiApiKey.substring(0, 7)}...${openaiApiKey.substring(openaiApiKey.length - 4)}` : 
+  'Non définie';
+
+console.log('Configuration OpenAI:', {
+  apiKeyPresent: !!openaiApiKey,
+  apiKeyType: openaiApiKey.startsWith('sk-') ? 'Clé secrète standard' : 
+             openaiApiKey.startsWith('sk-org-') ? 'Clé d\'organisation' : 
+             openaiApiKey.startsWith('sk-proj-') ? 'Clé de projet' : 
+             'Format inconnu',
+  apiKeyMasked: maskedKey,
+  orgIdPresent: !!process.env.OPENAI_ORG_ID
+});
+
+// Vérifier si la clé a un format valide
+if (!openaiApiKey || !openaiApiKey.startsWith('sk-')) {
+  console.error('ERREUR: La clé API OpenAI est invalide ou manquante');
+}
+
+// Initialiser OpenAI avec la clé API
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-  organization: process.env.OPENAI_ORG_ID // Optionnel mais recommandé
+  apiKey: openaiApiKey,
+  organization: process.env.OPENAI_ORG_ID // Optionnel
 });
 
 export const handler: Handler = async (event, context) => {
