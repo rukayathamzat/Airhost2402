@@ -39,14 +39,19 @@ export default function ChatMessages({ messages, isInitialLoad }: ChatMessagesPr
     <Box sx={{ 
       flexGrow: 1, 
       overflowY: 'auto', 
-      p: 2,
+      overflowX: 'hidden',
+      p: { xs: 1, sm: 2 },
       display: 'flex',
       flexDirection: 'column',
       gap: 1.5,
       backgroundColor: '#f8f9fa',
-      height: 'calc(100% - 120px)', // Hauteur fixe en soustrayant l'espace pour l'en-tête et la zone de saisie
-      maxHeight: 'calc(100% - 120px)',
-      position: 'relative'
+      height: { 
+        xs: 'calc(100vh - 120px)', 
+        sm: 'calc(100% - 120px)' 
+      },
+      flex: 1,
+      width: '100%',
+      boxSizing: 'border-box'
     }}>
       {messages.map((message) => (
         <Box
@@ -60,15 +65,21 @@ export default function ChatMessages({ messages, isInitialLoad }: ChatMessagesPr
           <Paper
             elevation={0}
             sx={{
-              maxWidth: '70%',
-              p: 1.5,
+              maxWidth: { xs: '85%', sm: '70%' },
+              p: { xs: 1, sm: 1.5 },
               borderRadius: 2,
               bgcolor: message.direction === 'outbound' ? '#3b82f6' : '#ffffff',
               color: message.direction === 'outbound' ? 'white' : 'text.primary',
               boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
             }}
           >
-            <Typography variant="body1" sx={{ wordBreak: 'break-word' }}>
+            <Typography 
+              variant="body1" 
+              sx={{ 
+                wordBreak: 'break-word',
+                fontSize: { xs: '0.9rem', sm: '1rem' }
+              }}
+            >
               {message.content}
             </Typography>
             <Typography 
@@ -78,7 +89,7 @@ export default function ChatMessages({ messages, isInitialLoad }: ChatMessagesPr
                 textAlign: 'right',
                 mt: 0.5,
                 opacity: 0.8,
-                fontSize: '0.7rem'
+                fontSize: { xs: '0.65rem', sm: '0.7rem' }
               }}
             >
               {format(new Date(message.created_at), 'HH:mm')}

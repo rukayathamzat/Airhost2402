@@ -43,19 +43,25 @@ export default function ChatInput({
     <Paper 
       elevation={0}
       sx={{ 
-        p: 1.5, 
+        p: { xs: 1, sm: 1.5 }, 
         borderTop: '1px solid',
         borderColor: 'divider',
-        backgroundColor: '#fff'
+        backgroundColor: '#fff',
+        width: '100%',
+        boxSizing: 'border-box',
+        position: 'sticky',
+        bottom: 0,
+        zIndex: 10
       }}
     >
       <Box sx={{ 
         display: 'flex',
-        gap: 1,
+        gap: { xs: 0.5, sm: 1 },
         alignItems: 'center',
         borderRadius: 2,
         backgroundColor: '#f8f9fa',
-        p: 0.5
+        p: { xs: 0.5, sm: 0.75 },
+        width: '100%'
       }}>
         <Tooltip title="Générer une réponse IA">
           <IconButton 
@@ -65,9 +71,10 @@ export default function ChatInput({
               color: '#3b82f6',
               '&.Mui-disabled': {
                 color: 'rgba(0, 0, 0, 0.26)'
-              }
+              },
+              padding: { xs: '6px', sm: '8px' }
             }}
-            size="medium"
+            size="small"
           >
             <AutoAwesomeIcon />
           </IconButton>
@@ -81,9 +88,10 @@ export default function ChatInput({
               color: '#3b82f6',
               '&.Mui-disabled': {
                 color: 'rgba(0, 0, 0, 0.26)'
-              }
+              },
+              padding: { xs: '6px', sm: '8px' }
             }}
-            size="medium"
+            size="small"
           >
             <WhatsAppIcon />
           </IconButton>
