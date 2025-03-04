@@ -43,7 +43,10 @@ export default function ChatMessages({ messages, isInitialLoad }: ChatMessagesPr
       display: 'flex',
       flexDirection: 'column',
       gap: 1.5,
-      backgroundColor: '#f8f9fa'
+      backgroundColor: '#f8f9fa',
+      height: 'calc(100% - 120px)', // Hauteur fixe en soustrayant l'espace pour l'en-tête et la zone de saisie
+      maxHeight: 'calc(100% - 120px)',
+      position: 'relative'
     }}>
       {messages.map((message) => (
         <Box

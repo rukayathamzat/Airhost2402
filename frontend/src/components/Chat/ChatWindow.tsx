@@ -162,8 +162,14 @@ export default function ChatWindow({
         flexDirection: 'column', 
         height: '100%', 
         maxWidth: '100%',
+        maxHeight: '100vh',
         borderRadius: 0,
-        overflow: 'hidden'
+        overflow: 'hidden',
+        position: 'absolute',
+        top: 0,
+        bottom: 0,
+        left: 0,
+        right: 0
       }}
     >
       <ChatHeader 
