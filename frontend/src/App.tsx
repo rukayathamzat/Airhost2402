@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import Debug from './pages/Debug';
 import { useEffect, useState } from 'react';
 import SetPassword from './pages/SetPassword';
 import Chat from './pages/Chat';
@@ -149,6 +150,7 @@ function App() {
                   <Route path="/sandbox" element={<ChatSandbox />} />
                   <Route path="/properties" element={<Properties />} />
                   <Route path="/settings" element={<div>Paramètres (à venir)</div>} />
+                  <Route path="/debug" element={<Debug />} />
                 </Routes>
               </Layout>
             ) : (
