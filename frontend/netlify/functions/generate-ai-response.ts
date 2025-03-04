@@ -7,33 +7,9 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 );
 
-// Vérifier la clé API OpenAI
-const openaiApiKey = process.env.OPENAI_API_KEY || '';
-
-// Logs pour le débogage (masquer la plupart de la clé)
-const maskedKey = openaiApiKey ? 
-  `${openaiApiKey.substring(0, 7)}...${openaiApiKey.substring(openaiApiKey.length - 4)}` : 
-  'Non définie';
-
-console.log('Configuration OpenAI:', {
-  apiKeyPresent: !!openaiApiKey,
-  apiKeyType: openaiApiKey.startsWith('sk-') ? 'Clé secrète standard' : 
-             openaiApiKey.startsWith('sk-org-') ? 'Clé d\'organisation' : 
-             openaiApiKey.startsWith('sk-proj-') ? 'Clé de projet' : 
-             'Format inconnu',
-  apiKeyMasked: maskedKey,
-  orgIdPresent: !!process.env.OPENAI_ORG_ID
-});
-
-// Vérifier si la clé a un format valide
-if (!openaiApiKey || !openaiApiKey.startsWith('sk-')) {
-  console.error('ERREUR: La clé API OpenAI est invalide ou manquante');
-}
-
-// Initialiser OpenAI avec la clé API
 const openai = new OpenAI({
-  apiKey: openaiApiKey,
-  organization: process.env.OPENAI_ORG_ID // Optionnel
+  apiKey: process.env.OPENAI_API_KEY,
+  organization: process.env.OPENAI_ORG_ID // Optionnel mais recommandé
 });
 
 export const handler: Handler = async (event, context) => {
@@ -237,63 +213,52 @@ async function getAIResponse(prompt: string, messages: any[]) {
       }))
     );
 
-    // Message système simplifié
+    // Message système qui contient toutes les informations sur la propriété
     const systemMessage = {
       role: "system",
-      content: "Tu es un assistant virtuel pour un hôte Airbnb. Réponds de manière personnalisée, chaleureuse et professionnelle."
+      content: "Tu es un assistant virtuel professionnel pour un hôte Airbnb. Tu dois :\n1. Répondre de manière personnalisée et spécifique\n2. Utiliser les informations fournies sur la propriété\n3. Être chaleureux et professionnel\n4. Te concentrer sur les besoins exprimés par l'invité\n5. Utiliser un ton conversationnel naturel"
     };
     
-    // Ajouter un message utilisateur avec le prompt
-    const promptMessage = {
-      role: "user",
-      content: prompt
-    };
-    
-    // Simplifier la structure des messages
+    // Ne pas mettre le prompt complet dans un message utilisateur
+    // car cela remplacerait la conversation
     const chatMessages = [
       systemMessage,
-      promptMessage
+      ...filteredHistory // Inclure uniquement l'historique filtré sans ajouter de nouveau message utilisateur
     ];
-    
-    // Ajouter les 3 derniers messages de l'historique pour le contexte
-    if (filteredHistory.length > 0) {
-      const recentHistory = filteredHistory.slice(-3);
-      chatMessages.push(...recentHistory);
-    }
     
     console.log('Structure finale des messages envoyés à OpenAI:', {
       model: 'gpt-4o-mini',
       messageCount: chatMessages.length,
-      systemMessage: systemMessage.content,
-      promptMessage: promptMessage.content.substring(0, 50) + '...',
-      apiKey: process.env.OPENAI_API_KEY ? 'Défini (premiers caractères: ' + process.env.OPENAI_API_KEY.substring(0, 3) + '...)' : 'Non défini'
+      systemMessagePreview: chatMessages[0].content.substring(0, 50) + '...',
+      lastMessage: chatMessages[chatMessages.length - 1]?.content.substring(0, 50) + '...'
     });
 
-    // Simplifier l'appel à OpenAI
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini", // Modèle optimisé pour la rapidité
       messages: chatMessages,
-      temperature: 0.8,
-      max_tokens: 250,
+      temperature: 0.8, // Légèrement plus créatif
+      max_tokens: 250, // Augmenter pour des réponses plus détaillées
+      presence_penalty: 0.6,
+      frequency_penalty: 0.6,
+      response_format: { type: "text" }
     });
 
     console.log('Réponse OpenAI reçue:', {
       status: 'success',
-      content: response.choices[0].message.content
+      content: completion.choices[0].message.content
     });
 
-    const content = response.choices[0].message.content;
+    const content = completion.choices[0].message.content;
     if (!content) throw new Error('Réponse vide de l\'API');
     
     return validateResponse(content);
   } catch (error: any) {
-    console.error('Erreur OpenAI détaillée:', {
-      error: JSON.stringify(error?.response?.data || error),
+    console.error('Erreur OpenAI:', {
+      error: error?.response?.data || error,
       message: error?.message,
-      status: error?.response?.status,
-      stack: error?.stack
+      status: error?.response?.status
     });
-    throw new Error(error?.message || 'Erreur de génération AI');
+    throw new Error(error?.response?.data?.error?.message || 'Erreur de génération AI');
   }
 }
 
