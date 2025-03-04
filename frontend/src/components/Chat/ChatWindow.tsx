@@ -160,16 +160,20 @@ export default function ChatWindow({
       sx={{ 
         display: 'flex', 
         flexDirection: 'column', 
-        height: '100%', 
+        height: { xs: '100vh', sm: '100%' },
+        width: { xs: '100vw', sm: '100%' },
         maxWidth: '100%',
-        maxHeight: '100vh',
         borderRadius: 0,
         overflow: 'hidden',
-        position: 'absolute',
+        position: 'fixed',
         top: 0,
         bottom: 0,
         left: 0,
-        right: 0
+        right: 0,
+        zIndex: 1000,
+        m: 0,
+        p: 0,
+        boxSizing: 'border-box'
       }}
     >
       <ChatHeader 

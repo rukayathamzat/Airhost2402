@@ -30,31 +30,49 @@ export default function ChatHeader({
   return (
     <>
       <Box sx={{ 
-        p: 2, 
+        p: { xs: 1.5, sm: 2 }, 
         display: 'flex', 
         alignItems: 'center', 
-        gap: 2,
+        gap: { xs: 1, sm: 2 },
         backgroundColor: '#fff',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+        boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+        width: '100%',
+        boxSizing: 'border-box'
       }}>
         <Avatar 
           sx={{ 
             bgcolor: '#3b82f6',
-            width: 40,
-            height: 40
+            width: { xs: 36, sm: 40 },
+            height: { xs: 36, sm: 40 },
+            fontSize: { xs: '0.9rem', sm: '1rem' }
           }}
         >
           {guestNumber.substring(0, 2)}
         </Avatar>
         <Box sx={{ flex: 1 }}>
-          <Typography variant="subtitle1" fontWeight={600}>
+          <Typography 
+            variant="subtitle1" 
+            fontWeight={600}
+            sx={{ fontSize: { xs: '0.9rem', sm: '1rem' } }}
+          >
             {formatPhoneNumber(guestNumber)}
           </Typography>
-          <Typography variant="body2" color="text.secondary">
+          <Typography 
+            variant="body2" 
+            color="text.secondary"
+            sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}
+          >
             {propertyName}
           </Typography>
           {conversationStartTime && (
-            <Typography variant="caption" color="text.secondary">
+            <Typography 
+              variant="caption" 
+              color="text.secondary"
+              sx={{ 
+                fontSize: { xs: '0.7rem', sm: '0.75rem' },
+                display: { xs: 'none', sm: 'block' } 
+              }}
+            >
               Conversation démarrée le {format(new Date(conversationStartTime), 'PPP', { locale: fr })}
             </Typography>
           )}
