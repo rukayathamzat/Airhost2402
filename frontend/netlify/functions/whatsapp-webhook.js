@@ -122,23 +122,9 @@ async function processMessage(supabase, phoneNumberId, message, contacts) {
       console.log('No conversation found for phone:', from);
       console.log('Creating new conversation for phone:', from);
       
-      // Récupérer une propriété par défaut pour associer la conversation
-      const { data: properties, error: propError } = await supabase
-        .from('properties')
-        .select('id')
-        .limit(1);
-        
-      if (propError) {
-        console.error('Error finding property:', propError);
-        throw propError;
-      }
-      
-      if (!properties || properties.length === 0) {
-        console.error('No property found to associate with conversation');
-        return;
-      }
-      
-      const propertyId = properties[0].id;
+      // Utiliser directement l'ID de propriété connu
+      const propertyId = 'f0e8bb59-214e-4dc7-a80f-406f89220cff';
+      console.log('Using hardcoded property ID:', propertyId);
       
       // Créer une nouvelle conversation
       const { data: newConversation, error: createError } = await supabase
