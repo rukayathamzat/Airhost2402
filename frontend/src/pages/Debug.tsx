@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
 import { Box, Button, Container, Grid, Paper, TextField, Typography, CircularProgress, Divider } from '@mui/material';
-import { useTheme } from '@mui/material/styles';
 
 const DebugPage: React.FC = () => {
-  const theme = useTheme();
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [apartmentId, setApartmentId] = useState('');
@@ -38,8 +36,8 @@ const DebugPage: React.FC = () => {
       const response = await fetch(url);
       const data = await response.json();
       setResult(data);
-    } catch (error) {
-      setResult({ error: error.message });
+    } catch (error: any) {
+      setResult({ error: error.message || 'Erreur inconnue' });
     } finally {
       setLoading(false);
     }
