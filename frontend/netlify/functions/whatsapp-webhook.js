@@ -7,11 +7,12 @@ exports.handler = async function(event, context) {
   console.log('Initializing Supabase with:', {
     url: process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL,
     hasAnonKey: !!process.env.VITE_SUPABASE_ANON_KEY,
-    hasServiceKey: !!process.env.SUPABASE_SERVICE_KEY
+    hasServiceKey: !!process.env.SUPABASE_SERVICE_KEY,
+    hasServiceRoleKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY
   });
   
-  // Utiliser SUPABASE_SERVICE_KEY si disponible, sinon utiliser VITE_SUPABASE_ANON_KEY
-  const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+  // Priorité des clés : SERVICE_ROLE_KEY > SERVICE_KEY > ANON_KEY
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
   const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
   
   if (!supabaseUrl || !supabaseKey) {
@@ -22,7 +23,15 @@ exports.handler = async function(event, context) {
     };
   }
   
-  const supabase = createClient(supabaseUrl, supabaseKey);
+  console.log('Using Supabase URL:', supabaseUrl);
+  console.log('Using service role key:', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
+  
+  const supabase = createClient(supabaseUrl, supabaseKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  });
 
   // Vérification du webhook (GET)
   if (event.httpMethod === 'GET') {
