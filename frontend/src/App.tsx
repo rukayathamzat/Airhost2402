@@ -8,6 +8,7 @@ import VerificationError from './pages/VerificationError';
 import VerificationSuccess from './pages/VerificationSuccess';
 import ChatSandbox from './pages/ChatSandbox';
 import Properties from './pages/Properties';
+import Debug from './pages/debug';
 import Layout from './components/Layout/Layout';
 import { supabase } from './lib/supabase';
 import { Session } from '@supabase/supabase-js';
@@ -127,6 +128,10 @@ function App() {
         <Route 
           path="/verification-success" 
           element={<VerificationSuccess />} 
+        />
+        <Route 
+          path="/debug" 
+          element={<Debug />} 
         />
         <Route
           path="/"
