@@ -16,8 +16,9 @@ exports.handler = async function(event, context) {
   }
 
   try {
-    const { to, template_name, language } = JSON.parse(event.body);
+    let { to, template_name = 'hello_world', language = 'en_US' } = JSON.parse(event.body);
     console.log('Parsed request body:', { to, template_name, language });
+    console.log('Using default template "hello_world" if not specified');
 
     // Récupérer la configuration WhatsApp la plus récente
     console.log('Connecting to Supabase with URL:', process.env.VITE_SUPABASE_URL);
@@ -43,7 +44,7 @@ exports.handler = async function(event, context) {
     console.log('Sending WhatsApp message with:', { phoneNumberId, template: template_name, language, to });
 
     const response = await fetch(
-      `https://graph.facebook.com/v19.0/${phoneNumberId}/messages`,
+      `https://graph.facebook.com/v22.0/${phoneNumberId}/messages`,
       {
         method: 'POST',
         headers: {
