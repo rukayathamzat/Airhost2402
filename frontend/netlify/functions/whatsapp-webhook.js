@@ -4,10 +4,25 @@ exports.handler = async function(event, context) {
   console.log('WhatsApp Webhook invoked with event:', JSON.stringify(event));
   
   // Initialiser Supabase
-  const supabase = createClient(
-    process.env.VITE_SUPABASE_URL,
-    process.env.VITE_SUPABASE_ANON_KEY
-  );
+  console.log('Initializing Supabase with:', {
+    url: process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL,
+    hasAnonKey: !!process.env.VITE_SUPABASE_ANON_KEY,
+    hasServiceKey: !!process.env.SUPABASE_SERVICE_KEY
+  });
+  
+  // Utiliser SUPABASE_SERVICE_KEY si disponible, sinon utiliser VITE_SUPABASE_ANON_KEY
+  const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+  const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  
+  if (!supabaseUrl || !supabaseKey) {
+    console.error('Supabase credentials not found');
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: 'Supabase credentials not configured' })
+    };
+  }
+  
+  const supabase = createClient(supabaseUrl, supabaseKey);
 
   // Vérification du webhook (GET)
   if (event.httpMethod === 'GET') {
@@ -122,9 +137,38 @@ async function processMessage(supabase, phoneNumberId, message, contacts) {
       console.log('No conversation found for phone:', from);
       console.log('Creating new conversation for phone:', from);
       
-      // Utiliser directement l'ID de propriété connu
-      const propertyId = 'f0e8bb59-214e-4dc7-a80f-406f89220cff';
-      console.log('Using hardcoded property ID:', propertyId);
+      // Récupérer une propriété par défaut pour associer la conversation
+      console.log('Trying to fetch properties from database...');
+      let propertyId;
+      
+      try {
+        const { data: properties, error: propError } = await supabase
+          .from('properties')
+          .select('id, name')
+          .limit(1);
+          
+        console.log('Properties query result:', { properties, error: propError });
+        
+        if (propError) {
+          console.error('Error finding property:', propError);
+          // Utiliser l'ID de propriété connu comme fallback
+          propertyId = 'f0e8bb59-214e-4dc7-a80f-406f89220cff';
+          console.log('Using hardcoded property ID as fallback:', propertyId);
+        } else if (!properties || properties.length === 0) {
+          console.error('No property found to associate with conversation');
+          // Utiliser l'ID de propriété connu comme fallback
+          propertyId = 'f0e8bb59-214e-4dc7-a80f-406f89220cff';
+          console.log('Using hardcoded property ID as fallback:', propertyId);
+        } else {
+          propertyId = properties[0].id;
+          console.log('Found property from database:', properties[0].name, 'with ID:', propertyId);
+        }
+      } catch (error) {
+        console.error('Exception while fetching properties:', error);
+        // Utiliser l'ID de propriété connu comme fallback
+        propertyId = 'f0e8bb59-214e-4dc7-a80f-406f89220cff';
+        console.log('Using hardcoded property ID as fallback:', propertyId);
+      }
       
       // Créer une nouvelle conversation
       const { data: newConversation, error: createError } = await supabase
