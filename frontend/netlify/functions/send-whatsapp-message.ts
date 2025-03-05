@@ -52,7 +52,7 @@ export const handler: Handler = async (event) => {
 
     // Envoyer le message via l'API WhatsApp
     const response = await fetch(
-      `https://graph.facebook.com/v17.0/${config.phone_number_id}/messages`,
+      `https://graph.facebook.com/v22.0/${config.phone_number_id}/messages`,
       {
         method: 'POST',
         headers: {
