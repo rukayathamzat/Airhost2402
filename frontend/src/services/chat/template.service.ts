@@ -12,25 +12,12 @@ export interface Template {
 
 export class TemplateService {
   static async getTemplates() {
-    // Récupérer la session pour obtenir l'ID de l'utilisateur
-    const { data: { session } } = await supabase.auth.getSession();
-    const userId = session?.user?.id;
-    
-    console.log('Récupération des templates pour l\'utilisateur:', userId);
-    
-    // Récupérer tous les templates (ceux avec host_id correspondant à l'utilisateur ET ceux sans host_id)
     const { data, error } = await supabase
       .from('templates')
       .select('*')
-      .or(`host_id.is.null,host_id.eq.${userId}`)
       .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error('Erreur lors de la récupération des templates:', error);
-      throw error;
-    }
-    
-    console.log('Templates récupérés:', data?.length || 0);
+    if (error) throw error;
     return data as Template[];
   }
 
