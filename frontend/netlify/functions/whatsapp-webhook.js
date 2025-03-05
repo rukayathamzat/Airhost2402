@@ -69,7 +69,7 @@ exports.handler = async function(event, context) {
 
       // Traiter chaque message
       for (const message of value.messages) {
-        await processMessage(supabase, value.metadata.phone_number_id, message);
+        await processMessage(supabase, value.metadata.phone_number_id, message, value.contacts);
       }
 
       return {
@@ -91,7 +91,7 @@ exports.handler = async function(event, context) {
   };
 };
 
-async function processMessage(supabase, phoneNumberId, message) {
+async function processMessage(supabase, phoneNumberId, message, contacts) {
   try {
     console.log('Processing message:', JSON.stringify(message));
     
@@ -101,6 +101,9 @@ async function processMessage(supabase, phoneNumberId, message) {
     const timestamp = message.timestamp;
     const messageType = message.type;
     const messageContent = message.text?.body || '';
+    
+    // Récupérer le nom du contact s'il est disponible
+    const contactName = contacts?.[0]?.profile?.name || 'Invité';
 
     // Trouver la conversation correspondante
     const { data: conversations, error: convError } = await supabase
@@ -113,19 +116,62 @@ async function processMessage(supabase, phoneNumberId, message) {
       throw convError;
     }
 
+    let conversationId;
+    
     if (!conversations || conversations.length === 0) {
       console.log('No conversation found for phone:', from);
-      return;
-    }
+      console.log('Creating new conversation for phone:', from);
+      
+      // Récupérer une propriété par défaut pour associer la conversation
+      const { data: properties, error: propError } = await supabase
+        .from('properties')
+        .select('id')
+        .limit(1);
+        
+      if (propError) {
+        console.error('Error finding property:', propError);
+        throw propError;
+      }
+      
+      if (!properties || properties.length === 0) {
+        console.error('No property found to associate with conversation');
+        return;
+      }
+      
+      const propertyId = properties[0].id;
+      
+      // Créer une nouvelle conversation
+      const { data: newConversation, error: createError } = await supabase
+        .from('conversations')
+        .insert({
+          property_id: propertyId,
+          guest_phone: from,
+          guest_name: contactName,
+          unread_count: 1,
+          last_message: messageContent,
+          last_message_at: new Date().toISOString(),
+          status: 'active'
+        })
+        .select();
+        
+      if (createError) {
+        console.error('Error creating conversation:', createError);
+        throw createError;
+      }
+      
+      console.log('New conversation created:', newConversation);
+      conversationId = newConversation[0].id;
+    } else {
 
     const conversation = conversations[0];
     console.log('Found conversation:', conversation);
+    conversationId = conversation.id;
 
     // Enregistrer le message dans la base de données
     const { data: messageData, error: msgError } = await supabase
       .from('messages')
       .insert({
-        conversation_id: conversation.id,
+        conversation_id: conversationId,
         content: messageContent,
         direction: 'inbound',
         type: messageType === 'text' ? 'text' : 'other',
@@ -143,23 +189,25 @@ async function processMessage(supabase, phoneNumberId, message) {
 
     console.log('Message inserted successfully:', messageData);
 
-    // Mettre à jour le compteur de messages non lus
-    const { error: updateError } = await supabase
-      .from('conversations')
-      .update({
-        unread_count: (conversation.unread_count || 0) + 1,
-        last_message: messageContent,
-        last_message_at: new Date().toISOString()
-      })
-      .eq('id', conversation.id);
-
-    if (updateError) {
-      console.error('Error updating conversation:', updateError);
-      throw updateError;
+    // Si c'est une conversation existante, mettre à jour le compteur de messages non lus
+    if (conversations && conversations.length > 0) {
+      const { error: updateError } = await supabase
+        .from('conversations')
+        .update({
+          unread_count: (conversation.unread_count || 0) + 1,
+          last_message: messageContent,
+          last_message_at: new Date().toISOString()
+        })
+        .eq('id', conversationId);
+        
+      if (updateError) {
+        console.error('Error updating conversation:', updateError);
+        throw updateError;
+      }
+      
+      console.log('Conversation updated successfully');
     }
 
-    console.log('Conversation updated successfully');
-    
   } catch (error) {
     console.error('Error in processMessage:', error);
     throw error;
