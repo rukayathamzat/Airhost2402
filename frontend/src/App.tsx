@@ -1,5 +1,4 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import Debug from './pages/Debug';
 import { useEffect, useState } from 'react';
 import SetPassword from './pages/SetPassword';
 import Chat from './pages/Chat';
@@ -9,6 +8,7 @@ import VerificationError from './pages/VerificationError';
 import VerificationSuccess from './pages/VerificationSuccess';
 import ChatSandbox from './pages/ChatSandbox';
 import Properties from './pages/Properties';
+import Debug from './pages/Debug';
 import Layout from './components/Layout/Layout';
 import { supabase } from './lib/supabase';
 import { Session } from '@supabase/supabase-js';
@@ -128,6 +128,10 @@ function App() {
         <Route 
           path="/verification-success" 
           element={<VerificationSuccess />} 
+        />
+        <Route 
+          path="/debug" 
+          element={<Debug />} 
         />
         <Route
           path="/"
