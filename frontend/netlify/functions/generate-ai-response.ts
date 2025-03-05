@@ -2,15 +2,28 @@ import { Handler } from '@netlify/functions';
 import OpenAI from 'openai';
 import { createClient } from '@supabase/supabase-js';
 
+// Log détaillé des variables d'environnement (masquées pour la sécurité)
+console.log('Variables d\'environnement:', {
+  SUPABASE_URL: process.env.SUPABASE_URL ? 'Défini' : 'Non défini',
+  SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY ? 'Défini' : 'Non défini',
+  OPENAI_API_KEY: process.env.OPENAI_API_KEY ? `Défini (commence par ${process.env.OPENAI_API_KEY?.substring(0, 5)}...)` : 'Non défini',
+  OPENAI_ORG_ID: process.env.OPENAI_ORG_ID ? 'Défini' : 'Non défini',
+  NODE_VERSION: process.env.NODE_VERSION || 'Non défini'
+});
+
 const supabase = createClient(
   process.env.SUPABASE_URL || '',
   process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 );
 
+console.log('Client Supabase initialisé');
+
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
   organization: process.env.OPENAI_ORG_ID // Optionnel mais recommandé
 });
+
+console.log('Client OpenAI initialisé');
 
 export const handler: Handler = async (event, context) => {
   try {
@@ -37,25 +50,51 @@ export const handler: Handler = async (event, context) => {
     // au lieu d'en créer une nouvelle
 
     // Récupérer les données de l'appartement
+    console.log(`Tentative de récupération de l'appartement avec ID: ${apartmentId}`);
     const { data: propertyData, error: propertyError } = await supabase
       .from('properties')
       .select('*')
       .eq('id', apartmentId)
       .single();
 
-    if (propertyError || !propertyData) {
-      console.error('Erreur lors de la récupération des données de l\'appartement:', propertyError);
+    if (propertyError) {
+      console.error('Erreur lors de la récupération des données de l\'appartement:', {
+        code: propertyError.code,
+        message: propertyError.message,
+        details: propertyError.details,
+        hint: propertyError.hint
+      });
       return {
         statusCode: 404,
-        body: JSON.stringify({ error: 'Appartement non trouvé' })
+        body: JSON.stringify({ 
+          error: 'Appartement non trouvé',
+          details: propertyError
+        })
       };
     }
 
-    console.log(`Appartement récupéré: ${propertyData.name}`);
+    if (!propertyData) {
+      console.error('Aucune donnée d\'appartement trouvée pour l\'ID:', apartmentId);
+      return {
+        statusCode: 404,
+        body: JSON.stringify({ error: 'Appartement non trouvé (données nulles)' })
+      };
+    }
+
+    console.log(`Appartement récupéré:`, {
+      id: propertyData.id,
+      name: propertyData.name,
+      hasDescription: !!propertyData.description,
+      hasAmenities: !!propertyData.amenities,
+      hasRules: !!propertyData.rules,
+      hasFaq: !!propertyData.faq,
+      hasAiInstructions: !!propertyData.ai_instructions
+    });
 
     // Récupérer les messages de la conversation (sauf si fournis directement)
     let messagesData = directMessages;
     if (!messagesData) {
+      console.log(`Tentative de récupération des messages pour la conversation ID: ${conversationId}`);
       const { data, error: messagesError } = await supabase
         .from('messages')
         .select('*')
@@ -63,22 +102,51 @@ export const handler: Handler = async (event, context) => {
         .order('created_at', { ascending: true });
 
       if (messagesError) {
-        console.error('Erreur lors de la récupération des messages:', messagesError);
+        console.error('Erreur lors de la récupération des messages:', {
+          code: messagesError.code,
+          message: messagesError.message,
+          details: messagesError.details,
+          hint: messagesError.hint
+        });
         return {
           statusCode: 500,
-          body: JSON.stringify({ error: 'Erreur lors de la récupération des messages' })
+          body: JSON.stringify({ 
+            error: 'Erreur lors de la récupération des messages',
+            details: messagesError
+          })
         };
       }
       
       messagesData = data;
-      console.log(`${messagesData.length} messages récupérés pour la conversation ${conversationId}`);
+      if (!messagesData || messagesData.length === 0) {
+        console.warn(`Aucun message trouvé pour la conversation ${conversationId}`);
+      } else {
+        console.log(`${messagesData.length} messages récupérés pour la conversation ${conversationId}`);
+        console.log('Premier message:', messagesData[0]);
+        console.log('Dernier message:', messagesData[messagesData.length - 1]);
+      }
     } else {
       console.log(`Utilisation de ${messagesData.length} messages fournis directement`);
     }
 
     // Construire le prompt en intégrant les informations de l'appartement
+    console.log('Construction du prompt avec les données récupérées');
+    try {
+      const prompt = buildPrompt(propertyData, messagesData, customInstructions, isReservation);
+      console.log('Prompt construit (début):', prompt.substring(0, 200) + '...');
+      console.log('Longueur totale du prompt:', prompt.length);
+    } catch (promptError) {
+      console.error('Erreur lors de la construction du prompt:', promptError);
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ 
+          error: 'Erreur lors de la construction du prompt',
+          details: promptError.message
+        })
+      };
+    }
+    
     const prompt = buildPrompt(propertyData, messagesData, customInstructions, isReservation);
-    console.log('Prompt construit (début):', prompt.substring(0, 200) + '...');
 
     // Ajouter le prompt comme message système dans l'historique pour OpenAI
     const augmentedMessages = [...messagesData];
@@ -111,28 +179,57 @@ export const handler: Handler = async (event, context) => {
 };
 
 function buildPrompt(propertyData: any, messages: any[], customInstructions: string, isReservation: boolean) {
+  console.log('Début de buildPrompt avec:', {
+    propertyName: propertyData.name,
+    messageCount: messages.length,
+    hasCustomInstructions: !!customInstructions,
+    isReservation: isReservation
+  });
+
   // Récupérer les 5 derniers messages pour fournir un contexte plus riche
   const recentMessages = messages.slice(-5).map(msg => 
     `${msg.direction === 'inbound' ? 'INVITÉ' : 'HÔTE'}: ${msg.content}`
   ).join('\n');
   
   const lastMessage = messages[messages.length - 1]?.content || '';
+  console.log('Dernier message extrait:', lastMessage.substring(0, 50) + (lastMessage.length > 50 ? '...' : ''));
   
   // Gestion sécurisée des données JSON
   const safeParseJson = (data: any) => {
-    if (!data) return {};
+    if (!data) {
+      console.log('Donnée JSON manquante (null ou undefined)');
+      return {};
+    }
     try {
-      return typeof data === 'string' ? JSON.parse(data) : data;
-    } catch {
+      const result = typeof data === 'string' ? JSON.parse(data) : data;
+      console.log('Parsing JSON réussi, type résultant:', typeof result);
+      return result;
+    } catch (error) {
+      console.warn('Erreur lors du parsing JSON:', error.message);
+      console.log('Valeur qui a causé l\'erreur:', data);
       return {};
     }
   };
 
   // Récupération sécurisée des données
+  console.log('Types des données de propriété:', {
+    amenities: typeof propertyData.amenities,
+    rules: typeof propertyData.rules,
+    faq: typeof propertyData.faq,
+    aiInstructions: typeof propertyData.ai_instructions
+  });
+  
   const amenities = safeParseJson(propertyData.amenities);
   const rules = safeParseJson(propertyData.rules);
   const faq = safeParseJson(propertyData.faq);
   const aiInstructions = propertyData.ai_instructions || '';
+  
+  console.log('Données extraites:', {
+    amenitiesCount: Object.keys(amenities).length,
+    rulesCount: Object.keys(rules).length,
+    faqCount: Object.keys(faq).length,
+    hasAiInstructions: !!aiInstructions
+  });
 
   // Construction des sections si les données existent
   const buildSection = (title: string, data: Record<string, any>, format: (k: string, v: any) => string = (k, v) => `- ${k}: ${v}`) => {
@@ -187,6 +284,13 @@ ${isReservation ? 'Actif' : 'Inactif'}
 
 async function getAIResponse(prompt: string, messages: any[]) {
   try {
+    console.log('Début de getAIResponse');
+    console.log('Informations OpenAI:', {
+      apiKeyDefined: !!process.env.OPENAI_API_KEY,
+      apiKeyPrefix: process.env.OPENAI_API_KEY ? process.env.OPENAI_API_KEY.substring(0, 5) + '...' : 'Non défini',
+      orgIdDefined: !!process.env.OPENAI_ORG_ID
+    });
+    
     // Debug: Afficher les 5 derniers messages de la conversation
     console.log('Messages récents de la conversation:', 
       messages.slice(-5).map(m => ({ 
@@ -233,32 +337,67 @@ async function getAIResponse(prompt: string, messages: any[]) {
       lastMessage: chatMessages[chatMessages.length - 1]?.content.substring(0, 50) + '...'
     });
 
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini", // Modèle optimisé pour la rapidité
-      messages: chatMessages,
-      temperature: 0.8, // Légèrement plus créatif
-      max_tokens: 250, // Augmenter pour des réponses plus détaillées
-      presence_penalty: 0.6,
-      frequency_penalty: 0.6,
-      response_format: { type: "text" }
+    console.log('Appel à OpenAI avec:', {
+      model: 'gpt-4o-mini',
+      messageCount: chatMessages.length,
+      temperature: 0.8,
+      maxTokens: 250
     });
-
-    console.log('Réponse OpenAI reçue:', {
-      status: 'success',
-      content: completion.choices[0].message.content
-    });
-
-    const content = completion.choices[0].message.content;
-    if (!content) throw new Error('Réponse vide de l\'API');
     
-    return validateResponse(content);
+    try {
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o-mini", // Modèle optimisé pour la rapidité
+        messages: chatMessages,
+        temperature: 0.8, // Légèrement plus créatif
+        max_tokens: 250, // Augmenter pour des réponses plus détaillées
+        presence_penalty: 0.6,
+        frequency_penalty: 0.6,
+        response_format: { type: "text" }
+      });
+
+      console.log('Réponse OpenAI reçue:', {
+        status: 'success',
+        content: completion.choices[0].message.content
+      });
+
+      const content = completion.choices[0].message.content;
+      if (!content) throw new Error('Réponse vide de l\'API');
+      
+      return validateResponse(content);
+    } catch (openaiError) {
+      console.error('Erreur spécifique lors de l\'appel à OpenAI:', {
+        name: openaiError.name,
+        message: openaiError.message,
+        stack: openaiError.stack,
+        response: openaiError.response ? {
+          status: openaiError.response.status,
+          statusText: openaiError.response.statusText,
+          data: openaiError.response.data
+        } : 'Pas de réponse',
+        type: openaiError.type,
+        code: openaiError.code
+      });
+      throw openaiError; // Relancer l'erreur pour être capturée par le bloc catch externe
+    }
   } catch (error: any) {
-    console.error('Erreur OpenAI:', {
+    console.error('Erreur OpenAI (bloc catch principal):', {
       error: error?.response?.data || error,
       message: error?.message,
-      status: error?.response?.status
+      status: error?.response?.status,
+      stack: error?.stack,
+      type: error?.type,
+      code: error?.code
     });
-    throw new Error(error?.response?.data?.error?.message || 'Erreur de génération AI');
+    
+    // Vérification spécifique pour les erreurs d'authentification
+    if (error?.response?.status === 401 || 
+        error?.message?.includes('authentication') || 
+        error?.message?.includes('API key')) {
+      console.error('ERREUR D\'AUTHENTIFICATION OPENAI DÉTECTÉE');
+      throw new Error('Erreur d\'authentification OpenAI: ' + (error?.message || 'Clé API incorrecte ou invalide'));
+    }
+    
+    throw new Error(error?.response?.data?.error?.message || error?.message || 'Erreur de génération AI');
   }
 }
 
