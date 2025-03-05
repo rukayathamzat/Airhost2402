@@ -162,11 +162,28 @@ async function processMessage(supabase, phoneNumberId, message, contacts) {
       console.log('New conversation created:', newConversation);
       conversationId = newConversation[0].id;
     } else {
+      const conversation = conversations[0];
+      console.log('Found conversation:', conversation);
+      conversationId = conversation.id;
 
-    const conversation = conversations[0];
-    console.log('Found conversation:', conversation);
-    conversationId = conversation.id;
-
+      // Si c'est une conversation existante, mettre à jour le compteur de messages non lus
+      const { error: updateError } = await supabase
+        .from('conversations')
+        .update({
+          unread_count: (conversation.unread_count || 0) + 1,
+          last_message: messageContent,
+          last_message_at: new Date().toISOString()
+        })
+        .eq('id', conversationId);
+        
+      if (updateError) {
+        console.error('Error updating conversation:', updateError);
+        throw updateError;
+      }
+      
+      console.log('Conversation updated successfully');
+    }
+    
     // Enregistrer le message dans la base de données
     const { data: messageData, error: msgError } = await supabase
       .from('messages')
@@ -188,25 +205,6 @@ async function processMessage(supabase, phoneNumberId, message, contacts) {
     }
 
     console.log('Message inserted successfully:', messageData);
-
-    // Si c'est une conversation existante, mettre à jour le compteur de messages non lus
-    if (conversations && conversations.length > 0) {
-      const { error: updateError } = await supabase
-        .from('conversations')
-        .update({
-          unread_count: (conversation.unread_count || 0) + 1,
-          last_message: messageContent,
-          last_message_at: new Date().toISOString()
-        })
-        .eq('id', conversationId);
-        
-      if (updateError) {
-        console.error('Error updating conversation:', updateError);
-        throw updateError;
-      }
-      
-      console.log('Conversation updated successfully');
-    }
 
   } catch (error) {
     console.error('Error in processMessage:', error);
