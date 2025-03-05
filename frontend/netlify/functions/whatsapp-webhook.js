@@ -185,6 +185,7 @@ async function processMessage(supabase, phoneNumberId, message, contacts) {
         .insert({
           property_id: propertyId,
           guest_phone: from,
+          guest_number: from, // Ajouter guest_number avec la même valeur que guest_phone
           guest_name: contactName,
           unread_count: 1,
           last_message: messageContent,
