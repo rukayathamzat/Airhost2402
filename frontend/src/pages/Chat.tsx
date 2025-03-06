@@ -95,7 +95,18 @@ export default function Chat() {
         throw new Error('Non authentifié');
       }
 
-      console.log('Récupération des conversations pour:', session.user.id);
+      const timestamp = new Date().toISOString();
+      console.log(`Récupération des conversations pour: ${session.user.id} [${timestamp}]`);
+      
+      // Afficher les conversations actuelles pour débogage
+      if (conversations.length > 0) {
+        console.log('AVANT - État actuel des conversations:', conversations.map(c => ({
+          id: c.id,
+          guest_name: c.guest_name,
+          last_message_at: c.last_message_at
+        })));
+      }
+      
       const { data, error } = await supabase
         .from('conversations')
         .select(`
@@ -106,18 +117,41 @@ export default function Chat() {
           check_in_date,
           check_out_date,
           status,
-          last_message_at
+          last_message,
+          last_message_at,
+          unread_count
         `)
         .eq('property.host_id', session.user.id)
         .order('last_message_at', { ascending: false });
 
       if (error) throw error;
 
-      console.log('Conversations récupérées:', data);
-      setConversations(data?.map(item => ({
+      // Transformer les données
+      const transformedData = data?.map(item => ({
         ...item,
         property: Array.isArray(item.property) ? item.property : [item.property]
-      })) || []);
+      })) || [];
+      
+      console.log(`APRES - Nouvelles conversations récupérées [${timestamp}]:`, transformedData.map(c => ({
+        id: c.id,
+        guest_name: c.guest_name,
+        last_message: c.last_message,
+        last_message_at: c.last_message_at
+      })));
+      
+      // Forcer une mise à jour de l'état, même si les données semblent identiques
+      setConversations(prevConversations => {
+        // Comparer de manière détaillée les anciennes et nouvelles conversations
+        const hasChanges = JSON.stringify(prevConversations) !== JSON.stringify(transformedData);
+        console.log(`Changements détectés: ${hasChanges ? 'OUI' : 'NON'} [${timestamp}]`);
+        
+        // Forcer un re-rendu même si les données semblent identiques
+        // en ajoutant un timestamp à chaque conversation
+        return transformedData.map(conv => ({
+          ...conv,
+          _refreshTimestamp: timestamp // Champ temporaire pour forcer le re-rendu
+        }));
+      });
     } catch (err: any) {
       console.error('Erreur lors de la récupération des conversations:', err);
       setError(err.message);

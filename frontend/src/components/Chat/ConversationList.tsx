@@ -59,7 +59,14 @@ export default function ConversationList({ conversations, onSelectConversation, 
   
   // Effet pour le débogage des changements dans la liste des conversations
   useEffect(() => {
-    console.log('Liste des conversations mise à jour:', conversations);
+    const timestamp = new Date().toISOString();
+    console.log(`RENDU: Liste des conversations mise à jour [${timestamp}]:`, conversations.map(c => ({
+      id: c.id,
+      guest_name: c.guest_name,
+      last_message: c.last_message,
+      last_message_at: c.last_message_at,
+      _refreshTimestamp: c._refreshTimestamp
+    })));
   }, [conversations]);
 
   // Fonction pour générer les initiales à partir du nom
@@ -96,7 +103,7 @@ export default function ConversationList({ conversations, onSelectConversation, 
       ) : (
         <List sx={{ width: '100%', p: 0, overflowY: 'auto' }}>
           {conversations.map((conversation) => (
-            <div key={conversation.id}>
+            <div key={`${conversation.id}-${conversation._refreshTimestamp || 'initial'}`}>
               <ListItem
                 onClick={() => onSelectConversation(conversation)}
                 sx={{
