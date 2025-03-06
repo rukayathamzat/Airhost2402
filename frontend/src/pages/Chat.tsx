@@ -27,9 +27,34 @@ export default function Chat() {
   const navigate = useNavigate();
 
   useEffect(() => {
+    console.log('Chat component mounted', new Date().toISOString());
     checkSession();
     fetchConversations();
+    setupDebugListener();
   }, []);
+
+  const setupDebugListener = () => {
+    // Écouteur pour vérifier l'état de la connexion Supabase
+    console.log('DEBUG: Configuring Supabase connection listener');
+    const supabaseListener = supabase.channel('system');
+    supabaseListener
+      .on('system', { event: 'disconnect' }, (payload) => {
+        console.error('DEBUG: Supabase connection DISCONNECTED:', payload, new Date().toISOString());
+      })
+      .on('system', { event: 'reconnect' }, (payload) => {
+        console.log('DEBUG: Supabase connection RECONNECTED:', payload, new Date().toISOString());
+      })
+      .on('system', { event: 'connected' }, (payload) => {
+        console.log('DEBUG: Supabase connection ESTABLISHED:', payload, new Date().toISOString());
+      })
+      .subscribe((status) => {
+        console.log('DEBUG: Supabase system channel status:', status, new Date().toISOString());
+      });
+
+    return () => {
+      supabaseListener.unsubscribe();
+    };
+  };
 
   const checkSession = async () => {
     const { data: { session } } = await supabase.auth.getSession();
