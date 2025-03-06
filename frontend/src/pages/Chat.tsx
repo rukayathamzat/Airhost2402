@@ -36,43 +36,33 @@ export default function Chat() {
       if (!session) return;
       
       console.log('Mise en place de la souscription pour les nouvelles conversations');
+      console.log('User ID pour le filtre:', session.user.id);
+      
+      // Créer un canal plus simple sans filtre complexe
       const channel = supabase
-        .channel('new-conversations')
+        .channel('all-conversations-changes')
         .on(
           'postgres_changes',
           {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'conversations',
-            filter: `property.host_id=eq.${session.user.id}`
-          },
-          (payload) => {
-            console.log('Nouvelle conversation détectée:', payload.new);
-            // Recharger toutes les conversations pour s'assurer d'avoir les données complètes
-            fetchConversations();
-          }
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: 'UPDATE',
+            event: '*',  // Tous les événements (INSERT, UPDATE, DELETE)
             schema: 'public',
             table: 'conversations'
           },
           (payload) => {
-            console.log('Conversation mise à jour:', payload.new);
-            // Mettre à jour la conversation dans la liste locale
-            setConversations(current => {
-              const updated = [...current];
-              const index = updated.findIndex(c => c.id === payload.new.id);
-              if (index >= 0) {
-                updated[index] = { ...updated[index], ...payload.new };
-              }
-              return updated;
-            });
+            console.log('Changement détecté dans les conversations:', payload);
+            console.log('Type d\'événement:', payload.eventType);
+            console.log('Nouvelles données:', payload.new);
+            
+            // Recharger toutes les conversations pour s'assurer d'avoir les données complètes
+            console.log('Rechargement des conversations...');
+            fetchConversations();
           }
         )
-        .subscribe();
+        .subscribe((status) => {
+          console.log('Statut de la souscription:', status);
+        });
+      
+      console.log('Canal créé:', channel);
       
       return () => {
         console.log('Nettoyage de la souscription aux conversations');
