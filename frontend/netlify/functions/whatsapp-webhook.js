@@ -207,13 +207,17 @@ async function processMessage(supabase, phoneNumberId, message, contacts) {
       conversationId = conversation.id;
 
       // Si c'est une conversation existante, mettre à jour le compteur de messages non lus
+      const timestamp = new Date().toISOString();
       const updateData = {
         unread_count: (conversation.unread_count || 0) + 1,
         last_message: messageContent,
-        last_message_at: new Date().toISOString()
+        last_message_at: timestamp
       };
       
-      console.log('Mise à jour de la conversation avec:', updateData);
+      console.log(`[WEBHOOK ${timestamp}] Mise à jour de la conversation ${conversationId} avec:`, updateData);
+      
+      // Force du délai pour s'assurer que la mise à jour est propagative
+      await new Promise(resolve => setTimeout(resolve, 300));
       
       const { data: updatedConversation, error: updateError } = await supabase
         .from('conversations')
@@ -222,11 +226,30 @@ async function processMessage(supabase, phoneNumberId, message, contacts) {
         .select();
         
       if (updateError) {
-        console.error('Error updating conversation:', updateError);
+        console.error(`[WEBHOOK ${timestamp}] Error updating conversation:`, updateError);
         throw updateError;
       }
       
-      console.log('Conversation updated successfully:', updatedConversation);
+      console.log(`[WEBHOOK ${timestamp}] Conversation updated successfully:`, updatedConversation);
+      
+      // Forcer une deuxième mise à jour pour garantir que le changement est détecté par Realtime
+      await new Promise(resolve => setTimeout(resolve, 200));
+      
+      // Petite mise à jour séparée pour déclencher un second événement Realtime
+      const { data: refreshData, error: refreshError } = await supabase
+        .from('conversations')
+        .update({
+          _refresh_trigger: Math.random().toString(36).substring(2, 15) // Valeur aléatoire
+        })
+        .eq('id', conversationId)
+        .select();
+        
+      if (refreshError) {
+        console.error(`[WEBHOOK ${timestamp}] Error refreshing conversation:`, refreshError);
+        // Ne pas échouer pour cette erreur, c'est juste un refresh supplémentaire
+      } else {
+        console.log(`[WEBHOOK ${timestamp}] Conversation refresh triggered:`, refreshData);
+      }
     }
     
     // Enregistrer le message dans la base de données
