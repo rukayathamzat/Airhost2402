@@ -18,9 +18,10 @@ import { Conversation } from '../../types/conversation';
 interface ConversationListProps {
   conversations: Conversation[];
   onSelectConversation: (conversation: Conversation) => void;
+  onConversationUpdate?: () => void;  // Callback optionnel pour notifier le parent des mises à jour
 }
 
-export default function ConversationList({ conversations, onSelectConversation }: ConversationListProps) {
+export default function ConversationList({ conversations, onSelectConversation, onConversationUpdate }: ConversationListProps) {
   useEffect(() => {
     // Souscrire aux changements en temps réel
     console.log('Configuration de la souscription Realtime dans ConversationList', new Date().toISOString());
@@ -40,7 +41,12 @@ export default function ConversationList({ conversations, onSelectConversation }
           console.log('REALTIME: Table:', payload.table);
           console.log('REALTIME: Schema:', payload.schema);
           console.log('REALTIME: Données:', payload.new);
-          // La mise à jour sera gérée par le composant parent
+          
+          // Notifier le composant parent pour qu'il rafraîchisse les données
+          if (onConversationUpdate) {
+            console.log('REALTIME: Notification du parent pour mise à jour');
+            onConversationUpdate();
+          }
         }
       )
       .subscribe();
