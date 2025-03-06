@@ -29,6 +29,61 @@ export default function Chat() {
   useEffect(() => {
     checkSession();
     fetchConversations();
+    
+    // Mettre en place la souscription pour les nouvelles conversations
+    const setupRealtimeSubscription = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      
+      console.log('Mise en place de la souscription pour les nouvelles conversations');
+      const channel = supabase
+        .channel('new-conversations')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'conversations',
+            filter: `property.host_id=eq.${session.user.id}`
+          },
+          (payload) => {
+            console.log('Nouvelle conversation détectée:', payload.new);
+            // Recharger toutes les conversations pour s'assurer d'avoir les données complètes
+            fetchConversations();
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'conversations'
+          },
+          (payload) => {
+            console.log('Conversation mise à jour:', payload.new);
+            // Mettre à jour la conversation dans la liste locale
+            setConversations(current => {
+              const updated = [...current];
+              const index = updated.findIndex(c => c.id === payload.new.id);
+              if (index >= 0) {
+                updated[index] = { ...updated[index], ...payload.new };
+              }
+              return updated;
+            });
+          }
+        )
+        .subscribe();
+      
+      return () => {
+        console.log('Nettoyage de la souscription aux conversations');
+        supabase.removeChannel(channel);
+      };
+    };
+    
+    const cleanup = setupRealtimeSubscription();
+    return () => {
+      if (cleanup) cleanup.then(fn => fn && fn());
+    };
   }, []);
 
   const checkSession = async () => {
