@@ -207,21 +207,26 @@ async function processMessage(supabase, phoneNumberId, message, contacts) {
       conversationId = conversation.id;
 
       // Si c'est une conversation existante, mettre à jour le compteur de messages non lus
-      const { error: updateError } = await supabase
+      const updateData = {
+        unread_count: (conversation.unread_count || 0) + 1,
+        last_message: messageContent,
+        last_message_at: new Date().toISOString()
+      };
+      
+      console.log('Mise à jour de la conversation avec:', updateData);
+      
+      const { data: updatedConversation, error: updateError } = await supabase
         .from('conversations')
-        .update({
-          unread_count: (conversation.unread_count || 0) + 1,
-          last_message: messageContent,
-          last_message_at: new Date().toISOString()
-        })
-        .eq('id', conversationId);
+        .update(updateData)
+        .eq('id', conversationId)
+        .select();
         
       if (updateError) {
         console.error('Error updating conversation:', updateError);
         throw updateError;
       }
       
-      console.log('Conversation updated successfully');
+      console.log('Conversation updated successfully:', updatedConversation);
     }
     
     // Enregistrer le message dans la base de données

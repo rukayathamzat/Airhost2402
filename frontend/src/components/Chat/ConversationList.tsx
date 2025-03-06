@@ -24,25 +24,43 @@ export default function ConversationList({ conversations, onSelectConversation }
   useEffect(() => {
     // Souscrire aux changements en temps réel
     const channel = supabase
-      .channel('conversations')
+      .channel('conversations-list')
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'INSERT',
           schema: 'public',
           table: 'conversations'
         },
         (payload) => {
-          console.log('Changement dans les conversations:', payload);
+          console.log('Nouvelle conversation détectée dans ConversationList:', payload.new);
+          // La mise à jour sera gérée par le composant parent, mais on peut ajouter un log pour débogage
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'conversations'
+        },
+        (payload) => {
+          console.log('Conversation mise à jour dans ConversationList:', payload.new);
           // La mise à jour sera gérée par le composant parent
         }
       )
       .subscribe();
 
     return () => {
+      console.log('Nettoyage de la souscription ConversationList');
       supabase.removeChannel(channel);
     };
   }, []);
+  
+  // Effet pour le débogage des changements dans la liste des conversations
+  useEffect(() => {
+    console.log('Liste des conversations mise à jour:', conversations);
+  }, [conversations]);
 
   // Fonction pour générer les initiales à partir du nom
   const getInitials = (name: string) => {
