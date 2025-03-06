@@ -29,51 +29,6 @@ export default function Chat() {
   useEffect(() => {
     checkSession();
     fetchConversations();
-    
-    // Mettre en place la souscription pour les nouvelles conversations
-    const setupRealtimeSubscription = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-      
-      console.log('Mise en place de la souscription pour les nouvelles conversations');
-      console.log('User ID pour le filtre:', session.user.id);
-      
-      // Créer un canal plus simple sans filtre complexe
-      const channel = supabase
-        .channel('all-conversations-changes')
-        .on(
-          'postgres_changes',
-          {
-            event: '*',  // Tous les événements (INSERT, UPDATE, DELETE)
-            schema: 'public',
-            table: 'conversations'
-          },
-          (payload) => {
-            console.log('Changement détecté dans les conversations:', payload);
-            console.log('Type d\'événement:', payload.eventType);
-            console.log('Nouvelles données:', payload.new);
-            
-            // Recharger toutes les conversations pour s'assurer d'avoir les données complètes
-            console.log('Rechargement des conversations...');
-            fetchConversations();
-          }
-        )
-        .subscribe((status) => {
-          console.log('Statut de la souscription:', status);
-        });
-      
-      console.log('Canal créé:', channel);
-      
-      return () => {
-        console.log('Nettoyage de la souscription aux conversations');
-        supabase.removeChannel(channel);
-      };
-    };
-    
-    const cleanup = setupRealtimeSubscription();
-    return () => {
-      if (cleanup) cleanup.then(fn => fn && fn());
-    };
   }, []);
 
   const checkSession = async () => {
