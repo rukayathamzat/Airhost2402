@@ -31,7 +31,31 @@ export default function Chat() {
     checkSession();
     fetchConversations();
     setupDebugListener();
+    setupRealtimeSubscription();
   }, []);
+
+  // Configuration de la souscription Realtime pour les mises à jour de conversations
+  const setupRealtimeSubscription = () => {
+    console.log('Setting up realtime subscription for conversations table');
+    const channel = supabase
+      .channel('public:conversations')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'conversations'
+      }, (payload) => {
+        console.log('REALTIME CHAT: Received conversation update:', payload);
+        // Rafraîchir les conversations à chaque mise à jour
+        fetchConversations();
+      })
+      .subscribe((status) => {
+        console.log('REALTIME CHAT: Subscription status:', status);
+      });
+
+    return () => {
+      channel.unsubscribe();
+    };
+  };
 
   const setupDebugListener = () => {
     // Écouteur pour vérifier l'état de la connexion Supabase
@@ -152,6 +176,7 @@ export default function Chat() {
           <ConversationList
             conversations={conversations}
             onSelectConversation={setSelectedConversation}
+            onConversationUpdate={fetchConversations}
           />
         </Box>
 
