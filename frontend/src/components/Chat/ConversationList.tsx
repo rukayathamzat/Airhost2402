@@ -23,7 +23,7 @@ interface ConversationListProps {
 export default function ConversationList({ conversations, onSelectConversation }: ConversationListProps) {
   useEffect(() => {
     // Souscrire aux changements en temps réel
-    console.log('Configuration de la souscription Realtime dans ConversationList');
+    console.log('Configuration de la souscription Realtime dans ConversationList', new Date().toISOString());
     
     const channel = supabase
       .channel('conversations')
@@ -35,7 +35,11 @@ export default function ConversationList({ conversations, onSelectConversation }
           table: 'conversations'
         },
         (payload) => {
-          console.log('Changement dans les conversations:', payload);
+          console.log('REALTIME: Changement dans les conversations:', payload, new Date().toISOString());
+          console.log('REALTIME: Type d\'événement:', payload.eventType);
+          console.log('REALTIME: Table:', payload.table);
+          console.log('REALTIME: Schema:', payload.schema);
+          console.log('REALTIME: Données:', payload.new);
           // La mise à jour sera gérée par le composant parent
         }
       )
