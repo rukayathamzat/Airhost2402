@@ -14,5 +14,9 @@ export interface Conversation {
   guest_number?: string;
   last_message?: string;
   unread_count?: number;
+  // Propriété temporaire pour forcer le re-rendu
+  _refreshTimestamp?: string;
+  // Propriété pour le trigger de rafraîchissement dans la base de données
+  _refresh_trigger?: string;
 }
 
