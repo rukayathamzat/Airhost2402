@@ -22,34 +22,29 @@ interface ConversationListProps {
 
 export default function ConversationList({ conversations, onSelectConversation }: ConversationListProps) {
   useEffect(() => {
-    // Souscrire aux changements en temps réel
+    // Souscrire aux changements en temps réel avec une configuration simplifiée
+    console.log('Configuration de la souscription Realtime dans ConversationList');
+    
     const channel = supabase
-      .channel('conversations-list')
+      .channel('conversations-list-simple')
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: '*',  // Écouter tous les événements
           schema: 'public',
           table: 'conversations'
         },
         (payload) => {
-          console.log('Nouvelle conversation détectée dans ConversationList:', payload.new);
-          // La mise à jour sera gérée par le composant parent, mais on peut ajouter un log pour débogage
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'conversations'
-        },
-        (payload) => {
-          console.log('Conversation mise à jour dans ConversationList:', payload.new);
+          console.log(`Événement ${payload.eventType} détecté dans ConversationList:`, payload);
+          console.log('Données de l\'event:', payload.new || payload.old);
           // La mise à jour sera gérée par le composant parent
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Statut de la souscription ConversationList:', status);
+      });
+
+    console.log('Canal ConversationList créé:', channel);
 
     return () => {
       console.log('Nettoyage de la souscription ConversationList');
