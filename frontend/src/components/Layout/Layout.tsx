@@ -8,6 +8,7 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import MobileBottomMenu from './MobileBottomMenu';
+import SideMenu from '../SideMenu/SideMenu';
 import './Layout.css';
 
 interface LayoutProps {
@@ -120,6 +121,7 @@ const Layout = ({ children }: LayoutProps) => {
 
   return (
     <div className="layout">
+      {!isMobile && <SideMenu />}
       <main className="main-content">
         {children}
       </main>
