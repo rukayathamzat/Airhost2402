@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
-import { Paper } from '@mui/material';
+import { useState, useEffect, useRef } from 'react';
+import { Paper, Box, Fab, Zoom, useTheme, Tooltip, Badge } from '@mui/material';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import { supabase } from '../../lib/supabase';
 import AIResponseModal from '../AIResponseModal';
 import ChatHeader from './ChatHeader';
@@ -158,26 +159,52 @@ export default function ChatWindow({
     }
   };
 
+  // Référence pour le défilement vers le bas
+  const messagesEndRef = useRef<null | HTMLDivElement>(null);
+  const [showScrollButton, setShowScrollButton] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const theme = useTheme();
+
+  // Fonction pour faire défiler vers le bas
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    setUnreadCount(0);
+  };
+
+  // Gestion du défilement
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const element = e.currentTarget;
+    const isAtBottom = Math.abs(element.scrollHeight - element.scrollTop - element.clientHeight) < 50;
+    setShowScrollButton(!isAtBottom);
+    
+    if (isAtBottom) {
+      setUnreadCount(0);
+    }
+  };
+
+  // Mise à jour du compteur non lu quand un nouveau message arrive et qu'on n'est pas en bas
+  useEffect(() => {
+    if (messages.length > 0 && showScrollButton) {
+      setUnreadCount(prev => prev + 1);
+    }
+  }, [messages.length]);
+
   return (
     <Paper 
       elevation={0} 
       sx={{ 
         display: 'flex', 
         flexDirection: 'column', 
-        height: isMobile ? '100vh' : '100%',
-        width: isMobile ? '100vw' : '100%',
+        height: isMobile ? 'calc(100vh - 56px)' : '100%', // Ajustement pour tenir compte de la AppBar en mode mobile
+        width: '100%',
         maxWidth: '100%',
         borderRadius: 0,
         overflow: 'hidden',
-        position: isMobile ? 'fixed' : 'relative',
-        top: isMobile ? 0 : 'auto',
-        bottom: isMobile ? 0 : 'auto',
-        left: isMobile ? 0 : 'auto',
-        right: isMobile ? 0 : 'auto',
-        zIndex: isMobile ? 1000 : 1,
+        position: 'relative',
         m: 0,
         p: 0,
-        boxSizing: 'border-box'
+        boxSizing: 'border-box',
+        bgcolor: theme.palette.mode === 'dark' ? '#121212' : '#f5f7f9'
       }}
     >
       <ChatHeader 
@@ -188,31 +215,102 @@ export default function ChatWindow({
         onBack={onBack}
       />
 
-      <ChatMessages 
-        messages={messages}
-        isInitialLoad={isInitialLoad}
-      />
+      <Box 
+        sx={{ 
+          flexGrow: 1, 
+          overflowY: 'auto',
+          py: 2,
+          px: { xs: 1.5, sm: 2.5 },
+          backgroundImage: theme.palette.mode === 'dark' 
+            ? 'linear-gradient(rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%)'
+            : 'linear-gradient(rgba(224, 242, 254, 0.5) 0%, rgba(186, 230, 253, 0.4) 100%)',
+          backgroundAttachment: 'fixed',
+          backgroundSize: 'cover',
+          height: 'calc(100vh - 170px)',
+          position: 'relative',
+          display: 'flex',
+          flexDirection: 'column'
+        }}
+        onScroll={handleScroll}
+      >
+        <ChatMessages 
+          messages={messages}
+          isInitialLoad={isInitialLoad}
+        />
+        <div ref={messagesEndRef} style={{ height: 1 }} />
+      </Box>
 
-      <ChatInput 
-        onSendMessage={handleSendMessage}
-        onOpenAIModal={() => setAiModalOpen(true)}
-        onOpenTemplates={(event: React.MouseEvent<HTMLElement>) => 
-          setTemplateAnchorEl(event.currentTarget)
-        }
-        disabled={!selectedConversation}
-      />
+      {/* Bouton de défilement vers le bas */}
+      <Zoom in={showScrollButton}>
+        <Tooltip title="Nouveaux messages">
+          <Fab 
+            color="primary" 
+            size="small" 
+            onClick={scrollToBottom}
+            sx={{ 
+              position: 'absolute', 
+              bottom: 80, 
+              right: 16,
+              zIndex: 2,
+              boxShadow: 3
+            }}
+          >
+            <Badge 
+              badgeContent={unreadCount > 0 ? unreadCount : null}
+              color="error"
+              max={99}
+            >
+              <KeyboardArrowDownIcon />
+            </Badge>
+          </Fab>
+        </Tooltip>
+      </Zoom>
 
-      <TemplateMenu 
+      <Box sx={{ 
+        borderTop: '1px solid',
+        borderColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.12)',
+        bgcolor: theme.palette.background.paper,
+        px: 2,
+        py: 1.5
+      }}>
+        <ChatInput 
+          onSendMessage={(content) => {
+            handleSendMessage(content);
+            // Défiler automatiquement vers le bas après l'envoi d'un message
+            setTimeout(scrollToBottom, 100);
+          }}
+          onOpenAIModal={() => setAiModalOpen(true)}
+          onOpenTemplates={(event: React.MouseEvent<HTMLElement>) => 
+            setTemplateAnchorEl(event.currentTarget)
+          }
+          disabled={!selectedConversation}
+        />
+      </Box>
+
+      <TemplateMenu
         anchorEl={templateAnchorEl}
+        open={Boolean(templateAnchorEl)}
         onClose={() => setTemplateAnchorEl(null)}
         templates={templates}
-        onSelectTemplate={handleSendTemplate}
+        onSelectTemplate={(template) => {
+          handleSendTemplate(template);
+          setTemplateAnchorEl(null);
+          // Défiler automatiquement vers le bas après l'envoi d'un template
+          setTimeout(scrollToBottom, 100);
+        }}
       />
 
       <WhatsAppConfig 
         open={configOpen}
         onClose={() => setConfigOpen(false)}
       />
+
+      {/* Effet de défilement automatique lors de la première charge */}
+      {isInitialLoad && messages.length > 0 && (
+        <Box sx={{ display: 'none' }}>
+          {setTimeout(scrollToBottom, 300)}
+        </Box>
+      )}
 
       {aiModalOpen && selectedConversation?.properties?.id && (
         <AIResponseModal
