@@ -166,24 +166,30 @@ const Layout = ({ children }: LayoutProps) => {
             </DialogTitle>
             <DialogContent dividers sx={{ p: 0 }}>
               <List>
-                <ListItem button onClick={openWhatsAppConfig}>
-                  <ListItemIcon>
-                    <SettingsIcon />
-                  </ListItemIcon>
-                  <ListItemText primary="Paramètres" />
+                <ListItem disablePadding>
+                  <ListItemButton onClick={openWhatsAppConfig}>
+                    <ListItemIcon>
+                      <SettingsIcon />
+                    </ListItemIcon>
+                    <ListItemText primary="Paramètres" />
+                  </ListItemButton>
                 </ListItem>
-                <ListItem button>
-                  <ListItemIcon>
-                    <HelpOutlineIcon />
-                  </ListItemIcon>
-                  <ListItemText primary="Aide" />
+                <ListItem disablePadding>
+                  <ListItemButton>
+                    <ListItemIcon>
+                      <HelpOutlineIcon />
+                    </ListItemIcon>
+                    <ListItemText primary="Aide" />
+                  </ListItemButton>
                 </ListItem>
                 <Divider />
-                <ListItem button onClick={handleSignOut}>
-                  <ListItemIcon>
-                    <LogoutIcon />
-                  </ListItemIcon>
-                  <ListItemText primary="Déconnexion" />
+                <ListItem disablePadding>
+                  <ListItemButton onClick={handleSignOut}>
+                    <ListItemIcon>
+                      <LogoutIcon />
+                    </ListItemIcon>
+                    <ListItemText primary="Déconnexion" />
+                  </ListItemButton>
                 </ListItem>
               </List>
             </DialogContent>

@@ -14,18 +14,20 @@ import { WhatsAppService } from '../../services/chat/whatsapp.service';
 
 interface ChatWindowProps {
   conversationId: string;
-  guestNumber: string;
-  conversationStartTime?: string;
   isMobile?: boolean;
-  onBack?: () => void;
+  // Les props suivantes sont temporairement commentées car inutilisées
+  // guestNumber: string;
+  // conversationStartTime?: string;
+  // onBack?: () => void;
 }
 
 export default function ChatWindow({ 
   conversationId, 
-  guestNumber,
-  conversationStartTime,
   isMobile = false,
-  onBack
+  // Les props suivantes sont temporairement commentées car inutilisées
+  // guestNumber,
+  // conversationStartTime,
+  // onBack
 }: ChatWindowProps) {
   // États
   const [messages, setMessages] = useState<Message[]>([]);
