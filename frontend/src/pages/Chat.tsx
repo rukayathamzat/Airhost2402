@@ -11,10 +11,18 @@ import {
   IconButton,
   AppBar,
   Toolbar,
-  Drawer
+  Drawer,
+  BottomNavigation,
+  BottomNavigationAction,
+  Badge
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import CloseIcon from '@mui/icons-material/Close';
+import HomeIcon from '@mui/icons-material/Home';
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+import CampaignIcon from '@mui/icons-material/Campaign';
+import ChatIcon from '@mui/icons-material/Chat';
+import MenuOpenIcon from '@mui/icons-material/MenuOpen';
 import ConversationList from '../components/Chat/ConversationList';
 import ChatWindow from '../components/Chat/ChatWindow';
 import { supabase } from '../lib/supabase';
@@ -28,6 +36,7 @@ export default function Chat() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [navValue, setNavValue] = useState('messages');
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
@@ -203,9 +212,13 @@ export default function Chat() {
   };
 
   return (
-    <Container maxWidth="xl" sx={{ height: '100vh', p: isMobile ? 0 : 3 }}>
+    <Container maxWidth="xl" sx={{ 
+      height: '100vh', 
+      p: isMobile ? 0 : 3,
+      position: 'relative'  // Nécessaire pour positionner la barre de navigation
+    }}>
       <Paper sx={{ 
-        height: '100%', 
+        height: isMobile ? 'calc(100% - 56px)' : '100%',  // Ajustement pour la barre de navigation mobile
         display: 'flex',
         overflow: 'hidden',
         borderRadius: isMobile ? 0 : 1
@@ -265,19 +278,21 @@ export default function Chat() {
           height: '100%',
           position: 'relative'
         }}>
-          {/* AppBar en mode mobile avec hamburger menu */}
+          {/* AppBar en mode mobile avec le titre uniquement, plus de menu hamburger */}
           {isMobile && (
             <AppBar position="static" color="default" elevation={1} sx={{ flexShrink: 0 }}>
               <Toolbar>
-                <IconButton
-                  edge="start"
-                  color="inherit"
-                  aria-label="menu"
-                  onClick={toggleDrawer}
-                  sx={{ mr: 2 }}
-                >
-                  <MenuIcon />
-                </IconButton>
+                {selectedConversation && (
+                  <IconButton
+                    edge="start"
+                    color="inherit"
+                    aria-label="back"
+                    onClick={handleBackFromChat}
+                    sx={{ mr: 2 }}
+                  >
+                    <CloseIcon />
+                  </IconButton>
+                )}
                 <Typography variant="h6" component="div" sx={{ flexGrow: 1, fontWeight: 500 }}>
                   {selectedConversation ? selectedConversation.guest_name : 'Conversations'}
                 </Typography>
@@ -309,6 +324,75 @@ export default function Chat() {
         </Box>
       </Paper>
 
+      {/* Barre de navigation fixe en bas pour mobile, inspirée d'Airbnb */}
+      {isMobile && (
+        <Paper 
+          sx={{ 
+            position: 'fixed', 
+            bottom: 0, 
+            left: 0, 
+            right: 0, 
+            zIndex: 1000,
+            borderRadius: 0,
+            boxShadow: '0px -2px 4px rgba(0, 0, 0, 0.05)'
+          }}
+          elevation={3}
+        >
+          <BottomNavigation
+            value={navValue}
+            onChange={(event, newValue) => {
+              setNavValue(newValue);
+              // Si on clique sur Messages et qu'on n'est pas déjà dans la vue des messages, ouvrir le drawer
+              if (newValue === 'messages' && !selectedConversation) {
+                setDrawerOpen(true);
+              }
+            }}
+            showLabels
+            sx={{ height: 56 }}
+          >
+            <BottomNavigationAction 
+              label="Aujourd'hui" 
+              value="home"
+              icon={<HomeIcon />} 
+              sx={{ minWidth: 'auto' }}
+            />
+            <BottomNavigationAction 
+              label="Calendrier" 
+              value="calendar"
+              icon={<CalendarMonthIcon />} 
+              sx={{ minWidth: 'auto' }}
+            />
+            <BottomNavigationAction 
+              label="Annonces" 
+              value="listings"
+              icon={<CampaignIcon />} 
+              sx={{ minWidth: 'auto' }}
+            />
+            <BottomNavigationAction 
+              label="Messages" 
+              value="messages"
+              icon={
+                <Badge 
+                  badgeContent={conversations.reduce((total, conv) => total + (conv.unread_count || 0), 0)} 
+                  color="error"
+                  max={99}
+                  sx={{ '& .MuiBadge-badge': { fontSize: '0.6rem', height: 16, minWidth: 16 } }}
+                >
+                  <ChatIcon />
+                </Badge>
+              } 
+              sx={{ minWidth: 'auto' }}
+            />
+            <BottomNavigationAction 
+              label="Menu" 
+              value="menu"
+              icon={<MenuOpenIcon />} 
+              sx={{ minWidth: 'auto' }}
+              onClick={() => setDrawerOpen(true)}
+            />
+          </BottomNavigation>
+        </Paper>
+      )}
     </Container>
   );
 }
