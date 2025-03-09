@@ -40,14 +40,8 @@ exports.handler = async function(event, context) {
     const challenge = event.queryStringParameters['hub.challenge'];
 
     console.log('Webhook verification request:', { mode, token });
-    console.log('Expected token:', process.env.WHATSAPP_VERIFY_TOKEN);
-    console.log('Environment variables:', {
-      WHATSAPP_VERIFY_TOKEN: process.env.WHATSAPP_VERIFY_TOKEN,
-      VITE_SUPABASE_URL: process.env.VITE_SUPABASE_URL,
-      NODE_ENV: process.env.NODE_ENV
-    });
-
-    // Pour le débogage, accepter temporairement n'importe quel token
+    
+    // Vérifier que le mode est 'subscribe'
     if (mode !== 'subscribe') {
       console.log('Webhook verification failed: mode is not subscribe');
       return {
@@ -56,8 +50,25 @@ exports.handler = async function(event, context) {
       };
     }
     
-    // Accepter temporairement n'importe quel token pour faciliter la vérification
-    console.log('Webhook verification successful (debug mode)');
+    // Vérifier que le token correspond
+    const verifyToken = process.env.WHATSAPP_VERIFY_TOKEN;
+    if (!verifyToken) {
+      console.error('WHATSAPP_VERIFY_TOKEN is not configured in environment variables');
+      return {
+        statusCode: 500,
+        body: 'Server configuration error'
+      };
+    }
+    
+    if (token !== verifyToken) {
+      console.log('Webhook verification failed: token does not match');
+      return {
+        statusCode: 403,
+        body: 'Forbidden: Invalid verification token'
+      };
+    }
+    
+    console.log('Webhook verification successful');
     return {
       statusCode: 200,
       body: challenge
@@ -115,12 +126,35 @@ exports.handler = async function(event, context) {
   };
 };
 
+// Fonction pour normaliser un numéro de téléphone
+function normalizePhoneNumber(phoneNumber) {
+  if (!phoneNumber) return '';
+  
+  // S'assurer que le numéro commence par +
+  let normalized = phoneNumber;
+  if (!normalized.startsWith('+')) {
+    normalized = '+' + normalized;
+  }
+  
+  // Supprimer tout ce qui n'est pas un chiffre ou +
+  normalized = normalized.replace(/[^+0-9]/g, '');
+  
+  return normalized;
+}
+
 async function processMessage(supabase, phoneNumberId, message, contacts) {
   try {
     console.log('Processing message:', JSON.stringify(message));
     
-    // Extraire les informations du message
-    const from = message.from; // Numéro de téléphone de l'expéditeur
+    // Extraire et normaliser le numéro de téléphone de l'expéditeur
+    let from = message.from; // Numéro de téléphone de l'expéditeur
+    
+    // Normalisation du numéro de téléphone pour éviter les duplications
+    // Assurer qu'il commence par '+' et contient uniquement des chiffres après
+    if (!from.startsWith('+')) {
+      from = '+' + from;
+    }
+    from = from.replace(/[^+0-9]/g, ''); // Supprime tout sauf + et chiffres
     const messageId = message.id;
     const timestamp = message.timestamp;
     const messageType = message.type;
@@ -129,11 +163,12 @@ async function processMessage(supabase, phoneNumberId, message, contacts) {
     // Récupérer le nom du contact s'il est disponible
     const contactName = contacts?.[0]?.profile?.name || 'Invité';
 
-    // Trouver la conversation correspondante
+    // Trouver la conversation correspondante (recherche élargie)
+    console.log('Recherche de conversation pour le numéro:', from);
     const { data: conversations, error: convError } = await supabase
       .from('conversations')
-      .select('id, guest_phone, unread_count')
-      .eq('guest_phone', from);
+      .select('id, guest_phone, guest_number, unread_count')
+      .or(`guest_phone.eq.${from},guest_number.eq.${from}`);
 
     if (convError) {
       console.error('Error finding conversation:', convError);
@@ -180,6 +215,9 @@ async function processMessage(supabase, phoneNumberId, message, contacts) {
       }
       
       // Créer une nouvelle conversation
+      const timestamp = new Date().toISOString();
+      console.log(`[WEBHOOK ${timestamp}] Création d'une nouvelle conversation pour le numéro:`, from);
+      
       const { data: newConversation, error: createError } = await supabase
         .from('conversations')
         .insert({
@@ -189,8 +227,9 @@ async function processMessage(supabase, phoneNumberId, message, contacts) {
           guest_name: contactName,
           unread_count: 1,
           last_message: messageContent,
-          last_message_at: new Date().toISOString(),
-          status: 'active'
+          last_message_at: timestamp,
+          status: 'active',
+          created_at: timestamp
         })
         .select();
         
