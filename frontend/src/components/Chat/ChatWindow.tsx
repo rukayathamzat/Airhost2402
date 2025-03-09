@@ -104,7 +104,7 @@ export default function ChatWindow({
   }, [conversationId]);
 
   // Gestionnaires d'événements
-  const handleSendMessage = async (content: string) => {
+  const handleSendMessage = async (content: string): Promise<void> => {
     try {
       console.log('Tentative d\'envoi de message:', content);
       
@@ -274,8 +274,8 @@ export default function ChatWindow({
         py: 1.5
       }}>
         <ChatInput 
-          onSendMessage={(content) => {
-            handleSendMessage(content);
+          onSendMessage={async (content) => {
+            await handleSendMessage(content);
             // Défiler automatiquement vers le bas après l'envoi d'un message
             setTimeout(scrollToBottom, 100);
           }}
@@ -308,9 +308,17 @@ export default function ChatWindow({
       {/* Effet de défilement automatique lors de la première charge */}
       {isInitialLoad && messages.length > 0 && (
         <Box sx={{ display: 'none' }}>
-          {setTimeout(scrollToBottom, 300)}
+          {null /* Utiliser useEffect au lieu de setTimeout directement dans le JSX */}
         </Box>
       )}
+      
+      {/* Effet de défilement automatique */}
+      {useEffect(() => {
+        if (isInitialLoad && messages.length > 0) {
+          const timer = setTimeout(scrollToBottom, 300);
+          return () => clearTimeout(timer);
+        }
+      }, [isInitialLoad, messages.length])}
 
       {aiModalOpen && selectedConversation?.properties?.id && (
         <AIResponseModal

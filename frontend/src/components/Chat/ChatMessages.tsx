@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Box, Typography, Paper, Chip, Avatar, Skeleton, Divider, Tooltip, useTheme } from '@mui/material';
+import { Box, Typography, Paper, Chip, Avatar, Skeleton, Tooltip, useTheme } from '@mui/material';
 import { format, isToday, isYesterday, isSameDay } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Message } from '../../services/chat/message.service';
@@ -226,7 +226,7 @@ export default function ChatMessages({ messages, isInitialLoad }: ChatMessagesPr
             );
 
             return messageGroups;
-          }, [] as JSX.Element[])}
+          }, [] as React.ReactElement[])}
         </Box>
       )}
       <div ref={messagesEndRef} style={{ height: 1 }} />
