@@ -27,6 +27,7 @@ import {
   TextField
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ApartmentIcon from '@mui/icons-material/Apartment';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import ChatIcon from '@mui/icons-material/Chat';
@@ -355,7 +356,7 @@ export default function Chat() {
                     onClick={handleBackFromChat}
                     sx={{ mr: 2 }}
                   >
-                    <CloseIcon />
+                    <ArrowBackIcon />
                   </IconButton>
                 )}
                 <Typography variant="h6" component="div" sx={{ flexGrow: 1, fontWeight: 500 }}>
@@ -384,7 +385,6 @@ export default function Chat() {
               <ChatWindow
                 conversationId={selectedConversation.id}
                 guestNumber={selectedConversation.guest_number || ''}
-                propertyName={selectedConversation.property[0].name}
                 conversationStartTime={selectedConversation.created_at || new Date().toISOString()}
                 isMobile={isMobile}
                 onBack={handleBackFromChat}
@@ -514,7 +514,6 @@ export default function Chat() {
               <ChatWindow
                 conversationId={selectedConversation.id}
                 guestNumber={selectedConversation.guest_number || ''}
-                propertyName={selectedConversation.property[0].name}
                 conversationStartTime={selectedConversation.created_at || new Date().toISOString()}
                 isMobile={isMobile}
                 onBack={handleBackFromChat}
