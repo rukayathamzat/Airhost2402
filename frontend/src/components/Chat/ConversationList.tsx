@@ -77,11 +77,6 @@ export default function ConversationList({ conversations, onSelectConversation, 
 
   return (
     <Box sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider', bgcolor: 'white' }}>
-        <Typography variant="h6" fontWeight={600}>
-          Conversations
-        </Typography>
-      </Box>
       
       {conversations.length === 0 ? (
         <Box sx={{ 

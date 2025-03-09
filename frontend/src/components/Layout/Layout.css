@@ -9,7 +9,7 @@
 
 .main-content {
   flex: 1;
-  margin-left: 250px; /* Marge correspondant exactement à la largeur du menu latéral */
+  margin-left: 0; /* Suppression de la marge latérale */
   min-height: 100vh;
   background-color: #FFFFFF;
   transition: margin-left 0.3s ease;
@@ -21,6 +21,6 @@
 
 @media (max-width: 768px) {
   .main-content {
-    margin-left: 60px; /* Conserver la marge pour le menu mobile */
+    margin-left: 0; /* Suppression de la marge pour le menu mobile */
   }
 }
