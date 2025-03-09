@@ -11,6 +11,7 @@ import { Template } from '../../../services/chat/template.service';
 
 interface TemplateMenuProps {
   anchorEl: HTMLElement | null;
+  open: boolean;
   onClose: () => void;
   templates: Template[];
   onSelectTemplate: (template: Template) => void;
@@ -18,6 +19,7 @@ interface TemplateMenuProps {
 
 export default function TemplateMenu({ 
   anchorEl, 
+  open,
   onClose, 
   templates,
   onSelectTemplate 
@@ -25,7 +27,7 @@ export default function TemplateMenu({
   return (
     <Menu
       anchorEl={anchorEl}
-      open={Boolean(anchorEl)}
+      open={open}
       onClose={onClose}
       PaperProps={{
         elevation: 3,
