@@ -7,8 +7,14 @@ import {
   Typography, 
   CircularProgress,
   useMediaQuery,
-  useTheme
+  useTheme,
+  IconButton,
+  AppBar,
+  Toolbar,
+  Drawer
 } from '@mui/material';
+import MenuIcon from '@mui/icons-material/Menu';
+import CloseIcon from '@mui/icons-material/Close';
 import ConversationList from '../components/Chat/ConversationList';
 import ChatWindow from '../components/Chat/ChatWindow';
 import { supabase } from '../lib/supabase';
@@ -21,6 +27,7 @@ export default function Chat() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
@@ -191,37 +198,92 @@ export default function Chat() {
     setSelectedConversation(null);
   };
 
+  const toggleDrawer = () => {
+    setDrawerOpen(!drawerOpen);
+  };
+
   return (
-    <Container maxWidth="xl" sx={{ height: '100vh', py: 3 }}>
+    <Container maxWidth="xl" sx={{ height: '100vh', p: isMobile ? 0 : 3 }}>
       <Paper sx={{ 
         height: '100%', 
         display: 'flex',
-        overflow: 'hidden'
+        overflow: 'hidden',
+        borderRadius: isMobile ? 0 : 1
       }}>
-        {/* Liste des conversations - cachée en mobile quand une conversation est sélectionnée */}
-        <Box sx={{ 
-          width: 360, 
-          borderRight: 1, 
-          borderColor: 'divider',
-          overflow: 'auto',
-          display: (isMobile && selectedConversation) ? 'none' : 'block',
-          flexShrink: 0
-        }}>
-          <ConversationList
-            conversations={conversations}
-            onSelectConversation={setSelectedConversation}
-            onConversationUpdate={fetchConversations}
-          />
-        </Box>
+        {/* Drawer en mode mobile */}
+        {isMobile ? (
+          <Drawer
+            anchor="left"
+            open={drawerOpen}
+            onClose={toggleDrawer}
+            sx={{
+              '& .MuiDrawer-paper': {
+                width: '85%',
+                maxWidth: 360,
+                height: '100%',
+                boxSizing: 'border-box',
+              },
+            }}
+          >
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', p: 1 }}>
+              <IconButton onClick={toggleDrawer} size="large">
+                <CloseIcon />
+              </IconButton>
+            </Box>
+            <ConversationList
+              conversations={conversations}
+              onSelectConversation={(conversation) => {
+                setSelectedConversation(conversation);
+                setDrawerOpen(false);
+              }}
+              onConversationUpdate={fetchConversations}
+            />
+          </Drawer>
+        ) : (
+          // Version desktop: Liste des conversations sur le côté
+          <Box sx={{ 
+            width: 360, 
+            borderRight: 1, 
+            borderColor: 'divider',
+            overflow: 'auto',
+            flexShrink: 0
+          }}>
+            <ConversationList
+              conversations={conversations}
+              onSelectConversation={setSelectedConversation}
+              onConversationUpdate={fetchConversations}
+            />
+          </Box>
+        )}
 
         {/* Fenêtre de chat - plein écran en mobile, cachée si aucune conversation n'est sélectionnée */}
         <Box sx={{ 
           flexGrow: 1,
-          display: (isMobile && !selectedConversation) ? 'none' : 'flex',
+          display: 'flex',
           flexDirection: 'column',
           bgcolor: 'grey.50',
-          height: '100%'
+          height: '100%',
+          position: 'relative'
         }}>
+          {/* AppBar en mode mobile avec hamburger menu */}
+          {isMobile && (
+            <AppBar position="static" color="default" elevation={1} sx={{ flexShrink: 0 }}>
+              <Toolbar>
+                <IconButton
+                  edge="start"
+                  color="inherit"
+                  aria-label="menu"
+                  onClick={toggleDrawer}
+                  sx={{ mr: 2 }}
+                >
+                  <MenuIcon />
+                </IconButton>
+                <Typography variant="h6" component="div" sx={{ flexGrow: 1, fontWeight: 500 }}>
+                  {selectedConversation ? selectedConversation.guest_name : 'Conversations'}
+                </Typography>
+              </Toolbar>
+            </AppBar>
+          )}
           {selectedConversation ? (
             <ChatWindow
               conversationId={selectedConversation.id}
