@@ -3,7 +3,7 @@ import { Paper, Box, Fab, Zoom, useTheme, Tooltip, Badge } from '@mui/material';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import { supabase } from '../../lib/supabase';
 import AIResponseModal from '../AIResponseModal';
-import ChatHeader from './ChatHeader';
+// ChatHeader supprimé pour optimiser l'interface
 import ChatMessages from './ChatMessages';
 import ChatInput from './ChatInput';
 import TemplateMenu from './ChatTemplates/TemplateMenu';
@@ -15,7 +15,6 @@ import { WhatsAppService } from '../../services/chat/whatsapp.service';
 interface ChatWindowProps {
   conversationId: string;
   guestNumber: string;
-  propertyName: string;
   conversationStartTime?: string;
   isMobile?: boolean;
   onBack?: () => void;
@@ -24,7 +23,6 @@ interface ChatWindowProps {
 export default function ChatWindow({ 
   conversationId, 
   guestNumber,
-  propertyName,
   conversationStartTime,
   isMobile = false,
   onBack
@@ -207,13 +205,7 @@ export default function ChatWindow({
         bgcolor: theme.palette.mode === 'dark' ? '#121212' : '#f5f7f9'
       }}
     >
-      <ChatHeader 
-        guestNumber={guestNumber}
-        propertyName={propertyName}
-        conversationStartTime={conversationStartTime}
-        showBackButton={isMobile}
-        onBack={onBack}
-      />
+      {/* Composant ChatHeader supprimé pour optimiser l'interface */}
 
       <Box 
         sx={{ 
