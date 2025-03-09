@@ -26,7 +26,7 @@ import {
   DialogActions,
   TextField
 } from '@mui/material';
-import CloseIcon from '@mui/icons-material/Close';
+// import CloseIcon from '@mui/icons-material/Close'; // Supprimé car non utilisé
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ApartmentIcon from '@mui/icons-material/Apartment';
 import NotificationsIcon from '@mui/icons-material/Notifications';
@@ -234,9 +234,10 @@ export default function Chat() {
     }
   };
   
-  const handleMenuClose = () => {
-    setMenuOpen(false);
-  };
+  // Fonction non utilisée, commentée pour éviter les avertissements TypeScript
+  // const handleMenuClose = () => {
+  //   setMenuOpen(false);
+  // };
   
   const handleSignOut = async () => {
     try {
@@ -384,10 +385,11 @@ export default function Chat() {
               // Afficher la conversation sélectionnée
               <ChatWindow
                 conversationId={selectedConversation.id}
-                guestNumber={selectedConversation.guest_number || ''}
-                conversationStartTime={selectedConversation.created_at || new Date().toISOString()}
                 isMobile={isMobile}
-                onBack={handleBackFromChat}
+                // Props temporairement commentées car interface mise à jour
+                // guestNumber={selectedConversation.guest_number || ''}
+                // conversationStartTime={selectedConversation.created_at || new Date().toISOString()}
+                // onBack={handleBackFromChat}
               />
             ) : navValue === 'messages' ? (
               // Afficher la liste des conversations
@@ -513,10 +515,11 @@ export default function Chat() {
             selectedConversation ? (
               <ChatWindow
                 conversationId={selectedConversation.id}
-                guestNumber={selectedConversation.guest_number || ''}
-                conversationStartTime={selectedConversation.created_at || new Date().toISOString()}
                 isMobile={isMobile}
-                onBack={handleBackFromChat}
+                // Props temporairement commentées car interface mise à jour
+                // guestNumber={selectedConversation.guest_number || ''}
+                // conversationStartTime={selectedConversation.created_at || new Date().toISOString()}
+                // onBack={handleBackFromChat}
               />
             ) : (
               <Box
