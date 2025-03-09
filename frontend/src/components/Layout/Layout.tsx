@@ -43,7 +43,7 @@ const Layout = ({ children }: LayoutProps) => {
 
       if (data) {
         setPhoneNumberId(data.phone_number_id || '');
-        setWhatsappToken(data.whatsapp_token || '');
+        setWhatsappToken(data.token || '');
       }
       
       setConfigOpen(true);
@@ -72,7 +72,7 @@ const Layout = ({ children }: LayoutProps) => {
           .from('whatsapp_config')
           .update({
             phone_number_id: phoneNumberId,
-            whatsapp_token: whatsappToken
+            token: whatsappToken
           })
           .eq('id', data.id);
         
@@ -83,7 +83,7 @@ const Layout = ({ children }: LayoutProps) => {
           .from('whatsapp_config')
           .insert({
             phone_number_id: phoneNumberId,
-            whatsapp_token: whatsappToken
+            token: whatsappToken
           });
         
         if (insertError) throw insertError;
