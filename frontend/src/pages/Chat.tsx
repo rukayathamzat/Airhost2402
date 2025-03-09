@@ -11,18 +11,30 @@ import {
   IconButton,
   AppBar,
   Toolbar,
-  Drawer,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
+  Divider,
   BottomNavigation,
   BottomNavigationAction,
-  Badge
+  Badge,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField
 } from '@mui/material';
-// Import MenuIcon supprimé car non utilisé
 import CloseIcon from '@mui/icons-material/Close';
-import HomeIcon from '@mui/icons-material/Home';
-import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
-import CampaignIcon from '@mui/icons-material/Campaign';
+import ApartmentIcon from '@mui/icons-material/Apartment';
+import NotificationsIcon from '@mui/icons-material/Notifications';
 import ChatIcon from '@mui/icons-material/Chat';
-import MenuOpenIcon from '@mui/icons-material/MenuOpen';
+import MenuIcon from '@mui/icons-material/Menu';
+import WhatsAppIcon from '@mui/icons-material/WhatsApp';
+import SettingsIcon from '@mui/icons-material/Settings';
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
+import LogoutIcon from '@mui/icons-material/Logout';
 import ConversationList from '../components/Chat/ConversationList';
 import ChatWindow from '../components/Chat/ChatWindow';
 import { supabase } from '../lib/supabase';
@@ -35,10 +47,16 @@ export default function Chat() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [navValue, setNavValue] = useState('messages');
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  
+  // États pour la configuration WhatsApp
+  const [configOpen, setConfigOpen] = useState(false);
+  const [phoneNumberId, setPhoneNumberId] = useState('');
+  const [whatsappToken, setWhatsappToken] = useState('');
+  const [saving, setSaving] = useState(false);
 
   const navigate = useNavigate();
 
@@ -206,9 +224,85 @@ export default function Chat() {
   const handleBackFromChat = () => {
     setSelectedConversation(null);
   };
+  
+  const handleMenuToggle = () => {
+    setMenuOpen(!menuOpen);
+    // Si le menu est ouvert et qu'on clique dessus, on le ferme et vice versa
+    if (navValue !== 'menu') {
+      setNavValue('menu');
+    }
+  };
+  
+  const handleMenuClose = () => {
+    setMenuOpen(false);
+  };
+  
+  const handleSignOut = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('Erreur lors de la déconnexion:', error);
+      } else {
+        navigate('/login');
+      }
+    } catch (error) {
+      console.error('Erreur:', error);
+    }
+  };
+  
+  // Gestion de la configuration WhatsApp
+  const openWhatsAppConfig = async () => {
+    console.log('Ouverture de la configuration WhatsApp');
+    
+    try {
+      const { data, error } = await supabase
+        .from('whatsapp_config')
+        .select('*')
+        .single();
 
-  const toggleDrawer = () => {
-    setDrawerOpen(!drawerOpen);
+      if (error && error.code !== 'PGRST116') {
+        console.error('Erreur lors du chargement de la configuration WhatsApp:', error);
+      }
+
+      if (data) {
+        console.log('Configuration WhatsApp chargée:', data);
+        setPhoneNumberId(data.phone_number_id || '');
+        setWhatsappToken(data.token || '');
+      } else {
+        console.log('Aucune configuration WhatsApp trouvée, utilisation des valeurs par défaut');
+      }
+
+      // Force l'ouverture de la popup
+      setConfigOpen(true);
+    } catch (error) {
+      console.error('Erreur:', error);
+    }
+  };
+
+  const handleSaveConfig = async () => {
+    try {
+      setSaving(true);
+      
+      const { error } = await supabase
+        .from('whatsapp_config')
+        .upsert({
+          phone_number_id: phoneNumberId,
+          token: whatsappToken,
+          updated_at: new Date().toISOString()
+        });
+
+      if (error) {
+        console.error('Erreur lors de la sauvegarde de la configuration:', error);
+        setSaving(false);
+        return;
+      }
+
+      setConfigOpen(false);
+      setSaving(false);
+    } catch (error) {
+      console.error('Erreur:', error);
+      setSaving(false);
+    }
   };
 
   return (
@@ -223,37 +317,8 @@ export default function Chat() {
         overflow: 'hidden',
         borderRadius: isMobile ? 0 : 1
       }}>
-        {/* Drawer en mode mobile */}
-        {isMobile ? (
-          <Drawer
-            anchor="left"
-            open={drawerOpen}
-            onClose={toggleDrawer}
-            sx={{
-              '& .MuiDrawer-paper': {
-                width: '85%',
-                maxWidth: 360,
-                height: '100%',
-                boxSizing: 'border-box',
-              },
-            }}
-          >
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', p: 1 }}>
-              <IconButton onClick={toggleDrawer} size="large">
-                <CloseIcon />
-              </IconButton>
-            </Box>
-            <ConversationList
-              conversations={conversations}
-              onSelectConversation={(conversation) => {
-                setSelectedConversation(conversation);
-                setDrawerOpen(false);
-              }}
-              onConversationUpdate={fetchConversations}
-            />
-          </Drawer>
-        ) : (
-          // Version desktop: Liste des conversations sur le côté
+        {/* Version desktop: Liste des conversations sur le côté */}
+        {!isMobile && (
           <Box sx={{ 
             width: 360, 
             borderRight: 1, 
@@ -278,7 +343,7 @@ export default function Chat() {
           height: '100%',
           position: 'relative'
         }}>
-          {/* AppBar en mode mobile avec le titre uniquement, plus de menu hamburger */}
+          {/* AppBar en mode mobile avec le titre uniquement */}
           {isMobile && (
             <AppBar position="static" color="default" elevation={1} sx={{ flexShrink: 0 }}>
               <Toolbar>
@@ -294,35 +359,235 @@ export default function Chat() {
                   </IconButton>
                 )}
                 <Typography variant="h6" component="div" sx={{ flexGrow: 1, fontWeight: 500 }}>
-                  {selectedConversation ? selectedConversation.guest_name : 'Conversations'}
+                  {selectedConversation 
+                    ? selectedConversation.guest_name 
+                    : navValue === 'messages' 
+                      ? 'Conversations' 
+                      : navValue === 'menu' 
+                        ? 'Menu' 
+                        : navValue === 'apartments' 
+                          ? 'Appartements' 
+                          : navValue === 'urgency' 
+                            ? 'Urgences' 
+                            : navValue === 'settings'
+                              ? 'Paramètres'
+                              : 'Menu'}
                 </Typography>
               </Toolbar>
             </AppBar>
           )}
-          {selectedConversation ? (
-            <ChatWindow
-              conversationId={selectedConversation.id}
-              guestNumber={selectedConversation.guest_number || ''}
-              propertyName={selectedConversation.property[0].name}
-              conversationStartTime={selectedConversation.created_at || new Date().toISOString()}
-              isMobile={isMobile}
-              onBack={handleBackFromChat}
-            />
+          
+          {/* Affichage du contenu en fonction de l'état de navigation */}
+          {isMobile ? (
+            selectedConversation ? (
+              // Afficher la conversation sélectionnée
+              <ChatWindow
+                conversationId={selectedConversation.id}
+                guestNumber={selectedConversation.guest_number || ''}
+                propertyName={selectedConversation.property[0].name}
+                conversationStartTime={selectedConversation.created_at || new Date().toISOString()}
+                isMobile={isMobile}
+                onBack={handleBackFromChat}
+              />
+            ) : navValue === 'messages' ? (
+              // Afficher la liste des conversations
+              <Box sx={{ height: '100%', overflow: 'auto', p: 0 }}>
+                <ConversationList
+                  conversations={conversations}
+                  onSelectConversation={setSelectedConversation}
+                  onConversationUpdate={fetchConversations}
+                />
+              </Box>
+            ) : navValue === 'apartments' ? (
+              // Afficher la page Appartements (charger le contenu de la page properties ici)
+              <Box sx={{ p: 2, height: '100%', overflow: 'auto' }}>
+                <Typography variant="h5" gutterBottom>Mes Appartements</Typography>
+                <Typography variant="body1" paragraph>
+                  Gérez vos propriétés et réservations.
+                </Typography>
+                
+                {/* Liste des appartements */}
+                <Box sx={{ mt: 3 }}>
+                  <List>
+                    <ListItem>
+                      <Paper sx={{ p: 2, width: '100%' }}>
+                        <Typography variant="h6">Loft Moderne Montmartre</Typography>
+                        <Typography variant="body2" color="text.secondary">Paris, France</Typography>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>
+                          <Button variant="outlined" size="small">Détails</Button>
+                          <Button variant="contained" size="small">Réservations</Button>
+                        </Box>
+                      </Paper>
+                    </ListItem>
+                    <ListItem>
+                      <Paper sx={{ p: 2, width: '100%' }}>
+                        <Typography variant="h6">Studio Saint-Germain</Typography>
+                        <Typography variant="body2" color="text.secondary">Paris, France</Typography>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>
+                          <Button variant="outlined" size="small">Détails</Button>
+                          <Button variant="contained" size="small">Réservations</Button>
+                        </Box>
+                      </Paper>
+                    </ListItem>
+                  </List>
+                </Box>
+              </Box>
+            ) : navValue === 'urgency' ? (
+              // Afficher la page Urgences
+              <Box sx={{ p: 2, height: '100%', overflow: 'auto' }}>
+                <Typography variant="h5" gutterBottom>Urgences</Typography>
+                <Typography variant="body1">
+                  Notifications et situations nécessitant votre attention.
+                </Typography>
+                {/* Contenu des urgences */}
+              </Box>
+            ) : navValue === 'settings' ? (
+              // Afficher la page Paramètres
+              <Box sx={{ p: 2, height: '100%', overflow: 'auto' }}>
+                <Typography variant="h5" gutterBottom>Paramètres</Typography>
+                <List>
+                  <ListItem disablePadding>
+                    <ListItemButton onClick={openWhatsAppConfig}>
+                      <ListItemIcon><WhatsAppIcon /></ListItemIcon>
+                      <ListItemText primary="Configuration WhatsApp" secondary="Gérez vos paramètres WhatsApp" />
+                    </ListItemButton>
+                  </ListItem>
+                  <Divider sx={{ my: 1 }} />
+                  {/* Autres options de paramètres */}
+                </List>
+              </Box>
+            ) : (
+              // Afficher le menu
+              <Box sx={{ p: 2, height: '100%', overflow: 'auto' }}>
+                <List>
+                  <ListItem disablePadding>
+                    <ListItemButton onClick={() => setNavValue('apartments')}>
+                      <ListItemIcon><ApartmentIcon /></ListItemIcon>
+                      <ListItemText primary="Appartements" />
+                    </ListItemButton>
+                  </ListItem>
+                  <ListItem disablePadding>
+                    <ListItemButton onClick={() => setNavValue('urgency')}>
+                      <ListItemIcon><NotificationsIcon /></ListItemIcon>
+                      <ListItemText primary="Urgences" />
+                    </ListItemButton>
+                  </ListItem>
+                  <ListItem disablePadding>
+                    <ListItemButton onClick={() => setNavValue('messages')}>
+                      <ListItemIcon>
+                        <Badge 
+                          badgeContent={conversations.reduce((total, conv) => total + (conv.unread_count || 0), 0)} 
+                          color="error"
+                          max={99}
+                        >
+                          <ChatIcon />
+                        </Badge>
+                      </ListItemIcon>
+                      <ListItemText primary="Messages" />
+                    </ListItemButton>
+                  </ListItem>
+                  <Divider sx={{ my: 2 }} />
+                  <ListItem disablePadding>
+                    <ListItemButton onClick={() => setNavValue('settings')}>
+                      <ListItemIcon><SettingsIcon /></ListItemIcon>
+                      <ListItemText primary="Paramètres" />
+                    </ListItemButton>
+                  </ListItem>
+                  <ListItem disablePadding>
+                    <ListItemButton>
+                      <ListItemIcon><HelpOutlineIcon /></ListItemIcon>
+                      <ListItemText primary="Aide" />
+                    </ListItemButton>
+                  </ListItem>
+                  <ListItem disablePadding>
+                    <ListItemButton onClick={handleSignOut}>
+                      <ListItemIcon><LogoutIcon /></ListItemIcon>
+                      <ListItemText primary="Déconnexion" />
+                    </ListItemButton>
+                  </ListItem>
+                </List>
+              </Box>
+            )
           ) : (
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                height: '100%',
-                color: 'text.secondary'
-              }}
-            >
-              Sélectionnez une conversation pour commencer
-            </Box>
+            // Version desktop
+            selectedConversation ? (
+              <ChatWindow
+                conversationId={selectedConversation.id}
+                guestNumber={selectedConversation.guest_number || ''}
+                propertyName={selectedConversation.property[0].name}
+                conversationStartTime={selectedConversation.created_at || new Date().toISOString()}
+                isMobile={isMobile}
+                onBack={handleBackFromChat}
+              />
+            ) : (
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  height: '100%',
+                  color: 'text.secondary'
+                }}
+              >
+                Sélectionnez une conversation pour commencer
+              </Box>
+            )
           )}
         </Box>
       </Paper>
+
+      {/* Dialog de configuration WhatsApp */}
+      <Dialog 
+        open={configOpen} 
+        onClose={() => {
+          console.log('Fermeture du dialog');
+          setConfigOpen(false);
+        }} 
+        maxWidth="sm" 
+        fullWidth
+        sx={{ zIndex: 1400 }}
+      >
+        <DialogTitle>Configuration WhatsApp</DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
+            <TextField
+              label="Phone Number ID"
+              variant="outlined"
+              fullWidth
+              value={phoneNumberId}
+              onChange={(e) => setPhoneNumberId(e.target.value)}
+              placeholder="Entrez votre Phone Number ID WhatsApp"
+            />
+            <TextField
+              label="Token WhatsApp"
+              variant="outlined"
+              fullWidth
+              value={whatsappToken}
+              onChange={(e) => setWhatsappToken(e.target.value)}
+              type="password"
+              placeholder="Entrez votre token WhatsApp"
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button 
+            onClick={() => {
+              console.log('Annulation de la configuration');
+              setConfigOpen(false);
+            }}
+          >
+            Annuler
+          </Button>
+          <Button 
+            onClick={handleSaveConfig} 
+            variant="contained" 
+            color="primary"
+            disabled={saving}
+          >
+            {saving ? 'Enregistrement...' : 'Enregistrer'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Barre de navigation fixe en bas pour mobile, inspirée d'Airbnb */}
       {isMobile && (
@@ -342,32 +607,10 @@ export default function Chat() {
             value={navValue}
             onChange={(_, newValue) => {
               setNavValue(newValue);
-              // Si on clique sur Messages et qu'on n'est pas déjà dans la vue des messages, ouvrir le drawer
-              if (newValue === 'messages' && !selectedConversation) {
-                setDrawerOpen(true);
-              }
             }}
             showLabels
             sx={{ height: 56 }}
           >
-            <BottomNavigationAction 
-              label="Aujourd'hui" 
-              value="home"
-              icon={<HomeIcon />} 
-              sx={{ minWidth: 'auto' }}
-            />
-            <BottomNavigationAction 
-              label="Calendrier" 
-              value="calendar"
-              icon={<CalendarMonthIcon />} 
-              sx={{ minWidth: 'auto' }}
-            />
-            <BottomNavigationAction 
-              label="Annonces" 
-              value="listings"
-              icon={<CampaignIcon />} 
-              sx={{ minWidth: 'auto' }}
-            />
             <BottomNavigationAction 
               label="Messages" 
               value="messages"
@@ -384,11 +627,23 @@ export default function Chat() {
               sx={{ minWidth: 'auto' }}
             />
             <BottomNavigationAction 
+              label="Appartements" 
+              value="apartments"
+              icon={<ApartmentIcon />} 
+              sx={{ minWidth: 'auto' }}
+            />
+            <BottomNavigationAction 
+              label="Urgences" 
+              value="urgency"
+              icon={<NotificationsIcon />} 
+              sx={{ minWidth: 'auto' }}
+            />
+            <BottomNavigationAction 
               label="Menu" 
               value="menu"
-              icon={<MenuOpenIcon />} 
+              icon={<MenuIcon />} 
               sx={{ minWidth: 'auto' }}
-              onClick={() => setDrawerOpen(true)}
+              onClick={handleMenuToggle}
             />
           </BottomNavigation>
         </Paper>
