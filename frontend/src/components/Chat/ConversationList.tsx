@@ -111,15 +111,24 @@ export default function ConversationList({ conversations, onSelectConversation, 
                 }}
               >
                 <Badge
+                  badgeContent={conversation.unread_count || 0}
                   color="primary"
-                  variant="dot"
                   invisible={!conversation.unread_count}
                   overlap="circular"
                   anchorOrigin={{
-                    vertical: 'bottom',
+                    vertical: 'top',
                     horizontal: 'right',
                   }}
-                  sx={{ mr: 2 }}
+                  sx={{ 
+                    mr: 2,
+                    '& .MuiBadge-badge': {
+                      fontSize: '0.75rem',
+                      height: '20px',
+                      minWidth: '20px',
+                      padding: '0 6px',
+                      borderRadius: '10px',
+                    }
+                  }}
                 >
                   <Avatar 
                     sx={{ 

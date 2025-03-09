@@ -225,6 +225,33 @@ export default function Chat() {
   const handleBackFromChat = () => {
     setSelectedConversation(null);
   };
+
+  // Fonction pour marquer les messages comme lus lorsqu'une conversation est ouverte
+  const markConversationAsRead = async (conversationId: string) => {
+    try {
+      // Mettre à jour le champ unread_count pour cette conversation
+      const { error } = await supabase
+        .from('conversations')
+        .update({ unread_count: 0 })
+        .eq('id', conversationId);
+      
+      if (error) {
+        console.error('Erreur lors de la mise à jour des messages non lus:', error);
+      } else {
+        console.log(`Conversation ${conversationId} marquée comme lue`);
+        // Mettre à jour la liste des conversations en mémoire
+        setConversations(prevConversations => 
+          prevConversations.map(conv => 
+            conv.id === conversationId 
+              ? { ...conv, unread_count: 0 } 
+              : conv
+          )
+        );
+      }
+    } catch (err) {
+      console.error('Erreur:', err);
+    }
+  };
   
   const handleMenuToggle = () => {
     setMenuOpen(!menuOpen);
@@ -330,7 +357,14 @@ export default function Chat() {
           }}>
             <ConversationList
               conversations={conversations}
-              onSelectConversation={setSelectedConversation}
+              onSelectConversation={(conversation) => {
+                // Marquer la conversation comme lue
+                if (conversation.unread_count && conversation.unread_count > 0) {
+                  markConversationAsRead(conversation.id);
+                }
+                // Puis sélectionner la conversation
+                setSelectedConversation(conversation);
+              }}
               onConversationUpdate={fetchConversations}
             />
           </Box>
@@ -396,7 +430,14 @@ export default function Chat() {
               <Box sx={{ height: '100%', overflow: 'auto', p: 0 }}>
                 <ConversationList
                   conversations={conversations}
-                  onSelectConversation={setSelectedConversation}
+                  onSelectConversation={(conversation) => {
+                    // Marquer la conversation comme lue
+                    if (conversation.unread_count && conversation.unread_count > 0) {
+                      markConversationAsRead(conversation.id);
+                    }
+                    // Puis sélectionner la conversation
+                    setSelectedConversation(conversation);
+                  }}
                   onConversationUpdate={fetchConversations}
                 />
               </Box>
