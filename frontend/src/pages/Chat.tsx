@@ -16,7 +16,7 @@ import {
   BottomNavigationAction,
   Badge
 } from '@mui/material';
-import MenuIcon from '@mui/icons-material/Menu';
+// Import MenuIcon supprimé car non utilisé
 import CloseIcon from '@mui/icons-material/Close';
 import HomeIcon from '@mui/icons-material/Home';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
@@ -340,7 +340,7 @@ export default function Chat() {
         >
           <BottomNavigation
             value={navValue}
-            onChange={(event, newValue) => {
+            onChange={(_, newValue) => {
               setNavValue(newValue);
               // Si on clique sur Messages et qu'on n'est pas déjà dans la vue des messages, ouvrir le drawer
               if (newValue === 'messages' && !selectedConversation) {
