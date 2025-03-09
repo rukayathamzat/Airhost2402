@@ -379,8 +379,8 @@ export default function Chat() {
           height: '100%',
           position: 'relative'
         }}>
-          {/* AppBar en mode mobile avec le titre uniquement */}
-          {isMobile && (
+          {/* AppBar pour afficher le titre et les actions */}
+          {isMobile ? (
             <AppBar position="static" color="default" elevation={1} sx={{ flexShrink: 0 }}>
               <Toolbar>
                 {selectedConversation && (
@@ -409,6 +409,56 @@ export default function Chat() {
                               ? 'Paramètres'
                               : 'Menu'}
                 </Typography>
+              </Toolbar>
+            </AppBar>
+          ) : (
+            <AppBar position="static" color="default" elevation={1} sx={{ flexShrink: 0 }}>
+              <Toolbar>
+                <Typography variant="h6" component="div" sx={{ mr: 4, fontWeight: 500 }}>
+                  {selectedConversation ? selectedConversation.guest_name : 'AirHost'}
+                </Typography>
+                <Box sx={{ flexGrow: 1, display: 'flex' }}>
+                  <Button 
+                    color={navValue === 'messages' ? 'primary' : 'inherit'}
+                    onClick={() => setNavValue('messages')}
+                    startIcon={<ChatIcon />}
+                    sx={{ mx: 1 }}
+                  >
+                    Messages
+                  </Button>
+                  <Button 
+                    color={navValue === 'apartments' ? 'primary' : 'inherit'}
+                    onClick={() => setNavValue('apartments')}
+                    startIcon={<ApartmentIcon />}
+                    sx={{ mx: 1 }}
+                  >
+                    Appartements
+                  </Button>
+                  <Button 
+                    color={navValue === 'urgency' ? 'primary' : 'inherit'}
+                    onClick={() => setNavValue('urgency')}
+                    startIcon={<NotificationsIcon />}
+                    sx={{ mx: 1 }}
+                  >
+                    Urgences
+                  </Button>
+                </Box>
+                <Box>
+                  <IconButton 
+                    color={navValue === 'settings' ? 'primary' : 'inherit'}
+                    onClick={() => setNavValue('settings')}
+                    aria-label="settings"
+                  >
+                    <SettingsIcon />
+                  </IconButton>
+                  <IconButton 
+                    color="inherit"
+                    onClick={handleSignOut}
+                    aria-label="logout"
+                  >
+                    <LogoutIcon />
+                  </IconButton>
+                </Box>
               </Toolbar>
             </AppBar>
           )}
@@ -562,7 +612,78 @@ export default function Chat() {
                 // conversationStartTime={selectedConversation.created_at || new Date().toISOString()}
                 // onBack={handleBackFromChat}
               />
+            ) : navValue === 'messages' ? (
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  height: '100%',
+                  color: 'text.secondary'
+                }}
+              >
+                Sélectionnez une conversation pour commencer
+              </Box>
+            ) : navValue === 'apartments' ? (
+              // Afficher la page Appartements (version desktop)
+              <Box sx={{ p: 3, height: '100%', overflow: 'auto' }}>
+                <Typography variant="h5" gutterBottom>Mes Appartements</Typography>
+                <Typography variant="body1" paragraph>
+                  Gérez vos propriétés et réservations.
+                </Typography>
+                
+                {/* Liste des appartements */}
+                <Box sx={{ mt: 3 }}>
+                  <List>
+                    <ListItem>
+                      <Paper sx={{ p: 2, width: '100%' }}>
+                        <Typography variant="h6">Loft Moderne Montmartre</Typography>
+                        <Typography variant="body2" color="text.secondary">Paris, France</Typography>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>
+                          <Button variant="outlined" size="small">Détails</Button>
+                          <Button variant="contained" size="small">Réservations</Button>
+                        </Box>
+                      </Paper>
+                    </ListItem>
+                    <ListItem>
+                      <Paper sx={{ p: 2, width: '100%' }}>
+                        <Typography variant="h6">Studio Saint-Germain</Typography>
+                        <Typography variant="body2" color="text.secondary">Paris, France</Typography>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>
+                          <Button variant="outlined" size="small">Détails</Button>
+                          <Button variant="contained" size="small">Réservations</Button>
+                        </Box>
+                      </Paper>
+                    </ListItem>
+                  </List>
+                </Box>
+              </Box>
+            ) : navValue === 'urgency' ? (
+              // Afficher la page Urgences (version desktop)
+              <Box sx={{ p: 3, height: '100%', overflow: 'auto' }}>
+                <Typography variant="h5" gutterBottom>Urgences</Typography>
+                <Typography variant="body1">
+                  Notifications et situations nécessitant votre attention.
+                </Typography>
+                {/* Contenu des urgences */}
+              </Box>
+            ) : navValue === 'settings' ? (
+              // Afficher la page Paramètres (version desktop)
+              <Box sx={{ p: 3, height: '100%', overflow: 'auto' }}>
+                <Typography variant="h5" gutterBottom>Paramètres</Typography>
+                <List>
+                  <ListItem disablePadding>
+                    <ListItemButton onClick={openWhatsAppConfig}>
+                      <ListItemIcon><WhatsAppIcon /></ListItemIcon>
+                      <ListItemText primary="Configuration WhatsApp" secondary="Gérez vos paramètres WhatsApp" />
+                    </ListItemButton>
+                  </ListItem>
+                  <Divider sx={{ my: 1 }} />
+                  {/* Autres options de paramètres */}
+                </List>
+              </Box>
             ) : (
+              // Menu par défaut (version desktop)
               <Box
                 sx={{
                   display: 'flex',
