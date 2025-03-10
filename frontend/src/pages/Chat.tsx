@@ -105,10 +105,15 @@ export default function Chat() {
           table: 'conversations'
         }, (payload) => {
           const eventTimestamp = new Date().toISOString();
+          // Extraire l'ID de manière sécurisée avec une vérification de type
+          const newId = typeof payload.new === 'object' && payload.new !== null ? (payload.new as any).id : undefined;
+          const oldId = typeof payload.old === 'object' && payload.old !== null ? (payload.old as any).id : undefined;
+          const conversationId = newId || oldId || 'inconnu';
+          
           console.log(`[${eventTimestamp}] REALTIME: Événement conversation reçu:`, {
             event: payload.eventType,
             table: 'conversations',
-            id: payload.new?.id || payload.old?.id,
+            id: conversationId,
             timestamp: eventTimestamp
           });
           
