@@ -74,34 +74,55 @@ export default function ChatWindow({
     }
   };
 
-  // Configuration de la subscription realtime
+  // Configuration de la subscription realtime pour les messages
   useEffect(() => {
-    console.log('Setting up realtime subscription for conversation:', conversationId);
+    const timestamp = new Date().toISOString();
+    console.log(`[${timestamp}] Mise en place de la souscription realtime pour la conversation: ${conversationId}`);
+    
+    // Vérifier que l'ID de conversation est valide
+    if (!conversationId) {
+      console.warn(`[${timestamp}] ID de conversation invalide, impossible de s'abonner aux messages`);
+      return;
+    }
+    
+    // S'abonner aux messages de cette conversation
     const subscription = MessageService.subscribeToMessages(
       conversationId,
       (newMessage) => {
-        console.log('New message received:', newMessage);
-        // Vérifier si le message n'existe pas déjà dans la liste
+        const receiveTimestamp = new Date().toISOString();
+        console.log(`[${receiveTimestamp}] Nouveau message reçu:`, newMessage);
+        
+        // Vérifier que le message est valide
+        if (!newMessage || !newMessage.id) {
+          console.warn(`[${receiveTimestamp}] Message reçu invalide, ignoré`); 
+          return;
+        }
+        
+        // Mettre à jour la liste des messages en vérifiant les doublons
         setMessages(current => {
-          // Si le message existe déjà (même ID), ne pas l'ajouter
+          // Vérifier si le message existe déjà dans la liste
           const messageExists = current.some(msg => msg.id === newMessage.id);
+          
           if (messageExists) {
-            console.log('Message déjà dans la liste, ignoré:', newMessage.id);
+            console.log(`[${receiveTimestamp}] Message déjà dans la liste, ignoré:`, newMessage.id);
             return current;
           }
-          // Sinon, l'ajouter à la liste
-          console.log('Ajout du nouveau message à la liste:', newMessage.id);
+          
+          // Ajouter le nouveau message à la liste
+          console.log(`[${receiveTimestamp}] Ajout du nouveau message à la liste:`, newMessage.id);
+          // Marquer comme non chargement initial pour activer le défilement automatique
+          setIsInitialLoad(false);
           return [...current, newMessage];
         });
-        setIsInitialLoad(false);
       }
     );
 
+    // Nettoyer la souscription lorsque le composant est démonté ou que l'ID change
     return () => {
-      console.log('Cleaning up realtime subscription');
+      console.log(`[${new Date().toISOString()}] Nettoyage de la souscription realtime pour la conversation: ${conversationId}`);
       subscription.unsubscribe();
     };
-  }, [conversationId]);
+  }, [conversationId]); // Inclure conversationId comme dépendance pour recréer la souscription si l'ID change
 
   // Gestionnaires d'événements
   const handleSendMessage = async (content: string): Promise<void> => {
