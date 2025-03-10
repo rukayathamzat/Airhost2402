@@ -48,19 +48,29 @@ export class MessageService {
   }
 
   static subscribeToMessages(conversationId: string, callback: (message: Message) => void) {
-    console.log('Mise en place de la souscription pour les messages:', conversationId);
+    const timestamp = new Date().toISOString();
+    console.log(`[${timestamp}] Mise en place de la souscription pour les messages de la conversation:`, conversationId);
     
+    // Utiliser un format de canal plus spécifique en suivant les meilleures pratiques de Supabase
     return supabase
-      .channel(`messages:${conversationId}`)
+      .channel(`public:messages:conversation_id=eq.${conversationId}`)
       .on('postgres_changes', {
-        event: 'INSERT',
+        event: '*',  // Écouter tous les événements (INSERT, UPDATE, DELETE)
         schema: 'public',
         table: 'messages',
         filter: `conversation_id=eq.${conversationId}`
       }, payload => {
-        console.log('Nouveau message reçu via subscription:', payload.new);
-        callback(payload.new as Message);
+        const receiveTimestamp = new Date().toISOString();
+        console.log(`[${receiveTimestamp}] REALTIME: Événement message reçu:`, payload.eventType);
+        console.log(`[${receiveTimestamp}] REALTIME: Nouveau message:`, payload.new);
+        
+        // S'assurer que les données sont valides avant de notifier les composants
+        if (payload.new) {
+          callback(payload.new as Message);
+        }
       })
-      .subscribe();
+      .subscribe((status) => {
+        console.log(`[${new Date().toISOString()}] Status de la souscription messages:`, status);
+      });
   }
 }

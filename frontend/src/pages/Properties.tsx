@@ -15,12 +15,15 @@ import {
   TextField,
   Accordion,
   AccordionSummary,
-  AccordionDetails
+  AccordionDetails,
+  useMediaQuery,
+  useTheme
 } from '@mui/material';
 import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, ExpandMore as ExpandMoreIcon } from '@mui/icons-material';
 import { toast } from 'react-toastify';
 import { Property } from '../types/property';
 import { fetchProperties, createProperty, updateProperty, deleteProperty } from '../services/property.service';
+import Layout from '../components/Layout/Layout';
 
 const Properties: React.FC = () => {
   const [properties, setProperties] = useState<Property[]>([]);
@@ -159,21 +162,26 @@ Instructions pour les réponses :
     }
   };
 
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
   return (
-    <Box sx={{ p: 3 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4" component="h1">
-          Mes appartements
-        </Typography>
-        <Button 
-          variant="contained" 
-          color="primary" 
-          startIcon={<AddIcon />}
-          onClick={() => handleOpenDialog()}
-        >
-          Ajouter un appartement
-        </Button>
-      </Box>
+    <Layout>
+      <Box sx={{ p: 3, pb: isMobile ? 8 : 3 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexDirection: isMobile ? 'column' : 'row' }}>
+          <Typography variant="h4" component="h1" sx={{ mb: isMobile ? 2 : 0 }}>
+            Mes appartements
+          </Typography>
+          <Button 
+            variant="contained" 
+            color="primary" 
+            startIcon={<AddIcon />}
+            onClick={() => handleOpenDialog()}
+            fullWidth={isMobile}
+          >
+            Ajouter un appartement
+          </Button>
+        </Box>
 
       {loading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
@@ -313,7 +321,8 @@ Instructions pour les réponses :
           </Button>
         </DialogActions>
       </Dialog>
-    </Box>
+      </Box>
+    </Layout>
   );
 };
 

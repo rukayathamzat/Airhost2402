@@ -1,0 +1,14 @@
+Déploiement Netlify : 67cdb60d00a0300008cd36df
+Statut : error
+Horodatage : 20250309_164916
+Site : airhost-rec.netlify.app
+URL du tableau de bord : https://app.netlify.com/sites/airhost-rec/deploys/67cdb60d00a0300008cd36df
+==================================================
+
+[2025-03-09T16:49:16.489706] Informations du déploiement:
+[2025-03-09T16:49:16.489784] ID: 67cdb60d00a0300008cd36df
+[2025-03-09T16:49:16.489790] État: error
+[2025-03-09T16:49:16.489795] Branche: recette
+[2025-03-09T16:49:16.489798] URL de déploiement: http://recette--airhost-rec.netlify.app
+[2025-03-09T16:49:16.489802] Message d'erreur: Failed during stage 'building site': Build script returned non-zero exit code: 2
+[2025-03-09T16:49:16.489806] Erreur: Failed during stage 'building site': Build script returned non-zero exit code: 2

@@ -40,14 +40,8 @@ exports.handler = async function(event, context) {
     const challenge = event.queryStringParameters['hub.challenge'];
 
     console.log('Webhook verification request:', { mode, token });
-    console.log('Expected token:', process.env.WHATSAPP_VERIFY_TOKEN);
-    console.log('Environment variables:', {
-      WHATSAPP_VERIFY_TOKEN: process.env.WHATSAPP_VERIFY_TOKEN,
-      VITE_SUPABASE_URL: process.env.VITE_SUPABASE_URL,
-      NODE_ENV: process.env.NODE_ENV
-    });
-
-    // Pour le débogage, accepter temporairement n'importe quel token
+    
+    // Vérifier que le mode est 'subscribe'
     if (mode !== 'subscribe') {
       console.log('Webhook verification failed: mode is not subscribe');
       return {
@@ -56,8 +50,25 @@ exports.handler = async function(event, context) {
       };
     }
     
-    // Accepter temporairement n'importe quel token pour faciliter la vérification
-    console.log('Webhook verification successful (debug mode)');
+    // Vérifier que le token correspond
+    const verifyToken = process.env.WHATSAPP_VERIFY_TOKEN;
+    if (!verifyToken) {
+      console.error('WHATSAPP_VERIFY_TOKEN is not configured in environment variables');
+      return {
+        statusCode: 500,
+        body: 'Server configuration error'
+      };
+    }
+    
+    if (token !== verifyToken) {
+      console.log('Webhook verification failed: token does not match');
+      return {
+        statusCode: 403,
+        body: 'Forbidden: Invalid verification token'
+      };
+    }
+    
+    console.log('Webhook verification successful');
     return {
       statusCode: 200,
       body: challenge
@@ -115,25 +126,106 @@ exports.handler = async function(event, context) {
   };
 };
 
+// Fonction pour normaliser un numéro de téléphone
+function normalizePhoneNumber(phoneNumber) {
+  if (!phoneNumber) return '';
+  
+  // S'assurer que le numéro commence par +
+  let normalized = phoneNumber;
+  if (!normalized.startsWith('+')) {
+    normalized = '+' + normalized;
+  }
+  
+  // Supprimer tout ce qui n'est pas un chiffre ou +
+  normalized = normalized.replace(/[^+0-9]/g, '');
+  
+  return normalized;
+}
+
 async function processMessage(supabase, phoneNumberId, message, contacts) {
   try {
     console.log('Processing message:', JSON.stringify(message));
     
-    // Extraire les informations du message
-    const from = message.from; // Numéro de téléphone de l'expéditeur
+    // Extraire et normaliser le numéro de téléphone de l'expéditeur
+    let from = message.from; // Numéro de téléphone de l'expéditeur
+    
+    // Normalisation du numéro de téléphone pour éviter les duplications
+    from = normalizePhoneNumber(from);
+    console.log('Numéro normalisé:', from);
     const messageId = message.id;
     const timestamp = message.timestamp;
     const messageType = message.type;
-    const messageContent = message.text?.body || '';
+    
+    // Extraire le contenu du message en fonction de son type
+    let messageContent = '';
+    let messageDetails = {};
+    
+    switch (messageType) {
+      case 'text':
+        messageContent = message.text?.body || '';
+        break;
+      case 'image':
+        messageContent = '[Image]';
+        messageDetails = {
+          media_id: message.image?.id,
+          mime_type: message.image?.mime_type,
+          sha256: message.image?.sha256
+        };
+        break;
+      case 'audio':
+        messageContent = '[Audio]';
+        messageDetails = {
+          media_id: message.audio?.id
+        };
+        break;
+      case 'video':
+        messageContent = '[Vidéo]';
+        messageDetails = {
+          media_id: message.video?.id
+        };
+        break;
+      case 'document':
+        messageContent = '[Document]';
+        messageDetails = {
+          media_id: message.document?.id,
+          filename: message.document?.filename
+        };
+        break;
+      case 'location':
+        messageContent = '[Localisation]';
+        messageDetails = {
+          latitude: message.location?.latitude,
+          longitude: message.location?.longitude
+        };
+        break;
+      default:
+        messageContent = `[Message de type ${messageType}]`;
+    }
+    
+    console.log(`Type de message reçu: ${messageType}, contenu: ${messageContent}`);
+    
+    // Si le message est vide et que ce n'est pas un type spécial, utiliser un texte par défaut
+    if (!messageContent && !['image', 'audio', 'video', 'document', 'location'].includes(messageType)) {
+      messageContent = '[Message sans contenu]';
+    }
     
     // Récupérer le nom du contact s'il est disponible
     const contactName = contacts?.[0]?.profile?.name || 'Invité';
 
-    // Trouver la conversation correspondante
+    // Trouver la conversation correspondante (recherche élargie)
+    console.log('Recherche de conversation pour le numéro:', from);
+    // Utiliser une approche plus robuste pour la requête OR
     const { data: conversations, error: convError } = await supabase
       .from('conversations')
-      .select('id, guest_phone, unread_count')
-      .eq('guest_phone', from);
+      .select('id, guest_phone, guest_number, unread_count')
+      .or('guest_phone.eq.' + from + ',guest_number.eq.' + from);
+    
+    console.log('Recherche de conversations avec les critères:', {
+      guest_phone: from,
+      guest_number: from,
+      query: 'guest_phone.eq.' + from + ',guest_number.eq.' + from,
+      resultCount: conversations?.length || 0
+    });
 
     if (convError) {
       console.error('Error finding conversation:', convError);
@@ -180,6 +272,48 @@ async function processMessage(supabase, phoneNumberId, message, contacts) {
       }
       
       // Créer une nouvelle conversation
+      const timestamp = new Date().toISOString();
+      console.log(`[WEBHOOK ${timestamp}] Création d'une nouvelle conversation pour le numéro:`, from);
+      
+      // Tenter une autre recherche pour s'assurer qu'il n'y a pas de conversation existante
+      // Parfois la recherche précédente peut échouer à cause de caractères spéciaux
+      const { data: lastCheck, error: lastCheckError } = await supabase
+        .from('conversations')
+        .select('id')
+        .filter('guest_number', 'eq', from)
+        .limit(1);
+      
+      if (!lastCheckError && lastCheck && lastCheck.length > 0) {
+        console.log(`Conversation trouvée lors de la double vérification:`, lastCheck[0]);
+        conversationId = lastCheck[0].id;
+        
+        // Mise à jour de la conversation existante puisqu'on ne va pas créer de nouvelle conversation
+        const existingTimestamp = new Date().toISOString();
+        const { data: existingConv, error: existingError } = await supabase
+          .from('conversations')
+          .select('unread_count')
+          .eq('id', conversationId)
+          .single();
+        
+        if (!existingError) {
+          // Mettre à jour le compteur de messages non lus et le dernier message
+          const updateData = {
+            unread_count: (existingConv.unread_count || 0) + 1,
+            last_message: messageContent,
+            last_message_at: existingTimestamp
+          };
+          
+          await supabase
+            .from('conversations')
+            .update(updateData)
+            .eq('id', conversationId);
+            
+          console.log(`Conversation existante mise à jour avec les nouvelles données:`, updateData);
+        }
+        
+        // Important: On ne fait pas de return pour continuer et enregistrer le message
+      }
+      
       const { data: newConversation, error: createError } = await supabase
         .from('conversations')
         .insert({
@@ -189,8 +323,9 @@ async function processMessage(supabase, phoneNumberId, message, contacts) {
           guest_name: contactName,
           unread_count: 1,
           last_message: messageContent,
-          last_message_at: new Date().toISOString(),
-          status: 'active'
+          last_message_at: timestamp,
+          status: 'active',
+          created_at: timestamp
         })
         .select();
         
@@ -259,20 +394,34 @@ async function processMessage(supabase, phoneNumberId, message, contacts) {
         conversation_id: conversationId,
         content: messageContent,
         direction: 'inbound',
-        type: messageType === 'text' ? 'text' : 'other',
+        type: messageType === 'text' ? 'text' : messageType,
         status: 'received',
         metadata: {
           whatsapp_message_id: messageId,
-          timestamp: timestamp
+          timestamp: timestamp,
+          ...messageDetails  // Inclut les détails spécifiques au type de message
         }
-      });
+      })
+      .select();
 
     if (msgError) {
       console.error('Error inserting message:', msgError);
       throw msgError;
     }
-
-    console.log('Message inserted successfully:', messageData);
+    
+    if (!messageData || messageData.length === 0) {
+      console.error('Le message a été inséré mais aucune donnée n\'a été retournée');
+    } else {
+      console.log('Message inséré avec succès avec l\'ID:', messageData[0].id);
+      
+      // Déclencher explicitement une mise à jour pour Realtime
+      await supabase
+        .from('messages')
+        .update({ _realtime_trigger: new Date().toISOString() })
+        .eq('id', messageData[0].id);
+        
+      console.log('Signal Realtime envoyé pour le nouveau message');
+    }
 
   } catch (error) {
     console.error('Error in processMessage:', error);

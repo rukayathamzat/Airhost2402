@@ -24,10 +24,12 @@ interface ConversationListProps {
 export default function ConversationList({ conversations, onSelectConversation, onConversationUpdate }: ConversationListProps) {
   useEffect(() => {
     // Souscrire aux changements en temps réel
-    console.log('Configuration de la souscription Realtime dans ConversationList', new Date().toISOString());
+    const timestamp = new Date().toISOString();
+    console.log(`[${timestamp}] Configuration de la souscription Realtime dans ConversationList`);
     
+    // Utiliser un nom de canal plus spécifique pour éviter les conflits
     const channel = supabase
-      .channel('conversations')
+      .channel('public:conversations')
       .on(
         'postgres_changes',
         {
@@ -36,26 +38,30 @@ export default function ConversationList({ conversations, onSelectConversation, 
           table: 'conversations'
         },
         (payload) => {
-          console.log('REALTIME: Changement dans les conversations:', payload, new Date().toISOString());
-          console.log('REALTIME: Type d\'événement:', payload.eventType);
-          console.log('REALTIME: Table:', payload.table);
-          console.log('REALTIME: Schema:', payload.schema);
-          console.log('REALTIME: Données:', payload.new);
+          const updateTimestamp = new Date().toISOString();
+          console.log(`[${updateTimestamp}] REALTIME: Changement détecté dans les conversations:`, payload);
+          console.log(`[${updateTimestamp}] REALTIME: Type d'événement:`, payload.eventType);
+          console.log(`[${updateTimestamp}] REALTIME: Données:`, payload.new);
           
-          // Notifier le composant parent pour qu'il rafraîchisse les données
-          if (onConversationUpdate) {
-            console.log('REALTIME: Notification du parent pour mise à jour');
-            onConversationUpdate();
+          // Vérifier si les données de payload sont valides
+          if (payload.new && payload.eventType) {
+            // Notifier le composant parent pour qu'il rafraîchisse les données
+            if (onConversationUpdate) {
+              console.log(`[${updateTimestamp}] REALTIME: Notification au parent pour mise à jour des conversations`);
+              onConversationUpdate();
+            }
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log(`[${new Date().toISOString()}] Status de la souscription conversations:`, status);
+      });
 
     return () => {
-      console.log('Nettoyage de la souscription ConversationList');
+      console.log(`[${new Date().toISOString()}] Nettoyage de la souscription ConversationList`);
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [onConversationUpdate]); // Ajouter onConversationUpdate comme dépendance
   
   // Effet pour le débogage des changements dans la liste des conversations
   useEffect(() => {
@@ -77,11 +83,6 @@ export default function ConversationList({ conversations, onSelectConversation, 
 
   return (
     <Box sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider', bgcolor: 'white' }}>
-        <Typography variant="h6" fontWeight={600}>
-          Conversations
-        </Typography>
-      </Box>
       
       {conversations.length === 0 ? (
         <Box sx={{ 
@@ -116,15 +117,24 @@ export default function ConversationList({ conversations, onSelectConversation, 
                 }}
               >
                 <Badge
+                  badgeContent={conversation.unread_count || 0}
                   color="primary"
-                  variant="dot"
                   invisible={!conversation.unread_count}
                   overlap="circular"
                   anchorOrigin={{
-                    vertical: 'bottom',
+                    vertical: 'top',
                     horizontal: 'right',
                   }}
-                  sx={{ mr: 2 }}
+                  sx={{ 
+                    mr: 2,
+                    '& .MuiBadge-badge': {
+                      fontSize: '0.75rem',
+                      height: '20px',
+                      minWidth: '20px',
+                      padding: '0 6px',
+                      borderRadius: '10px',
+                    }
+                  }}
                 >
                   <Avatar 
                     sx={{ 
