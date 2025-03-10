@@ -47,7 +47,7 @@ export class MessageService {
     return data as Message[];
   }
 
-  static subscribeToMessages(conversationId: string, callback: (message: Message) => void) {
+  static subscribeToMessages(conversationId: string, callback: (message: Message) => void, statusCallback?: (status: string) => void) {
     const timestamp = new Date().toISOString();
     console.log(`[${timestamp}] Mise en place de la souscription pour les messages de la conversation:`, conversationId);
     
@@ -71,6 +71,11 @@ export class MessageService {
       })
       .subscribe((status) => {
         console.log(`[${new Date().toISOString()}] Status de la souscription messages:`, status);
+        
+        // Notifier le composant parent du statut de la connexion si un callback est fourni
+        if (statusCallback) {
+          statusCallback(status);
+        }
       });
   }
 }

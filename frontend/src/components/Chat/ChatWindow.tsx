@@ -74,7 +74,7 @@ export default function ChatWindow({
     }
   };
 
-  // Configuration de la subscription realtime pour les messages
+  // Configuration de la subscription realtime pour les messages et polling de secours
   useEffect(() => {
     const timestamp = new Date().toISOString();
     console.log(`[${timestamp}] Mise en place de la souscription realtime pour la conversation: ${conversationId}`);
@@ -85,12 +85,17 @@ export default function ChatWindow({
       return;
     }
     
+    let realtimeConnected = false;
+    let pollingInterval: NodeJS.Timeout | null = null;
+    let heartbeatInterval: NodeJS.Timeout | null = null;
+    
     // S'abonner aux messages de cette conversation
     const subscription = MessageService.subscribeToMessages(
       conversationId,
       (newMessage) => {
         const receiveTimestamp = new Date().toISOString();
-        console.log(`[${receiveTimestamp}] Nouveau message reçu:`, newMessage);
+        console.log(`[${receiveTimestamp}] Nouveau message reçu via Realtime:`, newMessage);
+        realtimeConnected = true; // Marquer la connexion comme active
         
         // Vérifier que le message est valide
         if (!newMessage || !newMessage.id) {
@@ -114,12 +119,81 @@ export default function ChatWindow({
           setIsInitialLoad(false);
           return [...current, newMessage];
         });
+      },
+      (status) => {
+        // Callback pour le statut de la connexion
+        console.log(`[${new Date().toISOString()}] Statut de la connexion Realtime:`, status);
+        if (status === 'SUBSCRIBED') {
+          realtimeConnected = true;
+          console.log('Connexion Realtime établie avec succès');
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          realtimeConnected = false;
+          console.warn('Problème avec la connexion Realtime, activation du polling de secours');
+        }
       }
     );
 
-    // Nettoyer la souscription lorsque le composant est démonté ou que l'ID change
+    // Fonction pour récupérer les messages via polling
+    const fetchMessagesPolling = async () => {
+      try {
+        console.log(`[${new Date().toISOString()}] Polling: Récupération des messages pour la conversation ${conversationId}`);
+        const latestMessages = await MessageService.getMessages(conversationId, 100);
+        
+        // Mettre à jour les messages en préservant l'ordre et en évitant les doublons
+        setMessages(current => {
+          // Créer un Map des messages existants pour une recherche rapide
+          const existingMessagesMap = new Map(current.map(msg => [msg.id, msg]));
+          
+          // Ajouter les nouveaux messages qui ne sont pas déjà dans la liste
+          let hasNewMessages = false;
+          latestMessages.forEach(msg => {
+            if (!existingMessagesMap.has(msg.id)) {
+              existingMessagesMap.set(msg.id, msg);
+              hasNewMessages = true;
+            }
+          });
+          
+          if (hasNewMessages) {
+            console.log(`[${new Date().toISOString()}] Polling: Nouveaux messages trouvés et ajoutés`);
+            // Convertir le Map en array et trier par date de création
+            const updatedMessages = Array.from(existingMessagesMap.values())
+              .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+            
+            return updatedMessages;
+          }
+          
+          return current;
+        });
+      } catch (error) {
+        console.error('Erreur lors du polling des messages:', error);
+      }
+    };
+
+    // Démarrer le polling immédiatement pour s'assurer d'avoir les messages les plus récents
+    fetchMessagesPolling();
+    
+    // Configurer un heartbeat pour vérifier l'état de la connexion WebSocket
+    heartbeatInterval = setInterval(() => {
+      const status = supabase.getChannels().length > 0 ? 'CONNECTED' : 'DISCONNECTED';
+      console.log(`[${new Date().toISOString()}] Heartbeat WebSocket: ${status}, Realtime connecté: ${realtimeConnected}`);
+      
+      // Si la connexion Realtime est perdue, activer le polling s'il n'est pas déjà actif
+      if (!realtimeConnected && !pollingInterval) {
+        console.log('Activation du polling de secours suite à une perte de connexion Realtime');
+        pollingInterval = setInterval(fetchMessagesPolling, 10000); // Polling toutes les 10 secondes
+      } else if (realtimeConnected && pollingInterval) {
+        // Si la connexion Realtime est rétablie, désactiver le polling
+        console.log('Désactivation du polling car la connexion Realtime est rétablie');
+        clearInterval(pollingInterval);
+        pollingInterval = null;
+      }
+    }, 30000); // Vérifier toutes les 30 secondes
+
+    // Nettoyer les intervalles et la souscription lorsque le composant est démonté ou que l'ID change
     return () => {
-      console.log(`[${new Date().toISOString()}] Nettoyage de la souscription realtime pour la conversation: ${conversationId}`);
+      console.log(`[${new Date().toISOString()}] Nettoyage des ressources pour la conversation: ${conversationId}`);
+      if (pollingInterval) clearInterval(pollingInterval);
+      if (heartbeatInterval) clearInterval(heartbeatInterval);
       subscription.unsubscribe();
     };
   }, [conversationId]); // Inclure conversationId comme dépendance pour recréer la souscription si l'ID change

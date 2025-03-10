@@ -71,7 +71,14 @@ export default function Chat() {
 
   // Configuration de la souscription Realtime pour les mises à jour de conversations
   const setupRealtimeSubscription = () => {
-    console.log('Setting up realtime subscription for conversations table');
+    console.log('Setting up realtime subscription for conversations table', new Date().toISOString());
+    
+    // Variables pour suivre l'état de la connexion et du polling
+    let realtimeConnected = false;
+    let pollingInterval: NodeJS.Timeout | null = null;
+    let heartbeatInterval: NodeJS.Timeout | null = null;
+    
+    // Créer le canal pour les conversations
     const channel = supabase
       .channel('public:conversations')
       .on('postgres_changes', {
@@ -79,15 +86,55 @@ export default function Chat() {
         schema: 'public',
         table: 'conversations'
       }, (payload) => {
-        console.log('REALTIME CHAT: Received conversation update:', payload);
+        console.log('REALTIME CHAT: Received conversation update:', payload, new Date().toISOString());
+        realtimeConnected = true; // Marquer la connexion comme active
         // Rafraîchir les conversations à chaque mise à jour
         fetchConversations();
       })
       .subscribe((status) => {
-        console.log('REALTIME CHAT: Subscription status:', status);
+        console.log('REALTIME CHAT: Subscription status:', status, new Date().toISOString());
+        
+        // Mettre à jour l'état de la connexion en fonction du statut
+        if (status === 'SUBSCRIBED') {
+          realtimeConnected = true;
+          console.log('Connexion Realtime pour les conversations établie avec succès');
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          realtimeConnected = false;
+          console.warn('Problème avec la connexion Realtime pour les conversations');
+        }
       });
 
+    // Fonction pour récupérer périodiquement les conversations
+    const pollConversations = () => {
+      console.log('Polling des conversations...', new Date().toISOString());
+      fetchConversations();
+    };
+    
+    // Démarrer un polling immédiat pour s'assurer d'avoir les données les plus récentes
+    pollConversations();
+    
+    // Configurer un heartbeat pour vérifier l'état de la connexion WebSocket
+    heartbeatInterval = setInterval(() => {
+      const status = supabase.getChannels().length > 0 ? 'CONNECTED' : 'DISCONNECTED';
+      console.log(`Heartbeat WebSocket pour conversations: ${status}, Realtime connecté: ${realtimeConnected}`, new Date().toISOString());
+      
+      // Si la connexion Realtime est perdue, activer le polling s'il n'est pas déjà actif
+      if (!realtimeConnected && !pollingInterval) {
+        console.log('Activation du polling de secours pour les conversations');
+        pollingInterval = setInterval(pollConversations, 15000); // Polling toutes les 15 secondes
+      } else if (realtimeConnected && pollingInterval) {
+        // Si la connexion Realtime est rétablie, désactiver le polling
+        console.log('Désactivation du polling pour les conversations car la connexion Realtime est rétablie');
+        clearInterval(pollingInterval);
+        pollingInterval = null;
+      }
+    }, 30000); // Vérifier toutes les 30 secondes
+
+    // Retourner une fonction de nettoyage
     return () => {
+      console.log('Cleaning up realtime subscription for conversations', new Date().toISOString());
+      if (pollingInterval) clearInterval(pollingInterval);
+      if (heartbeatInterval) clearInterval(heartbeatInterval);
       channel.unsubscribe();
     };
   };
