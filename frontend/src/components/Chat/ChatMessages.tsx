@@ -226,7 +226,8 @@ export default function ChatMessages({ messages, isInitialLoad }: ChatMessagesPr
             );
 
             return messageGroups;
-          }, [] as React.ReactElement[])}
+
+          }, [] as JSX.Element[])}
         </Box>
       )}
       <div ref={messagesEndRef} style={{ height: 1 }} />
