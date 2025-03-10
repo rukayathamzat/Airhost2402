@@ -71,60 +71,126 @@ export default function Chat() {
 
   // Configuration de la souscription Realtime pour les mises à jour de conversations
   const setupRealtimeSubscription = () => {
-    console.log('Setting up realtime subscription for conversations table', new Date().toISOString());
+    const timestamp = new Date().toISOString();
+    console.log(`[${timestamp}] Mise en place de la souscription Realtime pour les conversations`);
     
     // Variables pour suivre l'état de la connexion et du polling
     let realtimeConnected = false;
     let pollingInterval: NodeJS.Timeout | null = null;
     let heartbeatInterval: NodeJS.Timeout | null = null;
+    let reconnectAttempts = 0;
+    const MAX_RECONNECT_ATTEMPTS = 5;
+    const RECONNECT_DELAY = 5000; // 5 secondes
     
-    // Créer le canal pour les conversations
-    const channel = supabase
-      .channel('public:conversations')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'conversations'
-      }, (payload) => {
-        console.log('REALTIME CHAT: Received conversation update:', payload, new Date().toISOString());
-        realtimeConnected = true; // Marquer la connexion comme active
-        // Rafraîchir les conversations à chaque mise à jour
-        fetchConversations();
-      })
-      .subscribe((status) => {
-        console.log('REALTIME CHAT: Subscription status:', status, new Date().toISOString());
-        
-        // Mettre à jour l'état de la connexion en fonction du statut
-        if (status === 'SUBSCRIBED') {
-          realtimeConnected = true;
-          console.log('Connexion Realtime pour les conversations établie avec succès');
-        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-          realtimeConnected = false;
-          console.warn('Problème avec la connexion Realtime pour les conversations');
-        }
-      });
-
     // Fonction pour récupérer périodiquement les conversations
-    const pollConversations = () => {
-      console.log('Polling des conversations...', new Date().toISOString());
-      fetchConversations();
+    const pollConversations = async () => {
+      const pollTimestamp = new Date().toISOString();
+      console.log(`[${pollTimestamp}] Polling des conversations...`);
+      await fetchConversations();
     };
     
-    // Démarrer un polling immédiat pour s'assurer d'avoir les données les plus récentes
+    // Créer un identifiant unique pour ce canal
+    const channelId = `conversations-${Date.now()}`;
+    
+    // Fonction pour établir la connexion Realtime
+    const setupChannel = () => {
+      console.log(`[${new Date().toISOString()}] Création du canal Realtime pour les conversations: ${channelId}`);
+      
+      // Créer le canal pour les conversations
+      return supabase
+        .channel(channelId)
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'conversations'
+        }, (payload) => {
+          const eventTimestamp = new Date().toISOString();
+          console.log(`[${eventTimestamp}] REALTIME: Événement conversation reçu:`, {
+            event: payload.eventType,
+            table: 'conversations',
+            id: payload.new?.id || payload.old?.id,
+            timestamp: eventTimestamp
+          });
+          
+          realtimeConnected = true; // Marquer la connexion comme active
+          reconnectAttempts = 0; // Réinitialiser le compteur de tentatives
+          
+          // Rafraîchir les conversations à chaque mise à jour
+          fetchConversations();
+        })
+        .subscribe((status) => {
+          const statusTimestamp = new Date().toISOString();
+          console.log(`[${statusTimestamp}] REALTIME: Statut de la souscription conversations (${channelId}):`, status);
+          
+          // Mettre à jour l'état de la connexion en fonction du statut
+          if (status === 'SUBSCRIBED') {
+            realtimeConnected = true;
+            reconnectAttempts = 0; // Réinitialiser le compteur de tentatives
+            console.log(`[${statusTimestamp}] Connexion Realtime pour les conversations établie avec succès`);
+            
+            // Si le polling est actif, le désactiver
+            if (pollingInterval) {
+              console.log(`[${statusTimestamp}] Désactivation du polling car la connexion Realtime est établie`);
+              clearInterval(pollingInterval);
+              pollingInterval = null;
+            }
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+            realtimeConnected = false;
+            console.warn(`[${statusTimestamp}] Problème avec la connexion Realtime pour les conversations: ${status}`);
+            
+            // Activer le polling immédiatement en cas d'erreur
+            if (!pollingInterval) {
+              console.log(`[${statusTimestamp}] Activation du polling de secours suite à un problème Realtime`);
+              pollConversations(); // Exécuter immédiatement
+              pollingInterval = setInterval(pollConversations, 15000); // Puis toutes les 15 secondes
+            }
+          }
+        });
+    };
+    
+    // Démarrer avec une récupération initiale des conversations
     pollConversations();
+    
+    // Établir la connexion Realtime
+    let channel = setupChannel();
     
     // Configurer un heartbeat pour vérifier l'état de la connexion WebSocket
     heartbeatInterval = setInterval(() => {
-      const status = supabase.getChannels().length > 0 ? 'CONNECTED' : 'DISCONNECTED';
-      console.log(`Heartbeat WebSocket pour conversations: ${status}, Realtime connecté: ${realtimeConnected}`, new Date().toISOString());
+      const heartbeatTimestamp = new Date().toISOString();
+      const channelsCount = supabase.getChannels().length;
+      const status = channelsCount > 0 ? 'CONNECTED' : 'DISCONNECTED';
+      
+      console.log(`[${heartbeatTimestamp}] Heartbeat WebSocket pour conversations: ${status}, Channels: ${channelsCount}, Realtime connecté: ${realtimeConnected}`);
       
       // Si la connexion Realtime est perdue, activer le polling s'il n'est pas déjà actif
-      if (!realtimeConnected && !pollingInterval) {
-        console.log('Activation du polling de secours pour les conversations');
-        pollingInterval = setInterval(pollConversations, 15000); // Polling toutes les 15 secondes
+      if (!realtimeConnected) {
+        if (!pollingInterval) {
+          console.log(`[${heartbeatTimestamp}] Activation du polling de secours pour les conversations`);
+          pollingInterval = setInterval(pollConversations, 15000); // Polling toutes les 15 secondes
+          pollConversations(); // Exécuter immédiatement un polling
+        }
+        
+        // Tenter de reconnecter la souscription Realtime si nécessaire
+        if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+          reconnectAttempts++;
+          console.log(`[${heartbeatTimestamp}] Tentative de reconnexion Realtime ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS}`);
+          
+          // Nettoyer l'ancien canal
+          try {
+            channel.unsubscribe();
+          } catch (error) {
+            console.error(`[${heartbeatTimestamp}] Erreur lors de la désinscription du canal:`, error);
+          }
+          
+          // Attendre un délai avant de tenter de se reconnecter
+          setTimeout(() => {
+            console.log(`[${new Date().toISOString()}] Reconnexion du canal Realtime pour les conversations`);
+            channel = setupChannel();
+          }, RECONNECT_DELAY);
+        }
       } else if (realtimeConnected && pollingInterval) {
         // Si la connexion Realtime est rétablie, désactiver le polling
-        console.log('Désactivation du polling pour les conversations car la connexion Realtime est rétablie');
+        console.log(`[${heartbeatTimestamp}] Désactivation du polling pour les conversations car la connexion Realtime est rétablie`);
         clearInterval(pollingInterval);
         pollingInterval = null;
       }
@@ -132,10 +198,16 @@ export default function Chat() {
 
     // Retourner une fonction de nettoyage
     return () => {
-      console.log('Cleaning up realtime subscription for conversations', new Date().toISOString());
+      const cleanupTimestamp = new Date().toISOString();
+      console.log(`[${cleanupTimestamp}] Nettoyage des ressources pour les conversations`);
       if (pollingInterval) clearInterval(pollingInterval);
       if (heartbeatInterval) clearInterval(heartbeatInterval);
-      channel.unsubscribe();
+      
+      try {
+        channel.unsubscribe();
+      } catch (error) {
+        console.error(`[${cleanupTimestamp}] Erreur lors de la désinscription du canal:`, error);
+      }
     };
   };
 

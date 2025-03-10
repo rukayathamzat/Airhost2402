@@ -88,51 +88,10 @@ export default function ChatWindow({
     let realtimeConnected = false;
     let pollingInterval: NodeJS.Timeout | null = null;
     let heartbeatInterval: NodeJS.Timeout | null = null;
+    let reconnectAttempts = 0;
+    const MAX_RECONNECT_ATTEMPTS = 5;
+    const RECONNECT_DELAY = 5000; // 5 secondes
     
-    // S'abonner aux messages de cette conversation
-    const subscription = MessageService.subscribeToMessages(
-      conversationId,
-      (newMessage) => {
-        const receiveTimestamp = new Date().toISOString();
-        console.log(`[${receiveTimestamp}] Nouveau message reçu via Realtime:`, newMessage);
-        realtimeConnected = true; // Marquer la connexion comme active
-        
-        // Vérifier que le message est valide
-        if (!newMessage || !newMessage.id) {
-          console.warn(`[${receiveTimestamp}] Message reçu invalide, ignoré`); 
-          return;
-        }
-        
-        // Mettre à jour la liste des messages en vérifiant les doublons
-        setMessages(current => {
-          // Vérifier si le message existe déjà dans la liste
-          const messageExists = current.some(msg => msg.id === newMessage.id);
-          
-          if (messageExists) {
-            console.log(`[${receiveTimestamp}] Message déjà dans la liste, ignoré:`, newMessage.id);
-            return current;
-          }
-          
-          // Ajouter le nouveau message à la liste
-          console.log(`[${receiveTimestamp}] Ajout du nouveau message à la liste:`, newMessage.id);
-          // Marquer comme non chargement initial pour activer le défilement automatique
-          setIsInitialLoad(false);
-          return [...current, newMessage];
-        });
-      },
-      (status) => {
-        // Callback pour le statut de la connexion
-        console.log(`[${new Date().toISOString()}] Statut de la connexion Realtime:`, status);
-        if (status === 'SUBSCRIBED') {
-          realtimeConnected = true;
-          console.log('Connexion Realtime établie avec succès');
-        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-          realtimeConnected = false;
-          console.warn('Problème avec la connexion Realtime, activation du polling de secours');
-        }
-      }
-    );
-
     // Fonction pour récupérer les messages via polling
     const fetchMessagesPolling = async () => {
       try {
@@ -154,36 +113,126 @@ export default function ChatWindow({
           });
           
           if (hasNewMessages) {
-            console.log(`[${new Date().toISOString()}] Polling: Nouveaux messages trouvés et ajoutés`);
+            console.log(`[${new Date().toISOString()}] Polling: ${latestMessages.length} messages récupérés, nouveaux messages trouvés et ajoutés`);
             // Convertir le Map en array et trier par date de création
             const updatedMessages = Array.from(existingMessagesMap.values())
               .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
             
+            // Marquer comme non chargement initial pour activer le défilement automatique
+            setIsInitialLoad(false);
             return updatedMessages;
+          } else {
+            console.log(`[${new Date().toISOString()}] Polling: ${latestMessages.length} messages récupérés, aucun nouveau message`);
           }
           
           return current;
         });
       } catch (error) {
-        console.error('Erreur lors du polling des messages:', error);
+        console.error(`[${new Date().toISOString()}] Erreur lors du polling des messages:`, error);
       }
     };
-
-    // Démarrer le polling immédiatement pour s'assurer d'avoir les messages les plus récents
+    
+    // Fonction pour établir la connexion Realtime
+    const setupRealtimeSubscription = () => {
+      // S'abonner aux messages de cette conversation
+      return MessageService.subscribeToMessages(
+        conversationId,
+        (newMessage) => {
+          const receiveTimestamp = new Date().toISOString();
+          console.log(`[${receiveTimestamp}] Nouveau message reçu via Realtime:`, newMessage);
+          realtimeConnected = true; // Marquer la connexion comme active
+          reconnectAttempts = 0; // Réinitialiser le compteur de tentatives
+          
+          // Vérifier que le message est valide
+          if (!newMessage || !newMessage.id) {
+            console.warn(`[${receiveTimestamp}] Message reçu invalide, ignoré`); 
+            return;
+          }
+          
+          // Mettre à jour la liste des messages en vérifiant les doublons
+          setMessages(current => {
+            // Vérifier si le message existe déjà dans la liste
+            const messageExists = current.some(msg => msg.id === newMessage.id);
+            
+            if (messageExists) {
+              console.log(`[${receiveTimestamp}] Message déjà dans la liste, ignoré:`, newMessage.id);
+              return current;
+            }
+            
+            // Ajouter le nouveau message à la liste
+            console.log(`[${receiveTimestamp}] Ajout du nouveau message à la liste:`, newMessage.id);
+            // Marquer comme non chargement initial pour activer le défilement automatique
+            setIsInitialLoad(false);
+            
+            // Trier les messages par date de création pour garantir l'ordre chronologique
+            return [...current, newMessage].sort((a, b) => 
+              new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+            );
+          });
+        },
+        (status) => {
+          // Callback pour le statut de la connexion
+          const statusTimestamp = new Date().toISOString();
+          console.log(`[${statusTimestamp}] Statut de la connexion Realtime:`, status);
+          
+          if (status === 'SUBSCRIBED') {
+            realtimeConnected = true;
+            reconnectAttempts = 0; // Réinitialiser le compteur de tentatives
+            console.log(`[${statusTimestamp}] Connexion Realtime établie avec succès`);
+            
+            // Si le polling est actif, le désactiver
+            if (pollingInterval) {
+              console.log(`[${statusTimestamp}] Désactivation du polling car la connexion Realtime est établie`);
+              clearInterval(pollingInterval);
+              pollingInterval = null;
+            }
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+            realtimeConnected = false;
+            console.warn(`[${statusTimestamp}] Problème avec la connexion Realtime: ${status}`);
+          }
+        }
+      );
+    };
+    
+    // Démarrer avec une récupération initiale des messages
     fetchMessagesPolling();
+    
+    // Établir la connexion Realtime
+    let subscription = setupRealtimeSubscription();
     
     // Configurer un heartbeat pour vérifier l'état de la connexion WebSocket
     heartbeatInterval = setInterval(() => {
-      const status = supabase.getChannels().length > 0 ? 'CONNECTED' : 'DISCONNECTED';
-      console.log(`[${new Date().toISOString()}] Heartbeat WebSocket: ${status}, Realtime connecté: ${realtimeConnected}`);
+      const heartbeatTimestamp = new Date().toISOString();
+      const channelsCount = supabase.getChannels().length;
+      const status = channelsCount > 0 ? 'CONNECTED' : 'DISCONNECTED';
+      
+      console.log(`[${heartbeatTimestamp}] Heartbeat WebSocket: ${status}, Channels: ${channelsCount}, Realtime connecté: ${realtimeConnected}`);
       
       // Si la connexion Realtime est perdue, activer le polling s'il n'est pas déjà actif
-      if (!realtimeConnected && !pollingInterval) {
-        console.log('Activation du polling de secours suite à une perte de connexion Realtime');
-        pollingInterval = setInterval(fetchMessagesPolling, 10000); // Polling toutes les 10 secondes
+      if (!realtimeConnected) {
+        if (!pollingInterval) {
+          console.log(`[${heartbeatTimestamp}] Activation du polling de secours suite à une perte de connexion Realtime`);
+          pollingInterval = setInterval(fetchMessagesPolling, 10000); // Polling toutes les 10 secondes
+          fetchMessagesPolling(); // Exécuter immédiatement un polling
+        }
+        
+        // Tenter de reconnecter la souscription Realtime si nécessaire
+        if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+          reconnectAttempts++;
+          console.log(`[${heartbeatTimestamp}] Tentative de reconnexion Realtime ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS}`);
+          
+          // Nettoyer l'ancienne souscription
+          subscription.unsubscribe();
+          
+          // Attendre un délai avant de tenter de se reconnecter
+          setTimeout(() => {
+            console.log(`[${new Date().toISOString()}] Reconnexion de la souscription Realtime`);
+            subscription = setupRealtimeSubscription();
+          }, RECONNECT_DELAY);
+        }
       } else if (realtimeConnected && pollingInterval) {
         // Si la connexion Realtime est rétablie, désactiver le polling
-        console.log('Désactivation du polling car la connexion Realtime est rétablie');
+        console.log(`[${heartbeatTimestamp}] Désactivation du polling car la connexion Realtime est rétablie`);
         clearInterval(pollingInterval);
         pollingInterval = null;
       }
