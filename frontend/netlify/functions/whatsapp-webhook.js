@@ -139,6 +139,12 @@ function normalizePhoneNumber(phoneNumber) {
   // Supprimer tout ce qui n'est pas un chiffre ou +
   normalized = normalized.replace(/[^+0-9]/g, '');
   
+  // Traitement spécial pour les numéros français qui peuvent être formatés différemment
+  // Si c'est un numéro français commençant par +336 ou +337, on s'assure qu'il est bien formaté
+  if (normalized.startsWith('+336') || normalized.startsWith('+337')) {
+    console.log(`Numéro français détecté: ${normalized}`);
+  }
+  
   return normalized;
 }
 
@@ -214,16 +220,22 @@ async function processMessage(supabase, phoneNumberId, message, contacts) {
 
     // Trouver la conversation correspondante (recherche élargie)
     console.log('Recherche de conversation pour le numéro:', from);
-    // Utiliser une approche plus robuste pour la requête OR
+    
+    // Créer une version sans le + pour la recherche
+    const fromWithoutPlus = from.startsWith('+') ? from.substring(1) : from;
+    
+    // Utiliser une approche plus robuste pour la requête OR avec plusieurs formats possibles
     const { data: conversations, error: convError } = await supabase
       .from('conversations')
       .select('id, guest_phone, guest_number, unread_count')
-      .or('guest_phone.eq.' + from + ',guest_number.eq.' + from);
+      .or(`guest_phone.eq.${from},guest_number.eq.${from},guest_phone.eq.${fromWithoutPlus},guest_number.eq.${fromWithoutPlus}`);
     
     console.log('Recherche de conversations avec les critères:', {
       guest_phone: from,
+      guest_phone_without_plus: fromWithoutPlus,
       guest_number: from,
-      query: 'guest_phone.eq.' + from + ',guest_number.eq.' + from,
+      guest_number_without_plus: fromWithoutPlus,
+      query: `guest_phone.eq.${from},guest_number.eq.${from},guest_phone.eq.${fromWithoutPlus},guest_number.eq.${fromWithoutPlus}`,
       resultCount: conversations?.length || 0
     });
 
@@ -280,8 +292,11 @@ async function processMessage(supabase, phoneNumberId, message, contacts) {
       const { data: lastCheck, error: lastCheckError } = await supabase
         .from('conversations')
         .select('id')
-        .filter('guest_number', 'eq', from)
+        .or(`guest_phone.ilike.%${from.replace('+', '%')}%,guest_number.ilike.%${from.replace('+', '%')}%`)
         .limit(1);
+        
+      console.log(`Recherche supplémentaire avec ILIKE pour: %${from.replace('+', '%')}%`);
+      console.log('Résultat de la recherche supplémentaire:', { lastCheck, lastCheckError });
       
       if (!lastCheckError && lastCheck && lastCheck.length > 0) {
         console.log(`Conversation trouvée lors de la double vérification:`, lastCheck[0]);
@@ -368,13 +383,14 @@ async function processMessage(supabase, phoneNumberId, message, contacts) {
       console.log(`[WEBHOOK ${timestamp}] Conversation updated successfully:`, updatedConversation);
       
       // Forcer une deuxième mise à jour pour garantir que le changement est détecté par Realtime
-      await new Promise(resolve => setTimeout(resolve, 200));
+      await new Promise(resolve => setTimeout(resolve, 300));
       
       // Petite mise à jour séparée pour déclencher un second événement Realtime
       const { data: refreshData, error: refreshError } = await supabase
         .from('conversations')
         .update({
-          _refresh_trigger: Math.random().toString(36).substring(2, 15) // Valeur aléatoire
+          _refresh_trigger: Math.random().toString(36).substring(2, 15), // Valeur aléatoire
+          last_message_at: new Date().toISOString() // Forcer une mise à jour de la date pour garantir un changement
         })
         .eq('id', conversationId)
         .select();
@@ -421,6 +437,23 @@ async function processMessage(supabase, phoneNumberId, message, contacts) {
         .eq('id', messageData[0].id);
         
       console.log('Signal Realtime envoyé pour le nouveau message');
+      
+      // Forcer une mise à jour de la conversation pour garantir la détection par Realtime
+      await new Promise(resolve => setTimeout(resolve, 200));
+      
+      const { data: finalRefresh, error: finalRefreshError } = await supabase
+        .from('conversations')
+        .update({
+          _refresh_trigger: Math.random().toString(36).substring(2, 15), // Valeur aléatoire
+          last_message_at: new Date().toISOString() // Forcer une mise à jour de la date
+        })
+        .eq('id', conversationId);
+        
+      if (finalRefreshError) {
+        console.error('Erreur lors du refresh final de la conversation:', finalRefreshError);
+      } else {
+        console.log('Refresh final de la conversation effectué avec succès');
+      }
     }
 
   } catch (error) {
