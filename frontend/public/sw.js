@@ -27,8 +27,8 @@ self.addEventListener('push', (event) => {
 
     const options = {
       body: data.body || 'Nouveau message reçu',
-      icon: '/icon-192x192.png',
-      badge: '/badge-72x72.png',
+      icon: '/icons/icon-192x192.png',
+      badge: '/icons/icon-72x72.png',
       data: {
         url: data.url || '/chat',
         conversationId: data.conversationId
