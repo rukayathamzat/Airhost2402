@@ -227,12 +227,13 @@ export class NotificationService {
       console.log('[NOTIF DEBUG] Préparation de l\'upsert pour user_id:', user.id);
       
       // Convertir l'objet subscription en objet JavaScript simple pour Supabase
+      const subscriptionJSON = subscription.toJSON();
       const subscriptionObj = {
         endpoint: subscription.endpoint,
-        expirationTime: subscription.expirationTime,
+        expirationTime: subscription.expirationTime || null,
         keys: {
-          p256dh: subscription.toJSON().keys.p256dh,
-          auth: subscription.toJSON().keys.auth
+          p256dh: subscriptionJSON.keys?.p256dh || '',
+          auth: subscriptionJSON.keys?.auth || ''
         }
       };
       
