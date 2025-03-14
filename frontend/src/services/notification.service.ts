@@ -216,7 +216,8 @@ export class NotificationService {
     }
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: userData } = await supabase.auth.getUser();
+      const user = userData.user;
       
       if (!user) {
         console.warn('[NOTIF DEBUG] Utilisateur non authentifié');
@@ -225,16 +226,26 @@ export class NotificationService {
       
       console.log('[NOTIF DEBUG] Préparation de l\'upsert pour user_id:', user.id);
       
-      const subscriptionJSON = JSON.stringify(subscription);
-      console.log('[NOTIF DEBUG] Données d\'abonnement à enregistrer (tronquées):', 
-        subscriptionJSON.substring(0, 100) + '...');
+      // Convertir l'objet subscription en objet JavaScript simple pour Supabase
+      const subscriptionObj = {
+        endpoint: subscription.endpoint,
+        expirationTime: subscription.expirationTime,
+        keys: {
+          p256dh: subscription.toJSON().keys.p256dh,
+          auth: subscription.toJSON().keys.auth
+        }
+      };
       
-      const { error, data } = await supabase
+      console.log('[NOTIF DEBUG] Données d\'abonnement à enregistrer:', 
+        JSON.stringify(subscriptionObj).substring(0, 100) + '...');
+      
+      // Utiliser upsert avec un objet JavaScript qui sera converti en JSONB
+      const { error, data: upsertResult } = await supabase
         .from('push_subscriptions')
         .upsert({
           user_id: user.id,
-          subscription: subscriptionJSON,
-          created_at: new Date().toISOString()
+          subscription: subscriptionObj,
+          updated_at: new Date().toISOString()
         }, {
           onConflict: 'user_id'
         });
@@ -244,7 +255,7 @@ export class NotificationService {
         throw error;
       }
       
-      console.log('[NOTIF DEBUG] Abonnement mis à jour sur le serveur avec succès', data);
+      console.log('[NOTIF DEBUG] Abonnement mis à jour sur le serveur avec succès', upsertResult);
     } catch (error) {
       console.error('[NOTIF DEBUG] Erreur lors de la mise à jour de l\'abonnement sur le serveur:', error);
     }
