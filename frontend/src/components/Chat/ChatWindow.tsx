@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { Paper, Box, Fab, Zoom, useTheme, Tooltip, Badge } from '@mui/material';
+import { Paper, Box, Fab, Zoom, useTheme, Tooltip, Badge, Button, CircularProgress } from '@mui/material';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import { supabase } from '../../lib/supabase';
 import AIResponseModal from '../AIResponseModal';
 // ChatHeader supprimé pour optimiser l'interface
@@ -11,6 +12,10 @@ import WhatsAppConfig from './ChatConfig/WhatsAppConfig';
 import { Message, MessageService } from '../../services/chat/message.service';
 import { Template, TemplateService } from '../../services/chat/template.service';
 import { WhatsAppService } from '../../services/chat/whatsapp.service';
+
+// Constantes pour la configuration
+const DEBUG_PREFIX = 'DEBUG_CHAT_WINDOW:';
+const POLL_INTERVAL = 10000; // 10 secondes
 
 interface ChatWindowProps {
   conversationId: string;
@@ -37,18 +42,38 @@ export default function ChatWindow({
   const [aiModalOpen, setAiModalOpen] = useState(false);
   const [templateAnchorEl, setTemplateAnchorEl] = useState<null | HTMLElement>(null);
   const [configOpen, setConfigOpen] = useState(false);
+  
+  // États pour le mécanisme de fiabilité
+  const [realtimeStatus, setRealtimeStatus] = useState<string>('CONNECTING');
+  const [pollingActive, setPollingActive] = useState<boolean>(false);
+  const [refreshing, setRefreshing] = useState<boolean>(false);
+  const [lastMessageCount, setLastMessageCount] = useState<number>(0);
+  
+  // Référence pour l'intervalle de polling
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Chargement initial
   useEffect(() => {
+    console.log(`${DEBUG_PREFIX} Initialisation du composant`, { conversationId });
     loadConversation();
     loadTemplates();
+    
+    // Nettoyer le polling à la destruction du composant
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+        setPollingActive(false);
+      }
+    };
   }, [conversationId]);
 
   // Chargement de la conversation
   const loadConversation = async () => {
     try {
       const timestamp = new Date().toISOString();
-      console.log(`[${timestamp}] Chargement de la conversation et des messages pour: ${conversationId}`);
+      console.log(`${DEBUG_PREFIX} [${timestamp}] Chargement de la conversation et des messages pour: ${conversationId}`);
+      setRefreshing(true);
       
       const [conversationData, messagesData] = await Promise.all([
         supabase
@@ -61,25 +86,41 @@ export default function ChatWindow({
 
       if (conversationData.error) throw conversationData.error;
       
-      console.log(`[${timestamp}] Conversation chargée:`, conversationData.data.guest_name);
-      console.log(`[${timestamp}] Messages chargés:`, messagesData.length, 'messages');
-      if (messagesData.length > 0) {
-        console.log(`[${timestamp}] Premier message:`, messagesData[0].content);
-        console.log(`[${timestamp}] Dernier message:`, messagesData[messagesData.length - 1].content);
+      console.log(`${DEBUG_PREFIX} [${timestamp}] Conversation chargée:`, conversationData.data.guest_name);
+      console.log(`${DEBUG_PREFIX} [${timestamp}] Messages chargés:`, messagesData.length, 'messages');
+      
+      // Tri des messages par date de création pour garantir l'ordre chronologique
+      const sortedMessages = [...messagesData].sort((a, b) => 
+        new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      );
+      
+      if (sortedMessages.length > 0) {
+        console.log(`${DEBUG_PREFIX} [${timestamp}] Premier message:`, sortedMessages[0].content);
+        console.log(`${DEBUG_PREFIX} [${timestamp}] Dernier message:`, sortedMessages[sortedMessages.length - 1].content);
       }
       
       setSelectedConversation(conversationData.data);
-      setMessages(messagesData);
+      setMessages(sortedMessages);
+      setLastMessageCount(sortedMessages.length);
       
       // Mettre isInitialLoad à false après le chargement initial
-      console.log(`[${timestamp}] Initialisation terminée, désactivation de isInitialLoad`);
+      console.log(`${DEBUG_PREFIX} [${timestamp}] Initialisation terminée, désactivation de isInitialLoad`);
       setIsInitialLoad(false);
       
       // Déclencher manuellement le défilement vers le bas après le chargement
       setTimeout(scrollToBottom, 300);
     } catch (error) {
-      console.error('Erreur lors du chargement de la conversation:', error);
+      console.error(`${DEBUG_PREFIX} Erreur lors du chargement de la conversation:`, error);
+    } finally {
+      setRefreshing(false);
     }
+  };
+  
+  // Forcer un rafraîchissement manuel des messages
+  const forceRefresh = async () => {
+    console.log(`${DEBUG_PREFIX} Rafraîchissement manuel forcé des messages`);
+    await loadConversation();
+    scrollToBottom();
   };
 
   // Chargement des templates
@@ -92,68 +133,225 @@ export default function ChatWindow({
     }
   };
 
-  // Configuration de la subscription realtime pour les messages
+  // Configuration de la subscription realtime pour les messages et système de polling de fallback
   useEffect(() => {
     const timestamp = new Date().toISOString();
-    console.log(`[${timestamp}] Mise en place de la souscription realtime pour la conversation: ${conversationId}`);
+    console.log(`${DEBUG_PREFIX} [${timestamp}] Mise en place de la souscription realtime pour la conversation: ${conversationId}`);
     
     // Vérifier que l'ID de conversation est valide
     if (!conversationId) {
-      console.warn(`[${timestamp}] ID de conversation invalide, impossible de s'abonner aux messages`);
+      console.warn(`${DEBUG_PREFIX} [${timestamp}] ID de conversation invalide, impossible de s'abonner aux messages`);
       return;
     }
     
-    // S'abonner aux messages de cette conversation
-    const subscription = MessageService.subscribeToMessages(
-      conversationId,
-      (newMessage) => {
-        const receiveTimestamp = new Date().toISOString();
-        console.log(`[${receiveTimestamp}] Nouveau message reçu via Realtime:`, newMessage);
-        
-        // Vérifier que le message est valide
-        if (!newMessage || !newMessage.id) {
-          console.warn(`[${receiveTimestamp}] Message reçu invalide, ignoré`); 
-          return;
-        }
-        
-        // Vérifier et afficher le contenu de l'état actuel des messages pour déboguer
-        console.log(`[${receiveTimestamp}] État actuel des messages avant mise à jour:`, messages.length, 'messages');
-        console.log(`[${receiveTimestamp}] IDs des messages actuels:`, messages.map(m => m.id));
-        
-        // Mettre à jour la liste des messages en vérifiant les doublons
-        setMessages(current => {
-          // Vérifier si le message existe déjà dans la liste
-          const messageExists = current.some(msg => msg.id === newMessage.id);
+    try {
+      // S'abonner aux messages de cette conversation
+      const messagesChannel = supabase
+        .channel('messages-channel-' + conversationId)
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'messages',
+          filter: `conversation_id=eq.${conversationId}`
+        }, (payload) => {
+          const newMessage = payload.new as Message;
+          handleNewMessage(newMessage);
+        })
+        .subscribe(status => {
+          console.log(`${DEBUG_PREFIX} [${timestamp}] Statut du canal messages:`, status);
+          setRealtimeStatus(status);
           
-          if (messageExists) {
-            console.log(`[${receiveTimestamp}] Message déjà dans la liste, ignoré:`, newMessage.id);
-            return current;
+          // Activer le polling de fallback si Realtime n'est pas SUBSCRIBED
+          if (status !== 'SUBSCRIBED') {
+            console.log(`${DEBUG_PREFIX} [${timestamp}] Activation du polling de fallback (Realtime: ${status})`);
+            activatePolling();
+          } else if (pollingActive && status === 'SUBSCRIBED') {
+            console.log(`${DEBUG_PREFIX} [${timestamp}] Désactivation du polling (Realtime est SUBSCRIBED)`);
+            deactivatePolling();
+          }
+        });
+      
+      // S'abonner aux mises à jour de la conversation pour le dernier message
+      const conversationsChannel = supabase
+        .channel('conversations-changes-' + conversationId)
+        .on('postgres_changes', {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'conversations',
+          filter: `id=eq.${conversationId}`
+        }, async (payload) => {
+          console.log(`${DEBUG_PREFIX} [${timestamp}] Mise à jour de la conversation détectée:`, payload);
+          
+          // Actualiser les messages si last_message a changé
+          if (payload.new && payload.old && payload.new.last_message !== payload.old.last_message) {
+            console.log(`${DEBUG_PREFIX} [${timestamp}] Nouveau message détecté via mise à jour de conversation`);
+            
+            // Récupérer uniquement les nouveaux messages depuis le dernier chargement
+            try {
+              const { data: newMessages } = await supabase
+                .from('messages')
+                .select('*')
+                .eq('conversation_id', conversationId)
+                .order('created_at', { ascending: true });
+                
+              if (newMessages && newMessages.length > messages.length) {
+                console.log(`${DEBUG_PREFIX} [${timestamp}] Nouveaux messages trouvés:`, newMessages.length - messages.length);
+                
+                // Mettre à jour l'état avec les nouveaux messages
+                updateMessagesState(newMessages);
+              }
+            } catch (error) {
+              console.error(`${DEBUG_PREFIX} [${timestamp}] Erreur lors de la récupération des nouveaux messages:`, error);
+            }
           }
           
-          // Ajouter le nouveau message à la liste
-          console.log(`[${receiveTimestamp}] Ajout du nouveau message à la liste:`, newMessage.id, 'Contenu:', newMessage.content);
-          
-          // Force le défilement vers le bas en désactivant temporairement isInitialLoad
-          setIsInitialLoad(false);
-          
-          // Créer une nouvelle liste avec le message ajouté
-          const updatedMessages = [...current, newMessage];
-          console.log(`[${receiveTimestamp}] Nouvelle liste de messages:`, updatedMessages.length, 'messages');
-          
-          // Déclencher manuellement le défilement vers le bas
-          setTimeout(scrollToBottom, 100);
-          
-          return updatedMessages;
-        });
-      }
-    );
-
-    // Nettoyer la souscription lorsque le composant est démonté ou que l'ID change
-    return () => {
-      console.log(`[${new Date().toISOString()}] Nettoyage de la souscription realtime pour la conversation: ${conversationId}`);
-      subscription.unsubscribe();
-    };
+          // Mettre à jour l'état de la conversation
+          setSelectedConversation(payload.new);
+        })
+        .subscribe();
+      
+      // Nettoyer les souscriptions lorsque le composant est démonté ou que l'ID change
+      return () => {
+        console.log(`${DEBUG_PREFIX} [${new Date().toISOString()}] Nettoyage des souscriptions pour la conversation: ${conversationId}`);
+        supabase.removeChannel(messagesChannel);
+        supabase.removeChannel(conversationsChannel);
+        
+        // Arrêter le polling si actif
+        if (pollingIntervalRef.current) {
+          clearInterval(pollingIntervalRef.current);
+          pollingIntervalRef.current = null;
+          setPollingActive(false);
+        }
+      };
+    } catch (error) {
+      console.error(`${DEBUG_PREFIX} [${timestamp}] Erreur lors de la configuration de Realtime:`, error);
+      // En cas d'erreur avec Realtime, activer le polling comme fallback
+      activatePolling();
+    }
   }, [conversationId]); // Inclure conversationId comme dépendance pour recréer la souscription si l'ID change
+  
+  // Activation du polling de fallback
+  const activatePolling = () => {
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+    }
+    
+    console.log(`${DEBUG_PREFIX} Activation du polling toutes les ${POLL_INTERVAL/1000} secondes`);
+    
+    pollingIntervalRef.current = setInterval(async () => {
+      console.log(`${DEBUG_PREFIX} Exécution du polling de fallback`);
+      try {
+        const { data } = await supabase
+          .from('messages')
+          .select('*')
+          .eq('conversation_id', conversationId)
+          .order('created_at', { ascending: true });
+          
+        if (data) {
+          updateMessagesState(data);
+        }
+      } catch (error) {
+        console.error(`${DEBUG_PREFIX} Erreur lors du polling:`, error);
+      }
+    }, POLL_INTERVAL);
+    
+    setPollingActive(true);
+  };
+
+  // Désactivation du polling
+  const deactivatePolling = () => {
+    if (pollingIntervalRef.current) {
+      console.log(`${DEBUG_PREFIX} Désactivation du polling`);
+      clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
+    }
+    
+    setPollingActive(false);
+  };
+  
+  // Mettre à jour l'état des messages avec vérification des doublons
+  const updateMessagesState = (newMessages: Message[]) => {
+    setMessages(current => {
+      // Créer un ensemble des IDs des messages actuels pour une recherche plus efficace
+      const existingIds = new Set(current.map(msg => msg.id));
+      
+      // Filtrer uniquement les messages qui n'existent pas déjà
+      const messagesToAdd = newMessages.filter(msg => !existingIds.has(msg.id));
+      
+      if (messagesToAdd.length === 0) {
+        console.log(`${DEBUG_PREFIX} Aucun nouveau message à ajouter`);
+        return current;
+      }
+      
+      console.log(`${DEBUG_PREFIX} Ajout de ${messagesToAdd.length} nouveaux messages`);
+      
+      // Combiner et trier les messages par date
+      const combinedMessages = [...current, ...messagesToAdd].sort((a, b) => 
+        new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      );
+      
+      // Mettre à jour le compteur de messages pour le défilement
+      if (combinedMessages.length > lastMessageCount) {
+        setLastMessageCount(combinedMessages.length);
+        
+        // Déclencher le défilement vers le bas si on était déjà en bas
+        if (!showScrollButton) {
+          setTimeout(scrollToBottom, 100);
+        }
+      }
+      
+      return combinedMessages;
+    });
+  };
+  
+  // Gestionnaire pour les nouveaux messages via Realtime
+  const handleNewMessage = (newMessage: Message) => {
+    const receiveTimestamp = new Date().toISOString();
+    console.log(`${DEBUG_PREFIX} [${receiveTimestamp}] Nouveau message reçu via Realtime:`, newMessage);
+    
+    // Vérifier que le message est valide
+    if (!newMessage || !newMessage.id) {
+      console.warn(`${DEBUG_PREFIX} [${receiveTimestamp}] Message reçu invalide, ignoré`); 
+      return;
+    }
+    
+    // Vérifier et afficher le contenu de l'état actuel des messages pour déboguer
+    console.log(`${DEBUG_PREFIX} [${receiveTimestamp}] État actuel des messages avant mise à jour:`, messages.length, 'messages');
+    console.log(`${DEBUG_PREFIX} [${receiveTimestamp}] IDs des messages actuels:`, messages.map(m => m.id));
+    
+    // Mettre à jour la liste des messages en vérifiant les doublons
+    setMessages(current => {
+      // Vérifier si le message existe déjà dans la liste
+      const messageExists = current.some(msg => msg.id === newMessage.id);
+      
+      if (messageExists) {
+        console.log(`${DEBUG_PREFIX} [${receiveTimestamp}] Message déjà dans la liste, ignoré:`, newMessage.id);
+        return current;
+      }
+      
+      // Ajouter le nouveau message à la liste
+      console.log(`${DEBUG_PREFIX} [${receiveTimestamp}] Ajout du nouveau message à la liste:`, newMessage.id, 'Contenu:', newMessage.content);
+      
+      // Force le défilement vers le bas en désactivant temporairement isInitialLoad
+      setIsInitialLoad(false);
+      
+      // Créer une nouvelle liste avec le message ajouté et trier par date
+      const updatedMessages = [...current, newMessage].sort((a, b) => 
+        new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      );
+      console.log(`${DEBUG_PREFIX} [${receiveTimestamp}] Nouvelle liste de messages:`, updatedMessages.length, 'messages');
+      
+      // Mettre à jour le compteur de messages
+      setLastMessageCount(updatedMessages.length);
+      
+      // Déclencher manuellement le défilement vers le bas si on était déjà en bas
+      if (!showScrollButton) {
+        setTimeout(scrollToBottom, 100);
+      }
+      
+      return updatedMessages;
+    });
+  };
 
   // Gestionnaires d'événements
   const handleSendMessage = async (content: string): Promise<void> => {
@@ -262,35 +460,35 @@ export default function ChatWindow({
 
   // Mise à jour du compteur non lu quand un nouveau message arrive et qu'on n'est pas en bas
   useEffect(() => {
-    if (messages.length > 0 && showScrollButton) {
+    if (messages.length > lastMessageCount && showScrollButton) {
       setUnreadCount(prev => prev + 1);
     }
-  }, [messages.length]);
+  }, [messages.length, lastMessageCount, showScrollButton]);
   
   // Effet de défilement automatique lors de la première charge ou quand de nouveaux messages arrivent
   useEffect(() => {
     const timestamp = new Date().toISOString();
-    console.log(`[${timestamp}] Effet de défilement automatique déclenché. Messages: ${messages.length}, isInitialLoad: ${isInitialLoad}, showScrollButton: ${showScrollButton}`);
+    console.log(`${DEBUG_PREFIX} [${timestamp}] Effet de défilement automatique déclenché. Messages: ${messages.length}, isInitialLoad: ${isInitialLoad}, showScrollButton: ${showScrollButton}`);
     
     if (messages.length > 0) {
       // Si c'est le chargement initial, défiler vers le bas après un court délai
       if (isInitialLoad) {
-        console.log(`[${timestamp}] Programmation du défilement initial dans 300ms`);
+        console.log(`${DEBUG_PREFIX} [${timestamp}] Programmation du défilement initial dans 300ms`);
         const timer = setTimeout(() => {
-          console.log(`[${timestamp}] Exécution du défilement initial programmé`);
+          console.log(`${DEBUG_PREFIX} [${timestamp}] Exécution du défilement initial programmé`);
           scrollToBottom();
         }, 300);
         return () => clearTimeout(timer);
       }
       // Lors de la réception d'un nouveau message, défiler vers le bas si on était déjà en bas
       else if (!showScrollButton) {
-        console.log(`[${timestamp}] Défilement automatique car déjà en bas de la conversation`);
+        console.log(`${DEBUG_PREFIX} [${timestamp}] Défilement automatique car déjà en bas de la conversation`);
         scrollToBottom();
       } else {
-        console.log(`[${timestamp}] Pas de défilement automatique, utilisateur n'est pas en bas de la conversation`);
+        console.log(`${DEBUG_PREFIX} [${timestamp}] Pas de défilement automatique, utilisateur n'est pas en bas de la conversation`);
       }
     } else {
-      console.log(`[${timestamp}] Pas de messages à afficher, défilement ignoré`);
+      console.log(`${DEBUG_PREFIX} [${timestamp}] Pas de messages à afficher, défilement ignoré`);
     }
   }, [messages.length, isInitialLoad, showScrollButton]);
 
@@ -332,6 +530,37 @@ export default function ChatWindow({
         }}
         onScroll={handleScroll}
       >
+        {/* Indicateur de l'état de la connexion Realtime */}
+        <Box 
+          sx={{ 
+            position: 'absolute', 
+            top: 10, 
+            right: 10, 
+            zIndex: 1000,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1
+          }}
+        >
+          <Tooltip title={`Source des données: ${realtimeStatus === 'SUBSCRIBED' ? 'Temps réel' : 'Mode de secours'}`}>
+            <Button
+              size="small"
+              variant="outlined"
+              color={realtimeStatus === 'SUBSCRIBED' ? 'success' : 'warning'}
+              startIcon={refreshing ? <CircularProgress size={16} /> : <RefreshIcon />}
+              onClick={forceRefresh}
+              sx={{ 
+                minWidth: 'auto',
+                padding: '4px 8px',
+                fontSize: '0.7rem',
+                opacity: 0.7,
+                '&:hover': { opacity: 1 }
+              }}
+            >
+              {refreshing ? 'Actualisation...' : realtimeStatus === 'SUBSCRIBED' ? 'Realtime' : 'Polling'}
+            </Button>
+          </Tooltip>
+        </Box>
         <ChatMessages 
           messages={messages}
           isInitialLoad={isInitialLoad}
