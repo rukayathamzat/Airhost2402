@@ -1,9 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { 
   Box, 
-  TextField, 
   IconButton, 
-  InputAdornment, 
   Card, 
   Typography, 
   Divider,
@@ -14,7 +12,6 @@ import {
   ListItemText,
   CircularProgress
 } from '@mui/material';
-import SendIcon from '@mui/icons-material/Send';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import SignalCellularAltIcon from '@mui/icons-material/SignalCellularAlt';
@@ -79,13 +76,8 @@ export default function ChatWindow({ conversationId, whatsappContactId, guestNam
     }
   }, [messageInput, conversationId, whatsappContactId, sendMessage]);
   
-  // Gestionnaire pour l'envoi avec la touche Entrée
-  const handleKeyPress = (event: React.KeyboardEvent) => {
-    if (event.key === 'Enter' && !event.shiftKey) {
-      event.preventDefault();
-      handleSendMessage();
-    }
-  };
+  // Cette fonction est gérée par le composant ChatInput
+  // Aucun gestionnaire handleKeyPress direct n'est nécessaire ici
   
   // Gestionnaire pour la sélection d'un template
   const handleTemplateSelect = useCallback((template: Template) => {
@@ -93,10 +85,7 @@ export default function ChatWindow({ conversationId, whatsappContactId, guestNam
     setTemplatesMenuAnchorEl(null);
   }, []);
   
-  // Gestionnaire pour la mise à jour de l'entrée de message
-  const handleMessageInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setMessageInput(event.target.value);
-  };
+  // Cette fonctionnalité est déléguée au composant ChatInput
   
   // Fonctions pour les menus
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {

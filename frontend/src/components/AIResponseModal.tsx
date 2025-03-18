@@ -4,17 +4,23 @@ import './AIResponseModal.css';
 import { AutoAwesome, Send, Edit, Close } from '@mui/icons-material';
 
 interface AIResponseModalProps {
-  apartmentId: string;
+  apartmentId?: string; // Optional pour compatibilité avec l'usage actuel
   conversationId: string;
-  onSend: (response: string) => void;
+  onResponseGenerated?: (response: string) => void; // Alias pour onSend
+  onSend?: (response: string) => void;
   onClose: () => void;
+  open: boolean; // Nouveau prop pour contrôler l'ouverture
+  guestName?: string; // Nom de l'invité pour personnalisation
 }
 
 export default function AIResponseModal({ 
   apartmentId, 
   conversationId, 
   onSend, 
-  onClose 
+  onResponseGenerated,
+  onClose, 
+  open,
+  guestName = ''
 }: AIResponseModalProps) {
   const [response, setResponse] = useState('');
   const [loading, setLoading] = useState(false);
@@ -28,8 +34,10 @@ export default function AIResponseModal({
       setResponse(''); // Réinitialiser toute réponse existante
       
       console.log('Appel du service AI...');
+      // S'assurer que apartmentId a une valeur par défaut si non fourni
+      const apartmentIdToUse = apartmentId || 'default';
       const aiResponse = await AIResponseService.generateResponse(
-        apartmentId, 
+        apartmentIdToUse, 
         conversationId
       );
       
@@ -62,13 +70,20 @@ export default function AIResponseModal({
     
     console.log('Envoi de la réponse générée par IA:', response);
     
-    // Envoyer la réponse au parent
-    onSend(response);
+    // Envoyer la réponse au parent (utiliser onResponseGenerated ou onSend)
+    if (onResponseGenerated) {
+      onResponseGenerated(response);
+    } else if (onSend) {
+      onSend(response);
+    }
     
     // Fermer la modal
     onClose();
   };
 
+  // Si le modal n'est pas ouvert, ne rien rendre
+  if (!open) return null;
+  
   return (
     <div className="ai-modal-overlay">
       <div className="ai-modal">
@@ -82,7 +97,7 @@ export default function AIResponseModal({
         <div className="ai-modal-content">
           {!response && !loading && (
             <div className="generate-section">
-              <p>Générer une réponse personnalisée avec l'IA</p>
+              <p>Générer une réponse personnalisée{guestName ? ` pour ${guestName}` : ''} avec l'IA</p>
               <button 
                 onClick={handleGenerate} 
                 className="generate-btn"
