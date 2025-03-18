@@ -44,16 +44,25 @@ export function useMessagesRealtime(conversationId: string): UseMessagesRealtime
     console.log(`${DEBUG_PREFIX} [${timestamp}] Chargement des messages pour la conversation: ${conversationId}`);
     
     try {
-      // Récupérer les messages depuis la base de données
-      const fetchedMessages = await MessageService.getMessages(conversationId);
-      console.log(`${DEBUG_PREFIX} [${timestamp}] ${fetchedMessages.length} messages récupérés depuis la BDD`);
-      
-      // Récupérer les messages stockés localement
+      // 1. Récupérer les messages stockés localement d'abord
+      // (pour s'assurer qu'ils sont toujours disponibles)
       const localMessages = getLocalMessages(conversationId);
       console.log(`${DEBUG_PREFIX} [${timestamp}] ${localMessages.length} messages récupérés depuis le stockage local`);
       
-      // Combiner les messages
-      const combinedMessages = [...fetchedMessages, ...localMessages];
+      let combinedMessages = [...localMessages];
+      
+      try {
+        // 2. Récupérer les messages depuis la base de données
+        const fetchedMessages = await MessageService.getMessages(conversationId);
+        console.log(`${DEBUG_PREFIX} [${timestamp}] ${fetchedMessages.length} messages récupérés depuis la BDD`);
+        
+        // Ajouter les messages de la BDD à la liste combinée
+        combinedMessages = [...combinedMessages, ...fetchedMessages];
+      } catch (dbError) {
+        // En cas d'erreur avec la base de données, on continue avec les messages locaux
+        console.error(`${DEBUG_PREFIX} [${timestamp}] Erreur lors de la récupération depuis la BDD, utilisation des messages locaux uniquement:`, dbError);
+      }
+      
       console.log(`${DEBUG_PREFIX} [${timestamp}] ${combinedMessages.length} messages combinés avant déduplication`);
       
       // Assurer l'unicité des messages
@@ -64,6 +73,11 @@ export function useMessagesRealtime(conversationId: string): UseMessagesRealtime
       const sortedMessages = [...uniqueMessages].sort((a, b) => {
         return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
       });
+      
+      // Détection des messages manquants ou différents par rapport à l'état précédent
+      if (messages.length > 0 && sortedMessages.length !== messages.length) {
+        console.log(`${DEBUG_PREFIX} [${timestamp}] Différence détectée dans le nombre de messages: ${messages.length} -> ${sortedMessages.length}`);
+      }
       
       setMessages(sortedMessages);
       setLastMessageCount(sortedMessages.length);

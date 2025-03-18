@@ -18,19 +18,43 @@ export interface UseMessageSenderResult {
 // Fonction pour persister les messages localement
 const saveMessageLocally = (message: Message) => {
   try {
+    // S'assurer que le message a la propriété conversation_id
+    if (!message.conversation_id) {
+      console.error(`${DEBUG_PREFIX} Impossible de sauvegarder localement un message sans conversation_id`);
+      return;
+    }
+    
     // Récupérer les messages existants
     const storedMessages = localStorage.getItem(LOCAL_MESSAGES_KEY);
     let messages: Message[] = storedMessages ? JSON.parse(storedMessages) : [];
     
     // Vérifier que le message n'existe pas déjà
     if (!messages.some(m => m.id === message.id)) {
+      // Ajouter un horodatage si nécessaire
+      if (!message.created_at) {
+        message.created_at = new Date().toISOString();
+      }
+      
       messages.push(message);
+      
       // Limiter le nombre de messages stockés (garder les 100 plus récents)
       if (messages.length > 100) {
         messages = messages.slice(-100);
       }
+      
+      // Sauvegarde immédiate et synchrone
       localStorage.setItem(LOCAL_MESSAGES_KEY, JSON.stringify(messages));
-      console.log(`${DEBUG_PREFIX} Message sauvegardé localement:`, message.id);
+      console.log(`${DEBUG_PREFIX} Message sauvegardé localement: ID=${message.id}, Conversation=${message.conversation_id}`);
+      
+      // Vérification de la sauvegarde
+      const verification = localStorage.getItem(LOCAL_MESSAGES_KEY);
+      if (verification) {
+        const savedMessages = JSON.parse(verification) as Message[];
+        const isSaved = savedMessages.some((m: Message) => m.id === message.id);
+        console.log(`${DEBUG_PREFIX} Vérification de sauvegarde: le message ${message.id} est ${isSaved ? 'présent' : 'ABSENT !'} dans le stockage local`);
+      }
+    } else {
+      console.log(`${DEBUG_PREFIX} Message déjà présent dans le stockage local:`, message.id);
     }
   } catch (error) {
     console.error(`${DEBUG_PREFIX} Erreur lors de la sauvegarde locale du message:`, error);
@@ -41,10 +65,23 @@ const saveMessageLocally = (message: Message) => {
 const getLocalMessagesForConversation = (conversationId: string): Message[] => {
   try {
     const storedMessages = localStorage.getItem(LOCAL_MESSAGES_KEY);
-    if (!storedMessages) return [];
+    if (!storedMessages) {
+      console.log(`${DEBUG_PREFIX} Aucun message trouvé dans le stockage local`);
+      return [];
+    }
     
     const messages: Message[] = JSON.parse(storedMessages);
-    return messages.filter(m => m.conversation_id === conversationId);
+    const filteredMessages = messages.filter(m => m.conversation_id === conversationId);
+    
+    console.log(`${DEBUG_PREFIX} ${filteredMessages.length}/${messages.length} messages locaux trouvés pour la conversation ${conversationId}`);
+    
+    if (filteredMessages.length > 0) {
+      // Afficher les 3 derniers messages trouvés (pour débogage)
+      const recentMessages = filteredMessages.slice(-3);
+      console.log(`${DEBUG_PREFIX} Derniers messages locaux:`, recentMessages.map((m: Message) => ({ id: m.id, content: m.content.substring(0, 20) + (m.content.length > 20 ? '...' : '') })));
+    }
+    
+    return filteredMessages;
   } catch (error) {
     console.error(`${DEBUG_PREFIX} Erreur lors de la récupération des messages locaux:`, error);
     return [];
@@ -110,7 +147,15 @@ export function useMessageSender(): UseMessageSenderResult {
       console.log(`${DEBUG_PREFIX} Message inséré en base de données avec ID: ${newMessage.id}`);
       
       // Sauvegarder le message localement pour garantir qu'il soit toujours affiché
+      console.log(`${DEBUG_PREFIX} Sauvegarde locale du message:`, newMessage.id);
       saveMessageLocally(newMessage);
+      
+      // Double vérification pour s'assurer que le message est bien sauvegardé
+      setTimeout(() => {
+        const localMsgs = getLocalMessagesForConversation(conversationId);
+        const isPresent = localMsgs.some((m: Message) => m.id === newMessage.id);
+        console.log(`${DEBUG_PREFIX} Vérification différée: le message ${newMessage.id} est ${isPresent ? 'présent' : 'ABSENT !'} dans le stockage local`);
+      }, 200);
       
       // 2. Si un contactId est fourni, envoyer le message à WhatsApp
       if (contactId) {
