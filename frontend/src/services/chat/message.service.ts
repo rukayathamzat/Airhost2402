@@ -38,22 +38,34 @@ export class MessageService {
     }
   }
 
-  static async getMessages(conversationId: string, limit = 50) {
+  static async getMessages(conversationId: string, forceNetwork = false, limit = 50) {
     const timestamp = new Date().toISOString();
-    console.log(`[${timestamp}] Récupération des messages pour la conversation:`, conversationId);
+    console.log(`[${timestamp}] Récupération des messages pour la conversation: ${conversationId}, forceNetwork: ${forceNetwork}`);
     
     try {
-      // Forcer le rechargement frais des messages à chaque appel
+      // Forcer le rechargement frais des messages à chaque appel si demandé
       const controller = new AbortController();
-      controller.signal.addEventListener('abort', () => console.log(`[${timestamp}] Requête message annulée (cache refresh)`));
       
-      const { data, error } = await supabase
+      if (forceNetwork) {
+        // Cette ligne est juste pour le log, le vrai effet vient de l'abortSignal
+        controller.signal.addEventListener('abort', () => console.log(`[${timestamp}] Requête message annulée (cache refresh)`));
+      }
+      
+      // Construire la requête
+      let query = supabase
         .from('messages')
         .select('*')
         .eq('conversation_id', conversationId)
         .order('created_at', { ascending: true })
-        .limit(limit)
-        .abortSignal(controller.signal) // Force un nouveau appel réseau en utilisant un nouveau signal
+        .limit(limit);
+      
+      // Ajouter l'abortSignal uniquement si on force le réseau
+      if (forceNetwork) {
+        query = query.abortSignal(controller.signal); // Force un nouveau appel réseau
+      }
+      
+      // Exécuter la requête
+      const { data, error } = await query;
 
       if (error) {
         console.error(`[${timestamp}] Erreur lors de la récupération des messages:`, error);

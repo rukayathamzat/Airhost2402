@@ -23,6 +23,8 @@ import FormatListBulletedIcon from '@mui/icons-material/FormatListBulleted';
 import PaletteIcon from '@mui/icons-material/Palette';
 
 import ChatMessages from './ChatMessages';
+import ChatInput from './ChatInput';
+import AIResponseModal from '../AIResponseModal';
 import { useMessagesRealtime } from '../../hooks/useMessagesRealtime';
 import { useMessageSender } from '../../hooks/useMessageSender';
 import { useTemplates, Template } from '../../hooks/useTemplates';
@@ -42,6 +44,7 @@ export default function ChatWindow({ conversationId, whatsappContactId, guestNam
   const [messageInput, setMessageInput] = useState('');
   const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null);
   const [templatesMenuAnchorEl, setTemplatesMenuAnchorEl] = useState<null | HTMLElement>(null);
+  const [aiModalOpen, setAiModalOpen] = useState(false);
   
   // Utilisation des hooks personnalisés
   const { 
@@ -112,6 +115,20 @@ export default function ChatWindow({ conversationId, whatsappContactId, guestNam
   
   const handleTemplatesMenuClose = () => {
     setTemplatesMenuAnchorEl(null);
+  };
+  
+  // Fonctions pour le modal IA
+  const handleOpenAIModal = () => {
+    setAiModalOpen(true);
+  };
+  
+  const handleCloseAIModal = () => {
+    setAiModalOpen(false);
+  };
+  
+  const handleGeneratedResponse = (response: string) => {
+    setMessageInput(response);
+    setAiModalOpen(false);
   };
   
   // Déterminer l'icône et la couleur en fonction du statut de connexion
@@ -189,39 +206,20 @@ export default function ChatWindow({ conversationId, whatsappContactId, guestNam
       
       <Divider />
       
-      {/* Zone de saisie de message */}
-      <Box sx={{ p: 2, bgcolor: 'background.default' }}>
-        <TextField
-          fullWidth
-          multiline
-          maxRows={4}
-          placeholder="Saisissez votre message..."
-          value={messageInput}
-          onChange={handleMessageInputChange}
-          onKeyPress={handleKeyPress}
+      {/* Zone de saisie de message - Utilisation de ChatInput */}
+      <Box sx={{ bgcolor: 'background.default' }}>
+        <ChatInput
+          onSendMessage={async (message) => {
+            setMessageInput(message);
+            await handleSendMessage();
+          }}
+          onOpenAIModal={handleOpenAIModal}
+          onOpenTemplates={handleTemplatesMenuOpen}
           disabled={sending}
-          InputProps={{
-            endAdornment: (
-              <InputAdornment position="end">
-                <IconButton 
-                  onClick={handleSendMessage} 
-                  disabled={sending || !messageInput.trim()}
-                  color="primary"
-                >
-                  {sending ? <CircularProgress size={24} /> : <SendIcon />}
-                </IconButton>
-              </InputAdornment>
-            ),
-          }}
-          sx={{ 
-            '& .MuiOutlinedInput-root': {
-              borderRadius: 2,
-            }
-          }}
         />
         
         {sendError && (
-          <Typography variant="caption" color="error" sx={{ mt: 0.5, display: 'block' }}>
+          <Typography variant="caption" color="error" sx={{ px: 2, pb: 1, display: 'block' }}>
             {sendError}
           </Typography>
         )}
@@ -265,6 +263,15 @@ export default function ChatWindow({ conversationId, whatsappContactId, guestNam
           ))
         )}
       </Menu>
+      
+      {/* Modal pour la génération de réponse IA */}
+      <AIResponseModal
+        open={aiModalOpen}
+        onClose={handleCloseAIModal}
+        onResponseGenerated={handleGeneratedResponse}
+        conversationId={conversationId}
+        guestName={guestName || ''}
+      />
     </Card>
   );
 }
