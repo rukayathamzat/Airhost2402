@@ -8,6 +8,9 @@ const DEBUG_PREFIX = 'DEBUG_USE_MESSAGES_REALTIME';
 
 // Intervalle de polling en millisecondes
 const POLLING_INTERVAL = 10000; // 10 secondes
+// Intervalle pour le rafraîchissement automatique forcé 
+// (est utilisé plus loin dans le code pour vérifier périodiquement les nouveaux messages)
+const AUTO_REFRESH_INTERVAL = 30000; // 30 secondes
 
 interface UseMessagesRealtimeResult {
   messages: Message[];
@@ -30,7 +33,7 @@ export function useMessagesRealtime(conversationId: string): UseMessagesRealtime
   const { getLocalMessages } = useMessageSender();
   
   // Fonction pour charger les messages
-  const loadMessages = async (showRefreshing = true) => {
+  const loadMessages = async (showRefreshing = true, forceNetwork = true) => {
     if (!conversationId) {
       console.error(`${DEBUG_PREFIX} ID de conversation invalide: ${conversationId}`);
       return;
@@ -41,7 +44,7 @@ export function useMessagesRealtime(conversationId: string): UseMessagesRealtime
     }
     
     const timestamp = new Date().toISOString();
-    console.log(`${DEBUG_PREFIX} [${timestamp}] Chargement des messages pour la conversation: ${conversationId}`);
+    console.log(`${DEBUG_PREFIX} [${timestamp}] Chargement des messages pour la conversation: ${conversationId}, forceNetwork: ${forceNetwork}`);
     
     try {
       // 1. Récupérer les messages stockés localement d'abord
@@ -53,8 +56,8 @@ export function useMessagesRealtime(conversationId: string): UseMessagesRealtime
       
       try {
         // 2. Récupérer les messages depuis la base de données
-        // Force le rechargement complet en utilisant un timestamp comme paramètre pour éviter le cache
-        const fetchedMessages = await MessageService.getMessages(conversationId);
+        // Force le rechargement complet en utilisant un AbortController pour éviter le cache
+        const fetchedMessages = await MessageService.getMessages(conversationId, forceNetwork as boolean);
         console.log(`${DEBUG_PREFIX} [${timestamp}] ${fetchedMessages.length} messages récupérés depuis la BDD`);
         
         // Afficher les derniers messages récupérés pour débogage
@@ -155,17 +158,28 @@ export function useMessagesRealtime(conversationId: string): UseMessagesRealtime
           
           console.log(`${DEBUG_PREFIX} [${timestamp}] État mis à jour: ${updatedMessages.length} messages`);
           
-          // Sauvegarder également le message localement
+          // Sauvegarder le message localement
           try {
-            const { saveMessageLocally } = require('./useMessageSender');
-            saveMessageLocally(newMessage);
-            console.log(`${DEBUG_PREFIX} [${timestamp}] Message également sauvegardé localement via Realtime`);
+            // Importer directement depuis le module au lieu d'utiliser le hook
+            const saveMessageLocally = require('./useMessageSender').saveMessageLocally;
+            if (typeof saveMessageLocally === 'function') {
+              saveMessageLocally(newMessage);
+              console.log(`${DEBUG_PREFIX} [${timestamp}] Message également sauvegardé localement via Realtime`);
+            } else {
+              console.error(`${DEBUG_PREFIX} [${timestamp}] saveMessageLocally n'est pas une fonction disponible`);  
+            }
           } catch (error) {
             console.error(`${DEBUG_PREFIX} [${timestamp}] Erreur lors de la sauvegarde locale du message reçu:`, error);
           }
           
           return updatedMessages;
         });
+        
+        // Force un rafraîchissement après réception d'un message Realtime pour s'assurer que tout est synchronisé
+        setTimeout(() => {
+          console.log(`${DEBUG_PREFIX} [${timestamp}] Rafraîchissement après réception d'un message Realtime`);
+          loadMessages(false, true); // Ne pas montrer l'icône de chargement
+        }, 1000); // Petit délai pour éviter de surcharger
       } else {
         console.log(`${DEBUG_PREFIX} [${timestamp}] Message ignoré car il n'appartient pas à la conversation active: ${payload.new.conversation_id} !== ${conversationId}`);
       }
@@ -175,7 +189,7 @@ export function useMessagesRealtime(conversationId: string): UseMessagesRealtime
   // Fonction pour rafraîchir manuellement les messages
   const forceRefresh = async () => {
     console.log(`${DEBUG_PREFIX} Rafraîchissement manuel des messages`);
-    await loadMessages(true);
+    await loadMessages(true, true);
   };
   
   // Fonction pour démarrer le polling
@@ -189,7 +203,7 @@ export function useMessagesRealtime(conversationId: string): UseMessagesRealtime
     
     pollingIntervalRef.current = setInterval(() => {
       console.log(`${DEBUG_PREFIX} Exécution du polling`);
-      loadMessages(false);
+      loadMessages(false, true); // Force une requête réseau fraîche à chaque polling
     }, POLLING_INTERVAL);
   };
   
@@ -208,8 +222,8 @@ export function useMessagesRealtime(conversationId: string): UseMessagesRealtime
     const timestamp = new Date().toISOString();
     console.log(`${DEBUG_PREFIX} [${timestamp}] Configuration de Realtime et chargement initial des messages`);
     
-    // Charger les messages initiaux
-    loadMessages();
+    // Charger les messages initiaux avec une requête fraîche
+    loadMessages(true, true);
     
     // Configurer la souscription Realtime
     try {
@@ -264,25 +278,36 @@ export function useMessagesRealtime(conversationId: string): UseMessagesRealtime
     
     setRealtimeStatus('CONNECTING');
     
+    // Référence pour le rafraîchissement automatique
+    let autoRefreshInterval: NodeJS.Timeout | null = null;
+
     // Configurer Realtime et charger les messages initiaux
     setupRealtimeAndInitialLoad();
     
-    // Configurer un rafraîchissement automatique périodique pour s'assurer que les messages sont à jour
-    const autoRefreshInterval = setInterval(() => {
-      console.log(`${DEBUG_PREFIX} Rafraîchissement automatique des messages`);
-      loadMessages(false); // Ne pas montrer l'indicateur de rafraîchissement pour éviter de perturber l'UX
-    }, 30000); // Toutes les 30 secondes
+    // Configurer un rafraîchissement périodique (toutes les 30 secondes)
+    autoRefreshInterval = setInterval(() => {
+      console.log(`${DEBUG_PREFIX} Rafraîchissement automatique périodique des messages`);
+      loadMessages(false, true); // Force une requête fraîche sans montrer l'indicateur de chargement
+    }, AUTO_REFRESH_INTERVAL);
     
     // Nettoyage
     return () => {
-      console.log(`${DEBUG_PREFIX} Nettoyage: désinscription du canal Realtime et arrêt du polling`);
+      console.log(`${DEBUG_PREFIX} Nettoyage: désinscription du canal Realtime, arrêt du polling et du rafraîchissement automatique`);
       
       if (messagesChannelRef.current) {
         messagesChannelRef.current.unsubscribe();
+        messagesChannelRef.current = null;
       }
       
+      // Arrêter le polling
       stopPolling();
-      clearInterval(autoRefreshInterval);
+      
+      // Arrêter le rafraîchissement automatique
+      if (autoRefreshInterval) {
+        clearInterval(autoRefreshInterval);
+        autoRefreshInterval = null;
+        console.log(`${DEBUG_PREFIX} Arrêt du rafraîchissement automatique`);  
+      }
     };
   }, [conversationId]);
   
