@@ -34,9 +34,10 @@ interface ChatWindowProps {
   whatsappContactId?: string;
   guestName?: string;
   isMobile?: boolean;
+  apartmentId?: string; // ID de l'appartement pour les requêtes IA
 }
 
-export default function ChatWindow({ conversationId, whatsappContactId, guestName, isMobile = false }: ChatWindowProps) {
+export default function ChatWindow({ conversationId, whatsappContactId, guestName, isMobile = false, apartmentId }: ChatWindowProps) {
   // États locaux
   const [messageInput, setMessageInput] = useState('');
   const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null);
@@ -260,6 +261,7 @@ export default function ChatWindow({ conversationId, whatsappContactId, guestNam
         onResponseGenerated={handleGeneratedResponse}
         conversationId={conversationId}
         guestName={guestName || ''}
+        apartmentId={apartmentId} // Transmettre l'ID de l'appartement
       />
     </Card>
   );

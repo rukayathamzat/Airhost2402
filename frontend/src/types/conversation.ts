@@ -14,6 +14,8 @@ export interface Conversation {
   guest_number?: string;
   last_message?: string;
   unread_count?: number;
+  // ID de l'appartement pour la génération de réponses IA
+  apartment_id?: string;
   // Propriété temporaire pour forcer le re-rendu
   _refreshTimestamp?: string;
   // Propriété pour le trigger de rafraîchissement dans la base de données
