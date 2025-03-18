@@ -1,19 +1,83 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { MessageService, Message } from '../services/chat/message.service';
 import { WhatsAppService } from '../services/chat/whatsapp.service';
 
 // Préfixe pour les logs liés à ce hook
 const DEBUG_PREFIX = 'DEBUG_USE_MESSAGE_SENDER';
 
+// Clé pour le stockage local des messages
+const LOCAL_MESSAGES_KEY = 'airhost_local_messages';
+
 export interface UseMessageSenderResult {
   sendMessage: (content: string, conversationId: string, contactId: string | undefined) => Promise<Message | null>;
   sending: boolean;
   error: string | null;
+  getLocalMessages: (conversationId: string) => Message[];
 }
+
+// Fonction pour persister les messages localement
+const saveMessageLocally = (message: Message) => {
+  try {
+    // Récupérer les messages existants
+    const storedMessages = localStorage.getItem(LOCAL_MESSAGES_KEY);
+    let messages: Message[] = storedMessages ? JSON.parse(storedMessages) : [];
+    
+    // Vérifier que le message n'existe pas déjà
+    if (!messages.some(m => m.id === message.id)) {
+      messages.push(message);
+      // Limiter le nombre de messages stockés (garder les 100 plus récents)
+      if (messages.length > 100) {
+        messages = messages.slice(-100);
+      }
+      localStorage.setItem(LOCAL_MESSAGES_KEY, JSON.stringify(messages));
+      console.log(`${DEBUG_PREFIX} Message sauvegardé localement:`, message.id);
+    }
+  } catch (error) {
+    console.error(`${DEBUG_PREFIX} Erreur lors de la sauvegarde locale du message:`, error);
+  }
+};
+
+// Fonction pour récupérer les messages locaux pour une conversation
+const getLocalMessagesForConversation = (conversationId: string): Message[] => {
+  try {
+    const storedMessages = localStorage.getItem(LOCAL_MESSAGES_KEY);
+    if (!storedMessages) return [];
+    
+    const messages: Message[] = JSON.parse(storedMessages);
+    return messages.filter(m => m.conversation_id === conversationId);
+  } catch (error) {
+    console.error(`${DEBUG_PREFIX} Erreur lors de la récupération des messages locaux:`, error);
+    return [];
+  }
+};
 
 export function useMessageSender(): UseMessageSenderResult {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Nettoyer les messages trop anciens (plus de 7 jours)
+  useEffect(() => {
+    try {
+      const storedMessages = localStorage.getItem(LOCAL_MESSAGES_KEY);
+      if (!storedMessages) return;
+      
+      const messages: Message[] = JSON.parse(storedMessages);
+      const now = new Date();
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      
+      const recentMessages = messages.filter(message => {
+        const messageDate = new Date(message.created_at);
+        return messageDate > sevenDaysAgo;
+      });
+      
+      if (recentMessages.length !== messages.length) {
+        localStorage.setItem(LOCAL_MESSAGES_KEY, JSON.stringify(recentMessages));
+        console.log(`${DEBUG_PREFIX} Nettoyage des messages locaux anciens: ${messages.length - recentMessages.length} supprimés`);
+      }
+    } catch (error) {
+      console.error(`${DEBUG_PREFIX} Erreur lors du nettoyage des messages locaux:`, error);
+    }
+  }, []);
 
   // Fonction pour envoyer un message via WhatsApp et/ou le stocker en base de données
   const sendMessage = async (
@@ -45,6 +109,9 @@ export function useMessageSender(): UseMessageSenderResult {
       
       console.log(`${DEBUG_PREFIX} Message inséré en base de données avec ID: ${newMessage.id}`);
       
+      // Sauvegarder le message localement pour garantir qu'il soit toujours affiché
+      saveMessageLocally(newMessage);
+      
       // 2. Si un contactId est fourni, envoyer le message à WhatsApp
       if (contactId) {
         console.log(`${DEBUG_PREFIX} Envoi du message à WhatsApp pour le contact ${contactId}`);
@@ -69,9 +136,15 @@ export function useMessageSender(): UseMessageSenderResult {
     }
   };
 
+  // Fonction pour récupérer les messages locaux
+  const getLocalMessages = (conversationId: string): Message[] => {
+    return getLocalMessagesForConversation(conversationId);
+  };
+
   return {
     sendMessage,
     sending,
-    error
+    error,
+    getLocalMessages
   };
 }

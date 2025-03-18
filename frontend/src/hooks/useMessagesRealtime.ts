@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { Message, MessageService } from '../services/chat/message.service';
+import { useMessageSender } from './useMessageSender';
 
 // Préfixe pour les logs liés à ce hook
 const DEBUG_PREFIX = 'DEBUG_USE_MESSAGES_REALTIME';
@@ -26,6 +27,7 @@ export function useMessagesRealtime(conversationId: string): UseMessagesRealtime
   
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const messagesChannelRef = useRef<any>(null);
+  const { getLocalMessages } = useMessageSender();
   
   // Fonction pour charger les messages
   const loadMessages = async (showRefreshing = true) => {
@@ -42,11 +44,20 @@ export function useMessagesRealtime(conversationId: string): UseMessagesRealtime
     console.log(`${DEBUG_PREFIX} [${timestamp}] Chargement des messages pour la conversation: ${conversationId}`);
     
     try {
+      // Récupérer les messages depuis la base de données
       const fetchedMessages = await MessageService.getMessages(conversationId);
-      console.log(`${DEBUG_PREFIX} [${timestamp}] ${fetchedMessages.length} messages récupérés`);
+      console.log(`${DEBUG_PREFIX} [${timestamp}] ${fetchedMessages.length} messages récupérés depuis la BDD`);
+      
+      // Récupérer les messages stockés localement
+      const localMessages = getLocalMessages(conversationId);
+      console.log(`${DEBUG_PREFIX} [${timestamp}] ${localMessages.length} messages récupérés depuis le stockage local`);
+      
+      // Combiner les messages
+      const combinedMessages = [...fetchedMessages, ...localMessages];
+      console.log(`${DEBUG_PREFIX} [${timestamp}] ${combinedMessages.length} messages combinés avant déduplication`);
       
       // Assurer l'unicité des messages
-      const uniqueMessages = deduplicateMessages(fetchedMessages);
+      const uniqueMessages = deduplicateMessages(combinedMessages);
       console.log(`${DEBUG_PREFIX} [${timestamp}] ${uniqueMessages.length} messages uniques après déduplication`);
       
       // Trier les messages par date de création
