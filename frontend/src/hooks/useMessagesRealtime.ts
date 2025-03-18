@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { Message, MessageService } from '../services/chat/message.service';
-import { useMessageSender } from './useMessageSender';
+import { useMessageSender, saveMessageLocally } from './useMessageSender';
 
 // Préfixe pour les logs liés à ce hook
 const DEBUG_PREFIX = 'DEBUG_USE_MESSAGES_REALTIME';
@@ -160,14 +160,9 @@ export function useMessagesRealtime(conversationId: string): UseMessagesRealtime
           
           // Sauvegarder le message localement
           try {
-            // Importer directement depuis le module au lieu d'utiliser le hook
-            const saveMessageLocally = require('./useMessageSender').saveMessageLocally;
-            if (typeof saveMessageLocally === 'function') {
-              saveMessageLocally(newMessage);
-              console.log(`${DEBUG_PREFIX} [${timestamp}] Message également sauvegardé localement via Realtime`);
-            } else {
-              console.error(`${DEBUG_PREFIX} [${timestamp}] saveMessageLocally n'est pas une fonction disponible`);  
-            }
+            // Utiliser la fonction importée en haut du fichier
+            saveMessageLocally(newMessage);
+            console.log(`${DEBUG_PREFIX} [${timestamp}] Message également sauvegardé localement via Realtime`);
           } catch (error) {
             console.error(`${DEBUG_PREFIX} [${timestamp}] Erreur lors de la sauvegarde locale du message reçu:`, error);
           }
