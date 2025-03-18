@@ -5,8 +5,15 @@ import { WhatsAppService } from '../services/chat/whatsapp.service';
 // Préfixe pour les logs liés à ce hook
 const DEBUG_PREFIX = 'DEBUG_USE_MESSAGE_SENDER';
 
-// Clé pour le stockage local des messages
-const LOCAL_MESSAGES_KEY = 'airhost_local_messages';
+// Clé de base pour le stockage local des messages
+const LOCAL_MESSAGES_BASE_KEY = 'airhost_local_messages';
+// Alias pour compatibilité avec le code existant
+const LOCAL_MESSAGES_KEY = LOCAL_MESSAGES_BASE_KEY;
+
+// Générer une clé spécifique à une conversation
+const getConversationStorageKey = (conversationId: string): string => {
+  return `${LOCAL_MESSAGES_BASE_KEY}_conv_${conversationId}`;
+};
 
 export interface UseMessageSenderResult {
   sendMessage: (content: string, conversationId: string, contactId: string | undefined) => Promise<Message | null>;
@@ -24,37 +31,59 @@ const saveMessageLocally = (message: Message) => {
       return;
     }
     
-    // Récupérer les messages existants
-    const storedMessages = localStorage.getItem(LOCAL_MESSAGES_KEY);
-    let messages: Message[] = storedMessages ? JSON.parse(storedMessages) : [];
+    // Générer la clé spécifique à la conversation
+    const conversationKey = getConversationStorageKey(message.conversation_id);
+    console.log(`${DEBUG_PREFIX} Utilisation de la clé de stockage: ${conversationKey}`);
     
-    // Vérifier que le message n'existe pas déjà
-    if (!messages.some(m => m.id === message.id)) {
+    // 1. Sauvegarder dans la clé spécifique à la conversation d'abord
+    const storedConvMessages = localStorage.getItem(conversationKey);
+    let convMessages: Message[] = storedConvMessages ? JSON.parse(storedConvMessages) : [];
+    
+    // Vérifier que le message n'existe pas déjà dans cette clé
+    if (!convMessages.some(m => m.id === message.id)) {
       // Ajouter un horodatage si nécessaire
       if (!message.created_at) {
         message.created_at = new Date().toISOString();
       }
       
-      messages.push(message);
+      convMessages.push(message);
       
       // Limiter le nombre de messages stockés (garder les 100 plus récents)
-      if (messages.length > 100) {
-        messages = messages.slice(-100);
+      if (convMessages.length > 100) {
+        convMessages = convMessages.slice(-100);
       }
       
-      // Sauvegarde immédiate et synchrone
-      localStorage.setItem(LOCAL_MESSAGES_KEY, JSON.stringify(messages));
-      console.log(`${DEBUG_PREFIX} Message sauvegardé localement: ID=${message.id}, Conversation=${message.conversation_id}`);
+      // Sauvegarde immédiate et synchrone dans la clé spécifique
+      localStorage.setItem(conversationKey, JSON.stringify(convMessages));
+      console.log(`${DEBUG_PREFIX} Message sauvegardé localement avec clé spécifique: ID=${message.id}, Clé=${conversationKey}`);
       
-      // Vérification de la sauvegarde
-      const verification = localStorage.getItem(LOCAL_MESSAGES_KEY);
-      if (verification) {
-        const savedMessages = JSON.parse(verification) as Message[];
-        const isSaved = savedMessages.some((m: Message) => m.id === message.id);
-        console.log(`${DEBUG_PREFIX} Vérification de sauvegarde: le message ${message.id} est ${isSaved ? 'présent' : 'ABSENT !'} dans le stockage local`);
+      // Vérification de la sauvegarde spécifique
+      const verificationConv = localStorage.getItem(conversationKey);
+      if (verificationConv) {
+        const savedConvMessages = JSON.parse(verificationConv) as Message[];
+        const isConvSaved = savedConvMessages.some((m: Message) => m.id === message.id);
+        console.log(`${DEBUG_PREFIX} Vérification de sauvegarde spécifique: le message ${message.id} est ${isConvSaved ? 'présent' : 'ABSENT !'} dans la clé ${conversationKey}`);
       }
     } else {
-      console.log(`${DEBUG_PREFIX} Message déjà présent dans le stockage local:`, message.id);
+      console.log(`${DEBUG_PREFIX} Message déjà présent dans la clé spécifique:`, message.id);
+    }
+    
+    // 2. Maintenir également la compatibilité avec l'ancienne méthode
+    const storedGlobalMessages = localStorage.getItem(LOCAL_MESSAGES_KEY);
+    let globalMessages: Message[] = storedGlobalMessages ? JSON.parse(storedGlobalMessages) : [];
+    
+    // Vérifier que le message n'existe pas déjà dans la clé globale
+    if (!globalMessages.some(m => m.id === message.id)) {
+      globalMessages.push(message);
+      
+      // Limiter le nombre de messages stockés (garder les 100 plus récents)
+      if (globalMessages.length > 100) {
+        globalMessages = globalMessages.slice(-100);
+      }
+      
+      // Sauvegarde dans la clé globale
+      localStorage.setItem(LOCAL_MESSAGES_KEY, JSON.stringify(globalMessages));
+      console.log(`${DEBUG_PREFIX} Message également sauvegardé dans la clé globale pour compatibilité: ID=${message.id}`);
     }
   } catch (error) {
     console.error(`${DEBUG_PREFIX} Erreur lors de la sauvegarde locale du message:`, error);
@@ -64,24 +93,64 @@ const saveMessageLocally = (message: Message) => {
 // Fonction pour récupérer les messages locaux pour une conversation
 const getLocalMessagesForConversation = (conversationId: string): Message[] => {
   try {
-    const storedMessages = localStorage.getItem(LOCAL_MESSAGES_KEY);
-    if (!storedMessages) {
-      console.log(`${DEBUG_PREFIX} Aucun message trouvé dans le stockage local`);
+    if (!conversationId) {
+      console.error(`${DEBUG_PREFIX} ID de conversation manquant pour la récupération des messages locaux`);
       return [];
     }
     
-    const messages: Message[] = JSON.parse(storedMessages);
-    const filteredMessages = messages.filter(m => m.conversation_id === conversationId);
+    // Clé spécifique à la conversation
+    const conversationKey = getConversationStorageKey(conversationId);
     
-    console.log(`${DEBUG_PREFIX} ${filteredMessages.length}/${messages.length} messages locaux trouvés pour la conversation ${conversationId}`);
+    // Récupérer depuis la clé spécifique à la conversation
+    const storedConversationMessages = localStorage.getItem(conversationKey);
+    let result: Message[] = [];
     
-    if (filteredMessages.length > 0) {
-      // Afficher les 3 derniers messages trouvés (pour débogage)
-      const recentMessages = filteredMessages.slice(-3);
-      console.log(`${DEBUG_PREFIX} Derniers messages locaux:`, recentMessages.map((m: Message) => ({ id: m.id, content: m.content.substring(0, 20) + (m.content.length > 20 ? '...' : '') })));
+    if (storedConversationMessages) {
+      try {
+        const parsedMessages = JSON.parse(storedConversationMessages) as Message[];
+        console.log(`${DEBUG_PREFIX} ${parsedMessages.length} messages trouvés dans la clé spécifique ${conversationKey}`);
+        result = parsedMessages;
+      } catch (parseError) {
+        console.error(`${DEBUG_PREFIX} Erreur de parsing pour les messages de conversation:`, parseError);
+      }
+    } else {
+      console.log(`${DEBUG_PREFIX} Aucun message trouvé dans la clé spécifique ${conversationKey}`);
+      
+      // Fallback: essayer l'ancienne méthode (pour compatibilité)
+      const globalStoredMessages = localStorage.getItem(LOCAL_MESSAGES_BASE_KEY);
+      if (globalStoredMessages) {
+        try {
+          const allMessages: Message[] = JSON.parse(globalStoredMessages);
+          const filteredMessages = allMessages.filter((m: Message) => m.conversation_id === conversationId);
+          console.log(`${DEBUG_PREFIX} FALLBACK: ${filteredMessages.length}/${allMessages.length} messages trouvés via la clé globale`);
+          result = filteredMessages;
+          
+          // Migration: sauvegarder ces messages dans la nouvelle clé
+          if (filteredMessages.length > 0) {
+            localStorage.setItem(conversationKey, JSON.stringify(filteredMessages));
+            console.log(`${DEBUG_PREFIX} Migration: ${filteredMessages.length} messages migrés vers la clé spécifique`);
+          }
+        } catch (parseError) {
+          console.error(`${DEBUG_PREFIX} Erreur de parsing pour les messages globaux:`, parseError);
+        }
+      } else {
+        console.log(`${DEBUG_PREFIX} Aucun message trouvé dans le stockage local (ni spécifique ni global)`);
+      }
     }
     
-    return filteredMessages;
+    // Log pour débogage
+    if (result.length > 0) {
+      // Afficher les 3 derniers messages trouvés
+      const recentMessages = result.slice(-3);
+      console.log(`${DEBUG_PREFIX} Derniers messages locaux:`, recentMessages.map((m: Message) => ({ 
+        id: m.id, 
+        conversation_id: m.conversation_id,
+        created_at: m.created_at,
+        content: m.content ? (m.content.substring(0, 20) + (m.content.length > 20 ? '...' : '')) : 'CONTENU MANQUANT'
+      })));
+    }
+    
+    return result;
   } catch (error) {
     console.error(`${DEBUG_PREFIX} Erreur lors de la récupération des messages locaux:`, error);
     return [];
@@ -95,21 +164,47 @@ export function useMessageSender(): UseMessageSenderResult {
   // Nettoyer les messages trop anciens (plus de 7 jours)
   useEffect(() => {
     try {
+      // Nettoyer les messages globaux
       const storedMessages = localStorage.getItem(LOCAL_MESSAGES_KEY);
-      if (!storedMessages) return;
+      if (storedMessages) {
+        const messages: Message[] = JSON.parse(storedMessages);
+        const now = new Date();
+        const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        
+        const recentMessages = messages.filter(message => {
+          const messageDate = new Date(message.created_at);
+          return messageDate > sevenDaysAgo;
+        });
+        
+        if (recentMessages.length !== messages.length) {
+          localStorage.setItem(LOCAL_MESSAGES_KEY, JSON.stringify(recentMessages));
+          console.log(`${DEBUG_PREFIX} Nettoyage des messages locaux anciens: ${messages.length - recentMessages.length} supprimés`);
+        }
+      }
       
-      const messages: Message[] = JSON.parse(storedMessages);
-      const now = new Date();
-      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-      
-      const recentMessages = messages.filter(message => {
-        const messageDate = new Date(message.created_at);
-        return messageDate > sevenDaysAgo;
-      });
-      
-      if (recentMessages.length !== messages.length) {
-        localStorage.setItem(LOCAL_MESSAGES_KEY, JSON.stringify(recentMessages));
-        console.log(`${DEBUG_PREFIX} Nettoyage des messages locaux anciens: ${messages.length - recentMessages.length} supprimés`);
+      // Nettoyer aussi les messages par conversation
+      // Liste toutes les clés du localStorage
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith(LOCAL_MESSAGES_BASE_KEY + '_conv_')) {
+          try {
+            const conversationMessages = JSON.parse(localStorage.getItem(key) || '[]');
+            const now = new Date();
+            const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+            
+            const recentConvMessages = conversationMessages.filter((message: Message) => {
+              const messageDate = new Date(message.created_at);
+              return messageDate > sevenDaysAgo;
+            });
+            
+            if (recentConvMessages.length !== conversationMessages.length) {
+              localStorage.setItem(key, JSON.stringify(recentConvMessages));
+              console.log(`${DEBUG_PREFIX} Nettoyage des messages locaux pour ${key}: ${conversationMessages.length - recentConvMessages.length} supprimés`);
+            }
+          } catch (error) {
+            console.error(`${DEBUG_PREFIX} Erreur lors du nettoyage des messages locaux pour ${key}:`, error);
+          }
+        }
       }
     } catch (error) {
       console.error(`${DEBUG_PREFIX} Erreur lors du nettoyage des messages locaux:`, error);
