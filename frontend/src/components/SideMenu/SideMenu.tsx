@@ -4,7 +4,8 @@ import { FaHome, FaComments, FaExclamationTriangle, FaFlask, FaWhatsapp, FaSignO
 import { supabase } from '../../lib/supabase';
 import { toast } from 'react-toastify';
 import './SideMenu.css';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, Box } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, Box, Avatar, Typography } from '@mui/material';
+import { useUser } from '../../lib/auth';
 
 interface MenuItem {
   path: string;
@@ -20,6 +21,9 @@ const SideMenu: React.FC = () => {
   const [phoneNumberId, setPhoneNumberId] = useState('');
   const [whatsappToken, setWhatsappToken] = useState('');
   const [saving, setSaving] = useState(false);
+
+  // Récupérer l'utilisateur connecté
+  const user = useUser();
 
   const handleLogout = async () => {
     try {
@@ -135,6 +139,15 @@ const SideMenu: React.FC = () => {
   return (
     <>
       <div className="side-menu">
+        <div className="user-info">
+          <Avatar className="avatar">{user?.user_metadata?.name?.[0]}</Avatar>
+          <div>
+            <Typography variant="subtitle1">{user?.user_metadata?.name}</Typography>
+            <Typography variant="caption" color="textSecondary">
+              {user?.email}
+            </Typography>
+          </div>
+        </div>
         <div className="menu-header">
           <h2 className="app-title">AirHost Admin</h2>
         </div>

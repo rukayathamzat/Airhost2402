@@ -8,6 +8,7 @@ import VerificationError from './pages/VerificationError';
 import VerificationSuccess from './pages/VerificationSuccess';
 import ChatSandbox from './pages/ChatSandbox';
 import Properties from './pages/Properties';
+import Settings from './pages/Settings';
 import Debug from './pages/Debug';
 import Layout from './components/Layout/Layout';
 import { supabase } from './lib/supabase';
@@ -153,7 +154,7 @@ function App() {
                   <Route path="/emergency" element={<div>Cas d&apos;urgence (à venir)</div>} />
                   <Route path="/sandbox" element={<ChatSandbox />} />
                   <Route path="/properties" element={<Properties />} />
-                  <Route path="/settings" element={<div>Paramètres (à venir)</div>} />
+                  <Route path="/settings" element={<Settings />} />
                   <Route path="/debug" element={<Debug />} />
                 </Routes>
               </Layout>
