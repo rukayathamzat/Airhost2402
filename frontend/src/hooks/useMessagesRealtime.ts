@@ -53,8 +53,24 @@ export function useMessagesRealtime(conversationId: string): UseMessagesRealtime
       
       try {
         // 2. Récupérer les messages depuis la base de données
+        // Force le rechargement complet en utilisant un timestamp comme paramètre pour éviter le cache
         const fetchedMessages = await MessageService.getMessages(conversationId);
         console.log(`${DEBUG_PREFIX} [${timestamp}] ${fetchedMessages.length} messages récupérés depuis la BDD`);
+        
+        // Afficher les derniers messages récupérés pour débogage
+        if (fetchedMessages.length > 0) {
+          const latestMessages = fetchedMessages.sort((a, b) => 
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          ).slice(0, 3);
+          
+          console.log(`${DEBUG_PREFIX} [${timestamp}] Derniers messages récupérés:`, 
+            latestMessages.map(m => ({
+              id: m.id,
+              content: m.content ? (m.content.substring(0, 20) + '...') : 'CONTENU MANQUANT',
+              created_at: m.created_at
+            }))
+          );
+        }
         
         // Ajouter les messages de la BDD à la liste combinée
         combinedMessages = [...combinedMessages, ...fetchedMessages];
@@ -77,8 +93,18 @@ export function useMessagesRealtime(conversationId: string): UseMessagesRealtime
       // Détection des messages manquants ou différents par rapport à l'état précédent
       if (messages.length > 0 && sortedMessages.length !== messages.length) {
         console.log(`${DEBUG_PREFIX} [${timestamp}] Différence détectée dans le nombre de messages: ${messages.length} -> ${sortedMessages.length}`);
+        
+        // Afficher les messages potentiellement ajoutés ou supprimés
+        if (sortedMessages.length > messages.length) {
+          const newIds = new Set(sortedMessages.map(m => m.id));
+          const existingIds = new Set(messages.map(m => m.id));
+          const addedMessageIds = [...newIds].filter(id => !existingIds.has(id));
+          
+          console.log(`${DEBUG_PREFIX} [${timestamp}] Messages ajoutés: ${addedMessageIds.join(', ')}`);
+        }
       }
       
+      // Mettre à jour l'état des messages
       setMessages(sortedMessages);
       setLastMessageCount(sortedMessages.length);
     } catch (error) {
@@ -109,7 +135,8 @@ export function useMessagesRealtime(conversationId: string): UseMessagesRealtime
       
       // Vérifier si le message appartient à la conversation active
       if (payload.new.conversation_id === conversationId) {
-        console.log(`${DEBUG_PREFIX} [${timestamp}] Ajout du nouveau message à la conversation`);
+        console.log(`${DEBUG_PREFIX} [${timestamp}] Ajout du nouveau message à la conversation - ID: ${newMessage.id}, Created: ${newMessage.created_at}`);
+        console.log(`${DEBUG_PREFIX} [${timestamp}] Contenu du message: ${newMessage.content?.substring(0, 50)}${newMessage.content && newMessage.content.length > 50 ? '...' : ''}`);
         
         // Mettre à jour l'état des messages en évitant les doublons
         setMessages(prevMessages => {
@@ -127,10 +154,20 @@ export function useMessagesRealtime(conversationId: string): UseMessagesRealtime
           });
           
           console.log(`${DEBUG_PREFIX} [${timestamp}] État mis à jour: ${updatedMessages.length} messages`);
+          
+          // Sauvegarder également le message localement
+          try {
+            const { saveMessageLocally } = require('./useMessageSender');
+            saveMessageLocally(newMessage);
+            console.log(`${DEBUG_PREFIX} [${timestamp}] Message également sauvegardé localement via Realtime`);
+          } catch (error) {
+            console.error(`${DEBUG_PREFIX} [${timestamp}] Erreur lors de la sauvegarde locale du message reçu:`, error);
+          }
+          
           return updatedMessages;
         });
       } else {
-        console.log(`${DEBUG_PREFIX} [${timestamp}] Message ignoré car il n'appartient pas à la conversation active`);
+        console.log(`${DEBUG_PREFIX} [${timestamp}] Message ignoré car il n'appartient pas à la conversation active: ${payload.new.conversation_id} !== ${conversationId}`);
       }
     }
   };
@@ -230,6 +267,12 @@ export function useMessagesRealtime(conversationId: string): UseMessagesRealtime
     // Configurer Realtime et charger les messages initiaux
     setupRealtimeAndInitialLoad();
     
+    // Configurer un rafraîchissement automatique périodique pour s'assurer que les messages sont à jour
+    const autoRefreshInterval = setInterval(() => {
+      console.log(`${DEBUG_PREFIX} Rafraîchissement automatique des messages`);
+      loadMessages(false); // Ne pas montrer l'indicateur de rafraîchissement pour éviter de perturber l'UX
+    }, 30000); // Toutes les 30 secondes
+    
     // Nettoyage
     return () => {
       console.log(`${DEBUG_PREFIX} Nettoyage: désinscription du canal Realtime et arrêt du polling`);
@@ -239,6 +282,7 @@ export function useMessagesRealtime(conversationId: string): UseMessagesRealtime
       }
       
       stopPolling();
+      clearInterval(autoRefreshInterval);
     };
   }, [conversationId]);
   
