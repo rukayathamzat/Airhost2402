@@ -142,7 +142,7 @@ export default function ChatWindow({
       }
       
       // Étape 1: Insérer le message en base et mettre à jour l'UI immédiatement
-      let newMessage;
+      let newMessage: Message | undefined;
       try {
         newMessage = await MessageService.sendMessage(conversationId, content);
         console.log('Message inséré avec succès dans la base:', newMessage);
