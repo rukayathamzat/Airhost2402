@@ -8,6 +8,8 @@ export interface Message {
   direction: 'inbound' | 'outbound';
   type?: 'text' | 'template';
   status?: 'sent' | 'delivered' | 'read';
+  conversation_id: string;
+  metadata?: Record<string, any>;
 }
 
 export class MessageService {
