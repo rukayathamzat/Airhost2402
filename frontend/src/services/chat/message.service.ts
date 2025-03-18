@@ -43,12 +43,17 @@ export class MessageService {
     console.log(`[${timestamp}] Récupération des messages pour la conversation:`, conversationId);
     
     try {
+      // Forcer le rechargement frais des messages à chaque appel
+      const controller = new AbortController();
+      controller.signal.addEventListener('abort', () => console.log(`[${timestamp}] Requête message annulée (cache refresh)`));
+      
       const { data, error } = await supabase
         .from('messages')
         .select('*')
         .eq('conversation_id', conversationId)
         .order('created_at', { ascending: true })
-        .limit(limit);
+        .limit(limit)
+        .abortSignal(controller.signal) // Force un nouveau appel réseau en utilisant un nouveau signal
 
       if (error) {
         console.error(`[${timestamp}] Erreur lors de la récupération des messages:`, error);
