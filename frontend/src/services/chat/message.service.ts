@@ -37,48 +37,98 @@ export class MessageService {
   }
 
   static async getMessages(conversationId: string, limit = 50) {
-    const { data, error } = await supabase
-      .from('messages')
-      .select('*')
-      .eq('conversation_id', conversationId)
-      .order('created_at', { ascending: true })
-      .limit(limit);
+    const timestamp = new Date().toISOString();
+    console.log(`[${timestamp}] Récupération des messages pour la conversation:`, conversationId);
+    
+    try {
+      const { data, error } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('conversation_id', conversationId)
+        .order('created_at', { ascending: true })
+        .limit(limit);
 
-    if (error) throw error;
-    return data as Message[];
+      if (error) {
+        console.error(`[${timestamp}] Erreur lors de la récupération des messages:`, error);
+        throw error;
+      }
+      
+      console.log(`[${timestamp}] Messages récupérés avec succès. Nombre:`, data?.length || 0);
+      return data as Message[];
+    } catch (error) {
+      console.error(`[${timestamp}] Exception lors de la récupération des messages:`, error);
+      throw error;
+    }
   }
 
   static subscribeToMessages(conversationId: string, callback: (message: Message) => void) {
     const timestamp = new Date().toISOString();
     console.log(`[${timestamp}] Mise en place de la souscription pour les messages de la conversation:`, conversationId);
     
-    // Utiliser un format de canal plus spécifique en suivant les meilleures pratiques de Supabase
-    return supabase
-      .channel(`public:messages:conversation_id=eq.${conversationId}`)
+    // Vérifier que l'ID de conversation est valide
+    if (!conversationId) {
+      console.error(`[${timestamp}] ERREUR: ID de conversation invalide pour la souscription Realtime`);
+      return { unsubscribe: () => console.log('Annulation d\'une souscription invalide') };
+    }
+    
+    console.log(`[${timestamp}] Début de configuration du canal Realtime pour la conversation: ${conversationId}`);
+    
+    // Mettre en place une double souscription pour garantir la réception des messages
+    // 1. Souscription spécifique à la conversation
+    const specificChannel = supabase
+      .channel(`messages_conv_${conversationId}`)
       .on('postgres_changes', {
-        event: '*',  // Écouter tous les événements (INSERT, UPDATE, DELETE)
+        event: 'INSERT',
         schema: 'public',
         table: 'messages',
         filter: `conversation_id=eq.${conversationId}`
       }, payload => {
         const receiveTimestamp = new Date().toISOString();
-        console.log(`[${receiveTimestamp}] REALTIME: Événement message reçu:`, payload.eventType);
-        console.log(`[${receiveTimestamp}] REALTIME: Nouveau message:`, payload.new);
+        console.log(`[${receiveTimestamp}] REALTIME (canal spécifique): Nouveau message détecté:`, payload.new?.id);
         
-        // S'assurer que les données sont valides avant de notifier les composants
         if (payload.new) {
           const message = payload.new as Message;
+          console.log(`[${receiveTimestamp}] REALTIME: Message traité, contenu:`, message.content);
           callback(message);
           
-          // Envoyer une notification si le message est entrant et que nous ne sommes pas sur la page de chat
           if (message.direction === 'inbound') {
-            this.notifyNewMessage(message, conversationId);
+            MessageService.notifyNewMessage(message, conversationId);
           }
         }
       })
       .subscribe((status) => {
-        console.log(`[${new Date().toISOString()}] Status de la souscription messages:`, status);
+        console.log(`[${new Date().toISOString()}] Status du canal spécifique:`, status);
       });
+    
+    // 2. Souscription avec filtre plus générique pour les mises à jour
+    const updateChannel = supabase
+      .channel(`messages_updates_${conversationId}`)
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'messages',
+        filter: `conversation_id=eq.${conversationId}`
+      }, payload => {
+        const receiveTimestamp = new Date().toISOString();
+        console.log(`[${receiveTimestamp}] REALTIME (canal update): Message mis à jour:`, payload.new?.id);
+        
+        if (payload.new) {
+          const message = payload.new as Message;
+          callback(message);
+        }
+      })
+      .subscribe((status) => {
+        console.log(`[${new Date().toISOString()}] Status du canal update:`, status);
+      });
+      
+    // Retourner un objet composite qui permet de se désabonner des deux canaux
+    return {
+      unsubscribe: () => {
+        console.log(`[${new Date().toISOString()}] Désabonnement des canaux Realtime pour ${conversationId}`);
+        specificChannel.unsubscribe();
+        updateChannel.unsubscribe();
+      }
+    };
   }
   
   /**
