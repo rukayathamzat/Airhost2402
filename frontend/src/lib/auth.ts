@@ -47,10 +47,6 @@ export const useUser = () => {
     }
   };
 
-  return {
-    user,
-    loading,
-    signOut,
-    isAuthenticated: !!user
-  };
+  // Retourner directement l'objet User pour que les propriétés comme user_metadata et email soient accessibles
+  return user;
 };
