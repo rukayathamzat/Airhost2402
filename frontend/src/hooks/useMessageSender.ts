@@ -22,6 +22,9 @@ export interface UseMessageSenderResult {
   getLocalMessages: (conversationId: string) => Message[];
 }
 
+// Exporter la fonction saveMessageLocally pour utilisation externe
+export { saveMessageLocally };
+
 // Fonction pour persister les messages localement
 const saveMessageLocally = (message: Message) => {
   try {
