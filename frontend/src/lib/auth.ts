@@ -8,19 +8,15 @@ import { User } from '@supabase/supabase-js';
  */
 export const useUser = () => {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // Récupérer l'utilisateur actuel
     const getUser = async () => {
-      setLoading(true);
       try {
         const { data: { user } } = await supabase.auth.getUser();
         setUser(user);
       } catch (error) {
         console.error('Erreur lors de la récupération de l\'utilisateur:', error);
-      } finally {
-        setLoading(false);
       }
     };
 
@@ -38,14 +34,7 @@ export const useUser = () => {
     };
   }, []);
 
-  // Fonction de déconnexion
-  const signOut = async () => {
-    try {
-      await supabase.auth.signOut();
-    } catch (error) {
-      console.error('Erreur lors de la déconnexion:', error);
-    }
-  };
+
 
   // Retourner directement l'objet User pour que les propriétés comme user_metadata et email soient accessibles
   return user;
