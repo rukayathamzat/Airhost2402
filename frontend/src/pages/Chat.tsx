@@ -148,14 +148,13 @@ export default function Chat() {
           id,
           guest_name,
           guest_phone,
-          property:properties!inner(name, host_id),
+          property:properties!inner(name, host_id, id),
           check_in_date,
           check_out_date,
           status,
           last_message,
           last_message_at,
-          unread_count,
-          apartment_id
+          unread_count
         `)
         .eq('property.host_id', session.user.id)
         .order('last_message_at', { ascending: false });
@@ -421,7 +420,7 @@ export default function Chat() {
               <ChatWindow
                 conversationId={selectedConversation.id}
                 isMobile={isMobile}
-                apartmentId={selectedConversation.apartment_id}
+                apartmentId={selectedConversation.property?.[0]?.id || 'default'}
                 guestName={selectedConversation.guest_name}
                 // Props temporairement commentées car interface mise à jour
                 // guestNumber={selectedConversation.guest_number || ''}
@@ -560,7 +559,7 @@ export default function Chat() {
               <ChatWindow
                 conversationId={selectedConversation.id}
                 isMobile={isMobile}
-                apartmentId={selectedConversation.apartment_id}
+                apartmentId={selectedConversation.property?.[0]?.id || 'default'}
                 guestName={selectedConversation.guest_name}
                 // Props temporairement commentées car interface mise à jour
                 // guestNumber={selectedConversation.guest_number || ''}
