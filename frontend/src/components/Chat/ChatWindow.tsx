@@ -59,6 +59,9 @@ export default function ChatWindow({
       if (conversationData.error) throw conversationData.error;
       setSelectedConversation(conversationData.data);
       setMessages(messagesData);
+      
+      // Mettre isInitialLoad à false après le chargement initial
+      setIsInitialLoad(false);
     } catch (error) {
       console.error('Erreur lors du chargement de la conversation:', error);
     }
@@ -138,32 +141,46 @@ export default function ChatWindow({
         return;
       }
       
-      // Envoi local dans la BDD et à WhatsApp
-      const [newMessage] = await Promise.all([
-        MessageService.sendMessage(conversationId, content),
-        WhatsAppService.sendMessage(selectedConversation.guest_phone, content)
-      ]);
+      // Étape 1: Insérer le message en base et mettre à jour l'UI immédiatement
+      let newMessage;
+      try {
+        newMessage = await MessageService.sendMessage(conversationId, content);
+        console.log('Message inséré avec succès dans la base:', newMessage);
+        
+        // Ajouter immédiatement le message à l'UI
+        if (newMessage) {
+          setMessages(msgs => {
+            // Vérifier si le message n'existe pas déjà (par sécurité)
+            const messageExists = msgs.some(msg => msg.id === newMessage.id);
+            if (messageExists) {
+              console.log('Message déjà présent dans la liste, pas d\'ajout');
+              return msgs;
+            }
+            console.log('Ajout du message à la liste UI:', newMessage.id);
+            return [...msgs, newMessage];
+          });
+          
+          // Défiler automatiquement vers le bas après l'ajout du message
+          setTimeout(scrollToBottom, 100);
+        }
+      } catch (dbError) {
+        console.error('Erreur lors de l\'insertion du message dans la base:', dbError);
+        throw dbError; // Remonter l'erreur pour arrêter l'exécution
+      }
       
-      console.log('Message envoyé avec succès:', newMessage);
-      console.log('Message ID:', newMessage?.id, '- Ce message sera ajouté localement');
-      
-      // Si la subscription temps réel ne fonctionne pas correctement,
-      // ajoutons manuellement le message à la liste
-      if (newMessage) {
-        setMessages(msgs => {
-          // Vérifier si le message n'existe pas déjà (par sécurité)
-          const messageExists = msgs.some(msg => msg.id === newMessage.id);
-          if (messageExists) {
-            console.log('Message déjà présent dans la liste (manuel), pas d\'ajout');
-            return msgs;
-          }
-          console.log('Ajout manuel du message à la liste:', newMessage.id);
-          return [...msgs, newMessage];
-        });
+      // Étape 2: Envoyer le message via WhatsApp (même si l'étape échoue, le message est déjà affiché)
+      try {
+        await WhatsAppService.sendMessage(selectedConversation.guest_phone, content);
+        console.log('Message envoyé avec succès à WhatsApp');
+      } catch (whatsappError) {
+        console.error('Erreur lors de l\'envoi du message à WhatsApp:', whatsappError);
+        // On pourrait ajouter une notification pour informer l'utilisateur que le message
+        // n'a pas été envoyé à WhatsApp, mais est bien enregistré localement
+        // TODO: Ajouter un toast ou une notification visuelle
       }
     } catch (error) {
-      console.error('Erreur lors de l\'envoi du message:', error);
-      // Notification d'erreur pourrait être ajoutée ici
+      console.error('Erreur générale lors de l\'envoi du message:', error);
+      // Notification d'erreur générale pourrait être ajoutée ici
     }
   };
 
@@ -209,6 +226,21 @@ export default function ChatWindow({
       setUnreadCount(prev => prev + 1);
     }
   }, [messages.length]);
+  
+  // Effet de défilement automatique lors de la première charge ou quand de nouveaux messages arrivent
+  useEffect(() => {
+    if (messages.length > 0) {
+      // Si c'est le chargement initial, défiler vers le bas après un court délai
+      if (isInitialLoad) {
+        const timer = setTimeout(scrollToBottom, 300);
+        return () => clearTimeout(timer);
+      }
+      // Lors de la réception d'un nouveau message, défiler vers le bas si on était déjà en bas
+      else if (!showScrollButton) {
+        scrollToBottom();
+      }
+    }
+  }, [messages.length, isInitialLoad, showScrollButton]);
 
   return (
     <Paper 
@@ -289,11 +321,7 @@ export default function ChatWindow({
         py: 1.5
       }}>
         <ChatInput 
-          onSendMessage={async (content) => {
-            await handleSendMessage(content);
-            // Défiler automatiquement vers le bas après l'envoi d'un message
-            setTimeout(scrollToBottom, 100);
-          }}
+          onSendMessage={handleSendMessage}
           onOpenAIModal={() => setAiModalOpen(true)}
           onOpenTemplates={(event: React.MouseEvent<HTMLElement>) => 
             setTemplateAnchorEl(event.currentTarget)
@@ -320,20 +348,7 @@ export default function ChatWindow({
         onClose={() => setConfigOpen(false)}
       />
 
-      {/* Effet de défilement automatique lors de la première charge */}
-      {isInitialLoad && messages.length > 0 && (
-        <Box sx={{ display: 'none' }}>
-          {null /* Utiliser useEffect au lieu de setTimeout directement dans le JSX */}
-        </Box>
-      )}
-      
-      {/* Effet de défilement automatique */}
-      {useEffect(() => {
-        if (isInitialLoad && messages.length > 0) {
-          const timer = setTimeout(scrollToBottom, 300);
-          return () => clearTimeout(timer);
-        }
-      }, [isInitialLoad, messages.length])}
+      {/* Modals et configurations */}
 
       {aiModalOpen && selectedConversation?.properties?.id && (
         <AIResponseModal
