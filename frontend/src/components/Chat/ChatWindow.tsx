@@ -47,6 +47,9 @@ export default function ChatWindow({
   // Chargement de la conversation
   const loadConversation = async () => {
     try {
+      const timestamp = new Date().toISOString();
+      console.log(`[${timestamp}] Chargement de la conversation et des messages pour: ${conversationId}`);
+      
       const [conversationData, messagesData] = await Promise.all([
         supabase
           .from('conversations')
@@ -57,11 +60,23 @@ export default function ChatWindow({
       ]);
 
       if (conversationData.error) throw conversationData.error;
+      
+      console.log(`[${timestamp}] Conversation chargée:`, conversationData.data.guest_name);
+      console.log(`[${timestamp}] Messages chargés:`, messagesData.length, 'messages');
+      if (messagesData.length > 0) {
+        console.log(`[${timestamp}] Premier message:`, messagesData[0].content);
+        console.log(`[${timestamp}] Dernier message:`, messagesData[messagesData.length - 1].content);
+      }
+      
       setSelectedConversation(conversationData.data);
       setMessages(messagesData);
       
       // Mettre isInitialLoad à false après le chargement initial
+      console.log(`[${timestamp}] Initialisation terminée, désactivation de isInitialLoad`);
       setIsInitialLoad(false);
+      
+      // Déclencher manuellement le défilement vers le bas après le chargement
+      setTimeout(scrollToBottom, 300);
     } catch (error) {
       console.error('Erreur lors du chargement de la conversation:', error);
     }
@@ -93,13 +108,17 @@ export default function ChatWindow({
       conversationId,
       (newMessage) => {
         const receiveTimestamp = new Date().toISOString();
-        console.log(`[${receiveTimestamp}] Nouveau message reçu:`, newMessage);
+        console.log(`[${receiveTimestamp}] Nouveau message reçu via Realtime:`, newMessage);
         
         // Vérifier que le message est valide
         if (!newMessage || !newMessage.id) {
           console.warn(`[${receiveTimestamp}] Message reçu invalide, ignoré`); 
           return;
         }
+        
+        // Vérifier et afficher le contenu de l'état actuel des messages pour déboguer
+        console.log(`[${receiveTimestamp}] État actuel des messages avant mise à jour:`, messages.length, 'messages');
+        console.log(`[${receiveTimestamp}] IDs des messages actuels:`, messages.map(m => m.id));
         
         // Mettre à jour la liste des messages en vérifiant les doublons
         setMessages(current => {
@@ -112,10 +131,19 @@ export default function ChatWindow({
           }
           
           // Ajouter le nouveau message à la liste
-          console.log(`[${receiveTimestamp}] Ajout du nouveau message à la liste:`, newMessage.id);
-          // Marquer comme non chargement initial pour activer le défilement automatique
+          console.log(`[${receiveTimestamp}] Ajout du nouveau message à la liste:`, newMessage.id, 'Contenu:', newMessage.content);
+          
+          // Force le défilement vers le bas en désactivant temporairement isInitialLoad
           setIsInitialLoad(false);
-          return [...current, newMessage];
+          
+          // Créer une nouvelle liste avec le message ajouté
+          const updatedMessages = [...current, newMessage];
+          console.log(`[${receiveTimestamp}] Nouvelle liste de messages:`, updatedMessages.length, 'messages');
+          
+          // Déclencher manuellement le défilement vers le bas
+          setTimeout(scrollToBottom, 100);
+          
+          return updatedMessages;
         });
       }
     );
@@ -209,8 +237,16 @@ export default function ChatWindow({
 
   // Fonction pour faire défiler vers le bas
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const timestamp = new Date().toISOString();
+    console.log(`[${timestamp}] Tentative de défilement vers le bas...`);
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+      console.log(`[${timestamp}] Défilement effectué`);
+    } else {
+      console.warn(`[${timestamp}] Référence messagesEndRef manquante, défilement impossible`);
+    }
     setUnreadCount(0);
+    console.log(`[${timestamp}] Compteur de messages non lus réinitialisé`);
   };
 
   // Gestion du défilement
@@ -233,16 +269,28 @@ export default function ChatWindow({
   
   // Effet de défilement automatique lors de la première charge ou quand de nouveaux messages arrivent
   useEffect(() => {
+    const timestamp = new Date().toISOString();
+    console.log(`[${timestamp}] Effet de défilement automatique déclenché. Messages: ${messages.length}, isInitialLoad: ${isInitialLoad}, showScrollButton: ${showScrollButton}`);
+    
     if (messages.length > 0) {
       // Si c'est le chargement initial, défiler vers le bas après un court délai
       if (isInitialLoad) {
-        const timer = setTimeout(scrollToBottom, 300);
+        console.log(`[${timestamp}] Programmation du défilement initial dans 300ms`);
+        const timer = setTimeout(() => {
+          console.log(`[${timestamp}] Exécution du défilement initial programmé`);
+          scrollToBottom();
+        }, 300);
         return () => clearTimeout(timer);
       }
       // Lors de la réception d'un nouveau message, défiler vers le bas si on était déjà en bas
       else if (!showScrollButton) {
+        console.log(`[${timestamp}] Défilement automatique car déjà en bas de la conversation`);
         scrollToBottom();
+      } else {
+        console.log(`[${timestamp}] Pas de défilement automatique, utilisateur n'est pas en bas de la conversation`);
       }
+    } else {
+      console.log(`[${timestamp}] Pas de messages à afficher, défilement ignoré`);
     }
   }, [messages.length, isInitialLoad, showScrollButton]);
 
