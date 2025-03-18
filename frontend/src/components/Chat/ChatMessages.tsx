@@ -14,7 +14,7 @@ interface ChatMessagesProps {
 
 export default function ChatMessages({ messages, isInitialLoad }: ChatMessagesProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [loadingState, setLoadingState] = useState(isInitialLoad);
+  const [loading, setLoading] = useState(isInitialLoad);
   const theme = useTheme();
   
   // Log important pour déboguer
@@ -64,7 +64,7 @@ export default function ChatMessages({ messages, isInitialLoad }: ChatMessagesPr
         scrollToBottom(true);
         // Délai pour simuler le chargement et améliorer l'UX
         const timer = setTimeout(() => {
-          setLoadingState(false);
+          setLoading(false);
         }, 500);
         return () => clearTimeout(timer);
       } else {
@@ -145,39 +145,32 @@ export default function ChatMessages({ messages, isInitialLoad }: ChatMessagesPr
         }
         
         // Ajouter le message actuel au groupe
-        const isFromGuest = message.is_from_guest;
+        const isInbound = message.direction === 'inbound';
         
-        // Déterminer si c'est le dernier message d'une série du même expéditeur
-        const isLastMessageFromSender = index === messages.length - 1 || 
-          messages[index + 1]?.is_from_guest !== message.is_from_guest;
-
-        // Déterminer s'il s'agit d'un message consécutif du même expéditeur
-        const isConsecutive = index > 0 && messages[index - 1].is_from_guest === message.is_from_guest;
-
         messageGroups.push(
           <Box 
             key={message.id} 
             sx={{
               display: 'flex',
-              justifyContent: isFromGuest ? 'flex-start' : 'flex-end',
+              justifyContent: isInbound ? 'flex-start' : 'flex-end',
               mb: 1
             }}
           >
             <Box
               sx={{
                 display: 'flex',
-                flexDirection: isFromGuest ? 'row' : 'row-reverse',
+                flexDirection: isInbound ? 'row' : 'row-reverse',
                 alignItems: 'flex-end',
                 maxWidth: '75%'
               }}
             >
-              {isFromGuest && (
+              {isInbound && (
                 <Avatar 
                   sx={{ 
                     width: 32, 
                     height: 32, 
-                    ml: isFromGuest ? 0 : 1,
-                    mr: isFromGuest ? 1 : 0,
+                    ml: isInbound ? 0 : 1,
+                    mr: isInbound ? 1 : 0,
                     bgcolor: theme.palette.primary.light
                   }}
                 >
@@ -187,7 +180,7 @@ export default function ChatMessages({ messages, isInitialLoad }: ChatMessagesPr
 
               <Tooltip 
                 title={format(new Date(message.created_at), 'HH:mm')}
-                placement={isFromGuest ? 'right' : 'left'}
+                placement={isInbound ? 'right' : 'left'}
                 arrow
               >
                 <Paper
@@ -195,14 +188,17 @@ export default function ChatMessages({ messages, isInitialLoad }: ChatMessagesPr
                     p: 1.5,
                     borderRadius: 2,
                     maxWidth: '100%',
-                    backgroundColor: isFromGuest 
+                    backgroundColor: isInbound 
                       ? theme.palette.background.paper
                       : theme.palette.primary.main,
-                    color: isFromGuest
+                    color: isInbound
                       ? theme.palette.text.primary
                       : theme.palette.primary.contrastText,
                     wordBreak: 'break-word',
                     boxShadow: theme.shadows[1],
+                    opacity: loading ? 0.7 : 1,
+                    transform: `translateY(${loading ? '10px' : '0'})`,
+                    transition: 'opacity 0.3s ease, transform 0.3s ease'
                   }}
                 >
                   <Typography variant="body1">
