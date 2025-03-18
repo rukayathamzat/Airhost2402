@@ -148,16 +148,20 @@ export default function ChatWindow({
         console.log('Message inséré avec succès dans la base:', newMessage);
         
         // Ajouter immédiatement le message à l'UI
-        if (newMessage) {
+        if (newMessage && newMessage.id) { // S'assurer que newMessage et son ID existent
+          // Utilisons une variable const pour éviter les problèmes de type avec newMessage
+          const messageToAdd = newMessage; // Cette const ne peut pas être undefined ici
+          
           setMessages(msgs => {
             // Vérifier si le message n'existe pas déjà (par sécurité)
-            const messageExists = msgs.some(msg => msg.id === newMessage.id);
+            const messageExists = msgs.some(msg => msg.id === messageToAdd.id);
             if (messageExists) {
               console.log('Message déjà présent dans la liste, pas d\'ajout');
               return msgs;
             }
-            console.log('Ajout du message à la liste UI:', newMessage.id);
-            return [...msgs, newMessage];
+            console.log('Ajout du message à la liste UI:', messageToAdd.id);
+            // S'assurer que le résultat est bien de type Message[] en faisant un cast
+            return [...msgs, messageToAdd] as Message[];
           });
           
           // Défiler automatiquement vers le bas après l'ajout du message
