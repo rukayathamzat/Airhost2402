@@ -5,7 +5,6 @@ import {
   IconButton, 
   InputAdornment, 
   Card, 
-  CardContent, 
   Typography, 
   Divider,
   Chip,
@@ -35,9 +34,10 @@ interface ChatWindowProps {
   conversationId: string;
   whatsappContactId?: string;
   guestName?: string;
+  isMobile?: boolean;
 }
 
-export default function ChatWindow({ conversationId, whatsappContactId, guestName }: ChatWindowProps) {
+export default function ChatWindow({ conversationId, whatsappContactId, guestName, isMobile = false }: ChatWindowProps) {
   // États locaux
   const [messageInput, setMessageInput] = useState('');
   const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null);
@@ -127,10 +127,16 @@ export default function ChatWindow({ conversationId, whatsappContactId, guestNam
     ? 'success'
     : isPollingActive ? 'warning' : 'error';
 
-  console.log(`${DEBUG_PREFIX} Rendu avec ${messages.length} messages, status: ${realtimeStatus}`);
+  console.log(`${DEBUG_PREFIX} Rendu avec ${messages.length} messages, status: ${realtimeStatus}, isMobile: ${isMobile}`);
   
   return (
-    <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', borderRadius: 1 }}>
+    <Card sx={{ 
+      height: '100%', 
+      display: 'flex', 
+      flexDirection: 'column', 
+      borderRadius: 1,
+      ...(isMobile ? { boxShadow: 'none' } : {})
+    }}>
       {/* En-tête de la conversation */}
       <Box sx={{ px: 2, py: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Box sx={{ display: 'flex', alignItems: 'center' }}>

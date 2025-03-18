@@ -1,14 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
-import { Message } from '../services/chat/message.service';
+import { Message, MessageService } from '../services/chat/message.service';
 
 // Préfixe pour les logs liés à ce hook
 const DEBUG_PREFIX = 'DEBUG_USE_MESSAGES_REALTIME';
 
-// Intervalle de polling en ms (20 secondes)
-const POLL_INTERVAL = 20000;
+// Intervalle de polling en millisecondes
+const POLLING_INTERVAL = 10000; // 10 secondes
 
-export interface UseMessagesRealtimeResult {
+interface UseMessagesRealtimeResult {
   messages: Message[];
   realtimeStatus: 'SUBSCRIBED' | 'CONNECTING' | 'DISCONNECTED' | 'ERROR';
   refreshing: boolean;
@@ -21,194 +21,133 @@ export function useMessagesRealtime(conversationId: string): UseMessagesRealtime
   const [messages, setMessages] = useState<Message[]>([]);
   const [realtimeStatus, setRealtimeStatus] = useState<'SUBSCRIBED' | 'CONNECTING' | 'DISCONNECTED' | 'ERROR'>('CONNECTING');
   const [refreshing, setRefreshing] = useState(false);
-  const [isPollingActive, setPollingActive] = useState(false);
+  const [isPollingActive, setIsPollingActive] = useState(false);
   const [lastMessageCount, setLastMessageCount] = useState(0);
   
-  // Référence pour l'intervalle de polling
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const messagesChannelRef = useRef<any>(null);
   
-  // Fonction pour mettre à jour l'état des messages avec vérification des doublons
-  const updateMessagesState = (newMessages: Message[]) => {
-    setMessages(current => {
-      // Créer un ensemble des IDs des messages actuels pour une recherche plus efficace
-      const existingIds = new Set(current.map(msg => msg.id));
-      
-      // Filtrer uniquement les messages qui n'existent pas déjà
-      const messagesToAdd = newMessages.filter(msg => !existingIds.has(msg.id));
-      
-      if (messagesToAdd.length === 0) {
-        console.log(`${DEBUG_PREFIX} Aucun nouveau message à ajouter`);
-        return current;
-      }
-      
-      console.log(`${DEBUG_PREFIX} Ajout de ${messagesToAdd.length} nouveaux messages`);
-      
-      // Combiner et trier les messages par date
-      const combinedMessages = [...current, ...messagesToAdd].sort((a, b) => 
-        new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-      );
-      
-      // Mettre à jour le compteur de messages
-      if (combinedMessages.length > lastMessageCount) {
-        setLastMessageCount(combinedMessages.length);
-      }
-      
-      return combinedMessages;
-    });
-  };
-  
-  // Gestionnaire pour les nouveaux messages via Realtime
-  const handleNewMessage = (newMessage: Message) => {
-    const receiveTimestamp = new Date().toISOString();
-    console.log(`${DEBUG_PREFIX} [${receiveTimestamp}] Nouveau message reçu via Realtime:`, newMessage);
-    
-    // Vérifier que le message est valide
-    if (!newMessage || !newMessage.id) {
-      console.warn(`${DEBUG_PREFIX} [${receiveTimestamp}] Message reçu invalide, ignoré`); 
+  // Fonction pour charger les messages
+  const loadMessages = async (showRefreshing = true) => {
+    if (!conversationId) {
+      console.error(`${DEBUG_PREFIX} ID de conversation invalide: ${conversationId}`);
       return;
     }
     
-    // Vérifier et afficher le contenu de l'état actuel des messages pour déboguer
-    console.log(`${DEBUG_PREFIX} [${receiveTimestamp}] État actuel des messages avant mise à jour:`, messages.length, 'messages');
-    console.log(`${DEBUG_PREFIX} [${receiveTimestamp}] IDs des messages actuels:`, messages.map(m => m.id));
-    
-    // Mettre à jour la liste des messages en vérifiant les doublons
-    setMessages(current => {
-      // Vérifier si le message existe déjà dans la liste
-      const messageExists = current.some(msg => msg.id === newMessage.id);
-      
-      if (messageExists) {
-        console.log(`${DEBUG_PREFIX} [${receiveTimestamp}] Message déjà dans la liste, ignoré:`, newMessage.id);
-        return current;
-      }
-      
-      // Ajouter le nouveau message à la liste
-      console.log(`${DEBUG_PREFIX} [${receiveTimestamp}] Ajout du nouveau message à la liste:`, newMessage.id, 'Contenu:', newMessage.content);
-      
-      // Créer une nouvelle liste avec le message ajouté et trier par date
-      const updatedMessages = [...current, newMessage].sort((a, b) => 
-        new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-      );
-      console.log(`${DEBUG_PREFIX} [${receiveTimestamp}] Nouvelle liste de messages:`, updatedMessages.length, 'messages');
-      
-      // Mettre à jour le compteur de messages
-      setLastMessageCount(updatedMessages.length);
-      
-      return updatedMessages;
-    });
-  };
-  
-  // Activation du polling de fallback
-  const activatePolling = () => {
-    if (pollingIntervalRef.current) {
-      clearInterval(pollingIntervalRef.current);
+    if (showRefreshing) {
+      setRefreshing(true);
     }
-    
-    console.log(`${DEBUG_PREFIX} Activation du polling toutes les ${POLL_INTERVAL/1000} secondes`);
-    
-    pollingIntervalRef.current = setInterval(async () => {
-      console.log(`${DEBUG_PREFIX} Exécution du polling de fallback`);
-      try {
-        const { data } = await supabase
-          .from('messages')
-          .select('*')
-          .eq('conversation_id', conversationId)
-          .order('created_at', { ascending: true });
-          
-        if (data) {
-          updateMessagesState(data);
-        }
-      } catch (error) {
-        console.error(`${DEBUG_PREFIX} Erreur lors du polling:`, error);
-      }
-    }, POLL_INTERVAL);
-    
-    setPollingActive(true);
-  };
-  
-  // Désactivation du polling
-  const deactivatePolling = () => {
-    if (pollingIntervalRef.current) {
-      console.log(`${DEBUG_PREFIX} Désactivation du polling`);
-      clearInterval(pollingIntervalRef.current);
-      pollingIntervalRef.current = null;
-    }
-    
-    setPollingActive(false);
-  };
-  
-  // Fonction pour forcer le rafraîchissement des messages
-  const forceRefresh = async () => {
-    setRefreshing(true);
-    console.log(`${DEBUG_PREFIX} Rafraîchissement forcé des messages pour la conversation: ${conversationId}`);
-    
-    try {
-      const { data } = await supabase
-        .from('messages')
-        .select('*')
-        .eq('conversation_id', conversationId)
-        .order('created_at', { ascending: true });
-        
-      if (data) {
-        console.log(`${DEBUG_PREFIX} ${data.length} messages récupérés via rafraîchissement forcé`);
-        
-        // Afficher les premiers et derniers messages pour le débogage
-        if (data.length > 0) {
-          console.log(`${DEBUG_PREFIX} Premier message refresh: ${data[0]?.content}`);
-          console.log(`${DEBUG_PREFIX} Dernier message refresh: ${data[data.length - 1]?.content}`);
-        }
-        
-        updateMessagesState(data);
-      }
-    } catch (error) {
-      console.error(`${DEBUG_PREFIX} Erreur lors du rafraîchissement forcé:`, error);
-    } finally {
-      setRefreshing(false);
-    }
-  };
-  
-  // Effet pour charger les messages initiaux et configurer la souscription Realtime
-  useEffect(() => {
-    if (!conversationId) return;
     
     const timestamp = new Date().toISOString();
     console.log(`${DEBUG_PREFIX} [${timestamp}] Chargement des messages pour la conversation: ${conversationId}`);
     
-    // Initialiser l'état de connexion
-    setRealtimeStatus('CONNECTING');
-    setRefreshing(true);
-    
-    // Charger les messages initiaux
-    async function loadInitialMessages() {
-      try {
-        const { data } = await supabase
-          .from('messages')
-          .select('*')
-          .eq('conversation_id', conversationId)
-          .order('created_at', { ascending: true });
-          
-        console.log(`${DEBUG_PREFIX} [${timestamp}] Messages récupérés:`, data?.length);
-        
-        if (data) {
-          // Afficher les premiers et derniers messages pour le débogage
-          if (data.length > 0) {
-            console.log(`${DEBUG_PREFIX} [${timestamp}] Premier message: ${data[0]?.content}`);
-            console.log(`${DEBUG_PREFIX} [${timestamp}] Dernier message: ${data[data.length - 1]?.content}`);
-          }
-          
-          setMessages(data);
-          setLastMessageCount(data.length);
-        }
-      } catch (error) {
-        console.error(`${DEBUG_PREFIX} [${timestamp}] Erreur lors du chargement des messages:`, error);
-        setRealtimeStatus('ERROR');
-        activatePolling(); // Activer le polling en cas d'erreur
-      } finally {
+    try {
+      const fetchedMessages = await MessageService.getMessages(conversationId);
+      console.log(`${DEBUG_PREFIX} [${timestamp}] ${fetchedMessages.length} messages récupérés`);
+      
+      // Assurer l'unicité des messages
+      const uniqueMessages = deduplicateMessages(fetchedMessages);
+      console.log(`${DEBUG_PREFIX} [${timestamp}] ${uniqueMessages.length} messages uniques après déduplication`);
+      
+      // Trier les messages par date de création
+      const sortedMessages = [...uniqueMessages].sort((a, b) => {
+        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      });
+      
+      setMessages(sortedMessages);
+      setLastMessageCount(sortedMessages.length);
+    } catch (error) {
+      console.error(`${DEBUG_PREFIX} [${timestamp}] Erreur lors du chargement des messages:`, error);
+    } finally {
+      if (showRefreshing) {
         setRefreshing(false);
       }
     }
+  };
+  
+  // Fonction pour dédupliquer les messages
+  const deduplicateMessages = (messages: Message[]): Message[] => {
+    const uniqueMap = new Map();
+    messages.forEach(message => {
+      uniqueMap.set(message.id, message);
+    });
+    return Array.from(uniqueMap.values());
+  };
+  
+  // Gestionnaire pour les nouveaux messages
+  const handleNewMessage = (payload: any) => {
+    const timestamp = new Date().toISOString();
+    console.log(`${DEBUG_PREFIX} [${timestamp}] Nouveau message détecté via Realtime:`, payload);
     
-    loadInitialMessages();
+    if (payload.new) {
+      const newMessage = payload.new as Message;
+      
+      // Vérifier si le message appartient à la conversation active
+      if (payload.new.conversation_id === conversationId) {
+        console.log(`${DEBUG_PREFIX} [${timestamp}] Ajout du nouveau message à la conversation`);
+        
+        // Mettre à jour l'état des messages en évitant les doublons
+        setMessages(prevMessages => {
+          // Vérifier si le message existe déjà
+          const messageExists = prevMessages.some(msg => msg.id === newMessage.id);
+          
+          if (messageExists) {
+            console.log(`${DEBUG_PREFIX} [${timestamp}] Message déjà présent dans l'état`);
+            return prevMessages;
+          }
+          
+          // Ajouter le nouveau message et trier
+          const updatedMessages = [...prevMessages, newMessage].sort((a, b) => {
+            return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+          });
+          
+          console.log(`${DEBUG_PREFIX} [${timestamp}] État mis à jour: ${updatedMessages.length} messages`);
+          return updatedMessages;
+        });
+      } else {
+        console.log(`${DEBUG_PREFIX} [${timestamp}] Message ignoré car il n'appartient pas à la conversation active`);
+      }
+    }
+  };
+  
+  // Fonction pour rafraîchir manuellement les messages
+  const forceRefresh = async () => {
+    console.log(`${DEBUG_PREFIX} Rafraîchissement manuel des messages`);
+    await loadMessages(true);
+  };
+  
+  // Fonction pour démarrer le polling
+  const startPolling = () => {
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+    }
+    
+    console.log(`${DEBUG_PREFIX} Démarrage du polling tous les ${POLLING_INTERVAL / 1000} secondes`);
+    setIsPollingActive(true);
+    
+    pollingIntervalRef.current = setInterval(() => {
+      console.log(`${DEBUG_PREFIX} Exécution du polling`);
+      loadMessages(false);
+    }, POLLING_INTERVAL);
+  };
+  
+  // Fonction pour arrêter le polling
+  const stopPolling = () => {
+    if (pollingIntervalRef.current) {
+      console.log(`${DEBUG_PREFIX} Arrêt du polling`);
+      clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
+      setIsPollingActive(false);
+    }
+  };
+  
+  // Fonction pour charger les messages initiaux et configurer Realtime
+  const setupRealtimeAndInitialLoad = () => {
+    const timestamp = new Date().toISOString();
+    console.log(`${DEBUG_PREFIX} [${timestamp}] Configuration de Realtime et chargement initial des messages`);
+    
+    // Charger les messages initiaux
+    loadMessages();
     
     // Configurer la souscription Realtime
     try {
@@ -217,44 +156,68 @@ export function useMessagesRealtime(conversationId: string): UseMessagesRealtime
       // Canal pour les messages
       const messagesChannel = supabase
         .channel('messages-channel')
-        .on('postgres_changes', {
-          event: '*',
-          schema: 'public',
-          table: 'messages',
-          filter: `conversation_id=eq.${conversationId}`
-        }, handleNewMessage)
+        .on(
+          'postgres_changes', 
+          { 
+            event: 'INSERT', 
+            schema: 'public', 
+            table: 'messages',
+            filter: `conversation_id=eq.${conversationId}`
+          }, 
+          handleNewMessage
+        )
         .subscribe((status) => {
           console.log(`${DEBUG_PREFIX} [${timestamp}] Statut du canal messages: ${status}`);
           setRealtimeStatus(status === 'SUBSCRIBED' ? 'SUBSCRIBED' : 'DISCONNECTED');
           
           // Si la souscription échoue, activer le polling
           if (status !== 'SUBSCRIBED') {
-            activatePolling();
+            console.log(`${DEBUG_PREFIX} [${timestamp}] La souscription Realtime a échoué, activation du polling`);
+            startPolling();
           } else {
-            deactivatePolling(); // Désactiver le polling si Realtime fonctionne
+            // Si la souscription réussit, arrêter le polling
+            stopPolling();
           }
         });
       
-      // Nettoyer les souscriptions lorsque le composant est démonté ou que l'ID change
-      return () => {
-        console.log(`${DEBUG_PREFIX} [${new Date().toISOString()}] Nettoyage des souscriptions pour la conversation: ${conversationId}`);
-        supabase.removeChannel(messagesChannel);
-        
-        // Arrêter le polling si actif
-        if (pollingIntervalRef.current) {
-          clearInterval(pollingIntervalRef.current);
-          pollingIntervalRef.current = null;
-          setPollingActive(false);
-        }
-      };
+      messagesChannelRef.current = messagesChannel;
+      
     } catch (error) {
       console.error(`${DEBUG_PREFIX} [${timestamp}] Erreur lors de la configuration de Realtime:`, error);
-      // En cas d'erreur avec Realtime, activer le polling comme fallback
       setRealtimeStatus('ERROR');
-      activatePolling();
+      
+      // En cas d'erreur, activer le polling
+      startPolling();
     }
+  };
+  
+  // Effet pour configurer Realtime et charger les messages initiaux
+  useEffect(() => {
+    console.log(`${DEBUG_PREFIX} useEffect déclenché avec conversationId:`, conversationId);
+    
+    if (!conversationId) {
+      console.error(`${DEBUG_PREFIX} ID de conversation invalide, impossible de configurer Realtime`);
+      return;
+    }
+    
+    setRealtimeStatus('CONNECTING');
+    
+    // Configurer Realtime et charger les messages initiaux
+    setupRealtimeAndInitialLoad();
+    
+    // Nettoyage
+    return () => {
+      console.log(`${DEBUG_PREFIX} Nettoyage: désinscription du canal Realtime et arrêt du polling`);
+      
+      if (messagesChannelRef.current) {
+        messagesChannelRef.current.unsubscribe();
+      }
+      
+      stopPolling();
+    };
   }, [conversationId]);
   
+  // Retourner l'état et les fonctions
   return {
     messages,
     realtimeStatus,
