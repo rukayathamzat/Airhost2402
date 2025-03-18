@@ -5,6 +5,7 @@ export interface Conversation {
   property: Array<{
     name: string;
     host_id?: string;
+    id?: string;
   }>;
   check_in_date: string;
   check_out_date: string;
