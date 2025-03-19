@@ -422,10 +422,8 @@ export default function Chat() {
                 isMobile={isMobile}
                 apartmentId={selectedConversation.property?.[0]?.id || 'default'}
                 guestName={selectedConversation.guest_name}
-                // Props temporairement commentées car interface mise à jour
-                // guestNumber={selectedConversation.guest_number || ''}
-                // conversationStartTime={selectedConversation.created_at || new Date().toISOString()}
-                // onBack={handleBackFromChat}
+                whatsappContactId={selectedConversation.guest_phone}
+                onBack={handleBackFromChat}
               />
             ) : navValue === 'messages' ? (
               // Afficher la liste des conversations
@@ -561,10 +559,7 @@ export default function Chat() {
                 isMobile={isMobile}
                 apartmentId={selectedConversation.property?.[0]?.id || 'default'}
                 guestName={selectedConversation.guest_name}
-                // Props temporairement commentées car interface mise à jour
-                // guestNumber={selectedConversation.guest_number || ''}
-                // conversationStartTime={selectedConversation.created_at || new Date().toISOString()}
-                // onBack={handleBackFromChat}
+                whatsappContactId={selectedConversation.guest_phone}
               />
             ) : (
               <Box

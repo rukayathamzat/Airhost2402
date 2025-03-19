@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { 
   Box, 
   IconButton, 
@@ -10,7 +10,13 @@ import {
   MenuItem,
   ListItemIcon,
   ListItemText,
-  CircularProgress
+  CircularProgress,
+  Fab,
+  Zoom,
+  Badge,
+  Tooltip,
+  Paper,
+  useTheme
 } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
@@ -18,6 +24,8 @@ import SignalCellularAltIcon from '@mui/icons-material/SignalCellularAlt';
 import SignalCellularConnectedNoInternet0BarIcon from '@mui/icons-material/SignalCellularConnectedNoInternet0Bar';
 import FormatListBulletedIcon from '@mui/icons-material/FormatListBulleted';
 import PaletteIcon from '@mui/icons-material/Palette';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
 import ChatMessages from './ChatMessages';
 import ChatInput from './ChatInput';
@@ -35,14 +43,31 @@ interface ChatWindowProps {
   guestName?: string;
   isMobile?: boolean;
   apartmentId?: string; // ID de l'appartement pour les requêtes IA
+  onBack?: () => void; // Fonction pour revenir à la liste des conversations (utile en mobile)
 }
 
-export default function ChatWindow({ conversationId, whatsappContactId, guestName, isMobile = false, apartmentId }: ChatWindowProps) {
+export default function ChatWindow({ 
+  conversationId, 
+  whatsappContactId, 
+  guestName, 
+  isMobile = false, 
+  apartmentId,
+  onBack
+}: ChatWindowProps) {
   // États locaux
   const [messageInput, setMessageInput] = useState('');
   const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null);
   const [templatesMenuAnchorEl, setTemplatesMenuAnchorEl] = useState<null | HTMLElement>(null);
   const [aiModalOpen, setAiModalOpen] = useState(false);
+  const [showScrollButton, setShowScrollButton] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  
+  // Référence pour le défilement vers le bas
+  const messagesEndRef = useRef<null | HTMLDivElement>(null);
+  const messagesContainerRef = useRef<null | HTMLDivElement>(null);
+  
+  // Thème
+  const theme = useTheme();
   
   // Utilisation des hooks personnalisés
   const { 
@@ -55,6 +80,39 @@ export default function ChatWindow({ conversationId, whatsappContactId, guestNam
   
   const { sendMessage, sending, error: sendError } = useMessageSender();
   const { templates } = useTemplates();
+  
+  // Fonction pour faire défiler vers le bas
+  const scrollToBottom = (instant = false) => {
+    console.log(`${DEBUG_PREFIX} Tentative de défilement vers le bas, instant: ${instant}`);
+    try {
+      messagesEndRef.current?.scrollIntoView({
+        behavior: instant ? 'auto' : 'smooth',
+        block: 'end'
+      });
+      setUnreadCount(0);
+      console.log(`${DEBUG_PREFIX} Défilement exécuté`);
+    } catch (error) {
+      console.error(`${DEBUG_PREFIX} Erreur lors du défilement:`, error);
+    }
+  };
+  
+  // Gestion du défilement
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const element = e.currentTarget;
+    const isAtBottom = Math.abs(element.scrollHeight - element.scrollTop - element.clientHeight) < 50;
+    setShowScrollButton(!isAtBottom);
+    
+    if (isAtBottom) {
+      setUnreadCount(0);
+    }
+  };
+  
+  // Mise à jour du compteur non lu quand un nouveau message arrive et qu'on n'est pas en bas
+  useEffect(() => {
+    if (messages.length > 0 && showScrollButton) {
+      setUnreadCount(prev => prev + 1);
+    }
+  }, [messages.length, showScrollButton]);
   
   // Gestionnaire pour l'envoi de message
   const handleSendMessage = useCallback(async () => {
@@ -71,22 +129,19 @@ export default function ChatWindow({ conversationId, whatsappContactId, guestNam
       if (sentMessage) {
         console.log(`${DEBUG_PREFIX} Message envoyé avec succès:`, sentMessage);
         setMessageInput('');
+        // Défiler automatiquement vers le bas après l'envoi
+        setTimeout(scrollToBottom, 100);
       }
     } catch (error) {
       console.error(`${DEBUG_PREFIX} Erreur lors de l'envoi du message:`, error);
     }
   }, [messageInput, conversationId, whatsappContactId, sendMessage]);
   
-  // Cette fonction est gérée par le composant ChatInput
-  // Aucun gestionnaire handleKeyPress direct n'est nécessaire ici
-  
   // Gestionnaire pour la sélection d'un template
   const handleTemplateSelect = useCallback((template: Template) => {
     setMessageInput(template.content);
     setTemplatesMenuAnchorEl(null);
   }, []);
-  
-  // Cette fonctionnalité est déléguée au composant ChatInput
   
   // Fonctions pour les menus
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
@@ -121,6 +176,13 @@ export default function ChatWindow({ conversationId, whatsappContactId, guestNam
     setAiModalOpen(false);
   };
   
+  // Défilement automatique lors du chargement initial
+  useEffect(() => {
+    if (messages.length > 0) {
+      scrollToBottom(true);
+    }
+  }, []);
+  
   // Déterminer l'icône et la couleur en fonction du statut de connexion
   const connectionStatusIcon = realtimeStatus === 'SUBSCRIBED'
     ? <SignalCellularAltIcon sx={{ fontSize: 16, color: 'success.main' }} />
@@ -136,28 +198,62 @@ export default function ChatWindow({ conversationId, whatsappContactId, guestNam
 
   console.log(`${DEBUG_PREFIX} Rendu avec ${messages.length} messages, status: ${realtimeStatus}, isMobile: ${isMobile}`);
   
+  // Composant à rendre
+  const ContainerComponent = isMobile ? Paper : Card;
+  
   return (
-    <Card sx={{ 
-      height: '100%', 
+    <ContainerComponent sx={{ 
+      height: isMobile ? 'calc(100vh - 56px)' : '100%',
       display: 'flex', 
       flexDirection: 'column', 
-      borderRadius: 1,
-      ...(isMobile ? { boxShadow: 'none' } : {})
+      borderRadius: isMobile ? 0 : 1,
+      width: '100%',
+      maxWidth: '100%',
+      overflow: 'hidden',
+      position: 'relative',
+      m: 0,
+      p: 0,
+      bgcolor: theme.palette.mode === 'dark' ? '#121212' : '#f5f7f9',
+      ...(isMobile ? { boxShadow: 'none', elevation: 0 } : {})
     }}>
-      {/* En-tête de la conversation */}
-      <Box sx={{ px: 2, py: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      {/* En-tête de la conversation - optimisé pour mobile */}
+      <Box sx={{ 
+        px: 2, 
+        py: 1.5, 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'space-between',
+        bgcolor: theme.palette.background.paper,
+        borderBottom: '1px solid',
+        borderColor: theme.palette.divider
+      }}>
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <Typography variant="h6" component="div">
+          {isMobile && onBack && (
+            <IconButton 
+              size="small" 
+              edge="start"
+              onClick={onBack}
+              sx={{ mr: 1 }}
+            >
+              <ArrowBackIcon />
+            </IconButton>
+          )}
+          <Typography variant="h6" component="div" sx={{ 
+            fontSize: isMobile ? '1rem' : '1.25rem', 
+            fontWeight: 600
+          }}>
             {guestName || 'Conversation'}
           </Typography>
-          <Chip
-            size="small"
-            icon={connectionStatusIcon}
-            label={connectionStatusText}
-            color={connectionStatusColor}
-            variant="outlined"
-            sx={{ ml: 2, height: 24 }}
-          />
+          {!isMobile && (
+            <Chip
+              size="small"
+              icon={connectionStatusIcon}
+              label={connectionStatusText}
+              color={connectionStatusColor}
+              variant="outlined"
+              sx={{ ml: 2, height: 24 }}
+            />
+          )}
         </Box>
         <Box>
           <IconButton 
@@ -178,26 +274,63 @@ export default function ChatWindow({ conversationId, whatsappContactId, guestNam
         </Box>
       </Box>
       
-      <Divider />
-      
-      {/* Zone de messages */}
-      <Box sx={{ 
-        flexGrow: 1, 
-        overflow: 'auto', 
-        p: 2,
-        display: 'flex',
-        flexDirection: 'column'
-      }}>
+      {/* Zone de messages avec gestion du défilement */}
+      <Box 
+        ref={messagesContainerRef}
+        sx={{ 
+          flexGrow: 1, 
+          overflowY: 'auto',
+          py: 2,
+          px: { xs: 1.5, sm: 2.5 },
+          backgroundImage: theme.palette.mode === 'dark' 
+            ? 'linear-gradient(rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%)'
+            : 'linear-gradient(rgba(224, 242, 254, 0.5) 0%, rgba(186, 230, 253, 0.4) 100%)',
+          backgroundAttachment: 'fixed',
+          backgroundSize: 'cover',
+          display: 'flex',
+          flexDirection: 'column'
+        }}
+        onScroll={handleScroll}
+      >
         <ChatMessages 
           messages={messages}
           isInitialLoad={true}
         />
+        <div ref={messagesEndRef} style={{ height: 1 }} />
       </Box>
       
-      <Divider />
+      {/* Bouton de défilement vers le bas (présent uniquement si nécessaire) */}
+      <Zoom in={showScrollButton}>
+        <Tooltip title="Nouveaux messages">
+          <Fab 
+            color="primary" 
+            size="small" 
+            onClick={() => scrollToBottom()}
+            sx={{ 
+              position: 'absolute', 
+              bottom: 80, 
+              right: 16,
+              zIndex: 2,
+              boxShadow: 3
+            }}
+          >
+            <Badge 
+              badgeContent={unreadCount > 0 ? unreadCount : null}
+              color="error"
+              max={99}
+            >
+              <KeyboardArrowDownIcon />
+            </Badge>
+          </Fab>
+        </Tooltip>
+      </Zoom>
       
       {/* Zone de saisie de message - Utilisation de ChatInput */}
-      <Box sx={{ bgcolor: 'background.default' }}>
+      <Box sx={{ 
+        borderTop: '1px solid',
+        borderColor: theme.palette.divider,
+        bgcolor: theme.palette.background.paper
+      }}>
         <ChatInput
           onSendMessage={async (message) => {
             setMessageInput(message);
@@ -263,6 +396,6 @@ export default function ChatWindow({ conversationId, whatsappContactId, guestNam
         guestName={guestName || ''}
         apartmentId={apartmentId} // Transmettre l'ID de l'appartement
       />
-    </Card>
+    </ContainerComponent>
   );
 }
