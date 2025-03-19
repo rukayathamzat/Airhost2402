@@ -158,7 +158,7 @@ export class MessageService {
   /**
    * Envoie une notification pour un nouveau message
    */
-  private static async notifyNewMessage(message: Message, conversationId: string) {
+  public static async notifyNewMessage(message: Message, conversationId: string) {
     try {
       console.log('[NOTIFICATION DEBUG] Tentative d\'envoi de notification pour le message:', message.id);
       

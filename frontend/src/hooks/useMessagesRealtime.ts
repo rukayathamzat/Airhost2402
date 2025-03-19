@@ -141,6 +141,14 @@ export function useMessagesRealtime(conversationId: string): UseMessagesRealtime
         console.log(`${DEBUG_PREFIX} [${timestamp}] Ajout du nouveau message à la conversation - ID: ${newMessage.id}, Created: ${newMessage.created_at}`);
         console.log(`${DEBUG_PREFIX} [${timestamp}] Contenu du message: ${newMessage.content?.substring(0, 50)}${newMessage.content && newMessage.content.length > 50 ? '...' : ''}`);
         
+        // Vérifier si c'est un message entrant pour déclencher une notification
+        if (newMessage.direction === 'inbound') {
+          console.log(`${DEBUG_PREFIX} [${timestamp}] Message entrant détecté, tentative d'envoi de notification pour: ${newMessage.id}`);
+          MessageService.notifyNewMessage(newMessage, conversationId);
+        } else {
+          console.log(`${DEBUG_PREFIX} [${timestamp}] Message sortant ou direction non définie (${newMessage.direction}), pas de notification`);
+        }
+
         // Mettre à jour l'état des messages en évitant les doublons
         setMessages(prevMessages => {
           // Vérifier si le message existe déjà
