@@ -4,7 +4,6 @@ import {
   IconButton, 
   Card, 
   Typography, 
-  Divider,
   Chip,
   Menu,
   MenuItem,
@@ -198,11 +197,10 @@ export default function ChatWindow({
 
   console.log(`${DEBUG_PREFIX} Rendu avec ${messages.length} messages, status: ${realtimeStatus}, isMobile: ${isMobile}`);
   
-  // Composant à rendre
-  const ContainerComponent = isMobile ? Paper : Card;
+  // Utilisation de Box avec component pour dynamiquement choisir le rendu
   
   return (
-    <ContainerComponent sx={{ 
+    <Box component={isMobile ? Paper : Card} sx={{ 
       height: isMobile ? 'calc(100vh - 56px)' : '100%',
       display: 'flex', 
       flexDirection: 'column', 
@@ -396,6 +394,6 @@ export default function ChatWindow({
         guestName={guestName || ''}
         apartmentId={apartmentId} // Transmettre l'ID de l'appartement
       />
-    </ContainerComponent>
+    </Box>
   );
 }
