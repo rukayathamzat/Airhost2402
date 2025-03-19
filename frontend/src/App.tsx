@@ -16,12 +16,27 @@ import { Session } from '@supabase/supabase-js';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import './App.css'
+import { NotificationService } from './services/notification.service';
 
 function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Initialiser le service de notifications
+    const initNotifications = async () => {
+      console.log('[APP] Initialisation du service de notifications');
+      try {
+        await NotificationService.init();
+        console.log('[APP] Service de notifications initialisé avec succès');
+      } catch (error) {
+        console.error('[APP] Erreur lors de l\'initialisation du service de notifications:', error);
+      }
+    };
+    
+    // Exécuter l'initialisation des notifications
+    initNotifications();
+    
     // Vérifier si l'URL contient un code d'authentification
     const handleAuthRedirect = async () => {
       const url = new URL(window.location.href);
