@@ -108,10 +108,15 @@ export class MessageService {
         if (payload.new) {
           const message = payload.new as Message;
           console.log(`[${receiveTimestamp}] REALTIME: Message traité, contenu:`, message.content);
+          console.log(`[${receiveTimestamp}] NOTIFICATION DEBUG: Direction du message:`, message.direction);
           callback(message);
           
+          // Appeler la notification pour tous les messages entrants
           if (message.direction === 'inbound') {
+            console.log(`[${receiveTimestamp}] NOTIFICATION DEBUG: Tentative d'appel à notifyNewMessage pour message ${message.id}`);
             MessageService.notifyNewMessage(message, conversationId);
+          } else {
+            console.log(`[${receiveTimestamp}] NOTIFICATION DEBUG: Message non entrant, pas de notification`, { id: message.id, direction: message.direction });
           }
         }
       })
