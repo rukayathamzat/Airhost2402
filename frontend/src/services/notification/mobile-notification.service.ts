@@ -188,4 +188,54 @@ export class MobileNotificationService extends BaseNotificationService {
   static async arePushNotificationsAvailable(): Promise<boolean> {
     return !!this.fcmToken && this.isServiceWorkerRegistered();
   }
+
+  /**
+   * Méthode de test pour envoyer une notification au token de test
+   */
+  static async sendTestNotification(): Promise<void> {
+    try {
+      console.log('[NOTIF DEBUG] Test d\'envoi de notification avec token test');
+      
+      // Récupération du token JWT pour authentifier la demande
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error('Session utilisateur non disponible');
+      }
+      
+      console.log('[NOTIF DEBUG] Token JWT obtenu, envoi de la notification test');
+      
+      // Utilisation de l'Edge Function Supabase
+      const response = await fetch('https://pnbfsiicxhckptlgtjoj.supabase.co/functions/v1/fcm-proxy', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
+          to: 'test-fcm-token',
+          notification: {
+            title: 'Test de notification',
+            body: 'Ceci est un test de notification push'
+          },
+          data: {
+            type: 'test',
+            timestamp: new Date().toISOString()
+          }
+        })
+      });
+      
+      const responseData = await response.json();
+      console.log('[NOTIF DEBUG] Réponse du test de notification:', responseData);
+      
+      if (!response.ok) {
+        throw new Error(`Erreur lors du test: ${responseData.error || 'Erreur inconnue'}`);
+      }
+      
+      console.log('[NOTIF DEBUG] Test de notification réussi!', responseData);
+      return responseData;
+    } catch (error) {
+      console.error('[NOTIF DEBUG] Erreur lors du test de notification:', error);
+      throw error;
+    }
+  }
 }

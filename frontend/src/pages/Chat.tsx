@@ -40,6 +40,7 @@ import ConversationList from '../components/Chat/ConversationList';
 import ChatWindow from '../components/Chat/ChatWindow';
 import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
+import { MobileNotificationService } from '../services/notification/mobile-notification.service';
 
 import { Conversation } from '../types/conversation';
 
@@ -495,6 +496,24 @@ export default function Chat() {
                     <ListItemButton onClick={openWhatsAppConfig}>
                       <ListItemIcon><WhatsAppIcon /></ListItemIcon>
                       <ListItemText primary="Configuration WhatsApp" secondary="Gérez vos paramètres WhatsApp" />
+                    </ListItemButton>
+                  </ListItem>
+                  <Divider sx={{ my: 1 }} />
+                  <ListItem disablePadding>
+                    <ListItemButton onClick={async () => {
+                      try {
+                        console.log('Test de notification FCM...');
+                        await MobileNotificationService.sendTestNotification();
+                        alert('Test de notification envoyé avec succès! Vérifiez la console pour plus de détails.');
+                      } catch (error) {
+                        console.error('Erreur lors du test de notification:', error);
+                        alert(`Erreur lors du test: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+                      }
+                    }}>
+                      <ListItemIcon><NotificationsIcon /></ListItemIcon>
+                      <ListItemText 
+                        primary="Tester les notifications" 
+                        secondary="Envoyer une notification de test au token pré-configuré" />
                     </ListItemButton>
                   </ListItem>
                   <Divider sx={{ my: 1 }} />
