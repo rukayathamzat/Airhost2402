@@ -42,11 +42,27 @@ function getServiceAccount(): ServiceAccount | null {
 let firebaseInitialized = false
 
 serve(async (req) => {
+  // Gérer les requêtes préflight OPTIONS pour CORS
+  if (req.method === 'OPTIONS') {
+    return new Response(null, {
+      status: 204,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        'Access-Control-Max-Age': '86400'
+      }
+    })
+  }
+
   // Vérification de la méthode
   if (req.method !== 'POST') {
     return new Response(JSON.stringify({ error: 'Méthode non autorisée' }), {
       status: 405,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      }
     })
   }
 
@@ -97,7 +113,10 @@ serve(async (req) => {
         messageId: "test-message-id-"+Date.now()
       }), {
         status: 200,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        }
       })
     }
 
@@ -172,13 +191,19 @@ serve(async (req) => {
     
     return new Response(JSON.stringify({ success: true, messageId: response }), {
       status: 200,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      }
     })
   } catch (error) {
     console.error("Erreur:", error.message)
     return new Response(JSON.stringify({ error: error.message }), {
       status: error.message === 'Non authentifié' ? 401 : 500,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      }
     })
   }
 })
