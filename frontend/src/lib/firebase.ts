@@ -154,6 +154,57 @@ interface FirebaseMessagingInterface {
   setMessagingCallback: typeof setMessagingCallback;
 }
 
+/**
+ * Fonction de test pour les notifications Firebase
+ * Peut être appelée directement depuis la console du navigateur
+ */
+export const testFirebaseNotification = async () => {
+  try {
+    console.log('[FIREBASE TEST] Début du test de notifications...');
+    
+    // 1. Vérifier l'état des permissions
+    console.log('[FIREBASE TEST] Permission actuelle:', Notification.permission);
+    
+    // 2. Demander la permission si nécessaire
+    if (Notification.permission !== 'granted') {
+      console.log('[FIREBASE TEST] Demande de permission...');
+      const newPermission = await Notification.requestPermission();
+      console.log('[FIREBASE TEST] Nouvelle permission:', newPermission);
+      
+      if (newPermission !== 'granted') {
+        console.error('[FIREBASE TEST] Permission refusée, impossible de continuer le test');
+        return false;
+      }
+    }
+    
+    // 3. Afficher une notification de test web simple
+    console.log('[FIREBASE TEST] Affichage d\'une notification web simple...');
+    new Notification('Test de notification', {
+      body: 'Ceci est un test de notification web simple',
+      icon: '/icons/icon-192x192.png'
+    });
+    
+    // 4. Essayer d'obtenir un token FCM
+    const token = await requestFCMPermission();
+    console.log('[FIREBASE TEST] Token FCM obtenu:', token);
+    
+    // 5. Exposer aux variables globales pour accès facile
+    // @ts-ignore
+    window.testFirebaseNotification = testFirebaseNotification;
+    // @ts-ignore
+    window.firebaseMessaging = firebaseMessaging;
+    
+    return true;
+  } catch (error) {
+    console.error('[FIREBASE TEST] Erreur lors du test de notification:', error);
+    return false;
+  }
+};
+
+// Exposer la fonction de test globalement
+// @ts-ignore
+window.testFirebaseNotification = testFirebaseNotification;
+
 const firebaseMessaging: FirebaseMessagingInterface = {
   messaging: messaging,
   requestFCMPermission,

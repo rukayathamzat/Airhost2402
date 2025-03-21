@@ -24,7 +24,10 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  TextField
+  TextField,
+  Fab,
+  Tooltip,
+  Zoom
 } from '@mui/material';
 // import CloseIcon from '@mui/icons-material/Close'; // Supprimé car non utilisé
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
@@ -36,6 +39,7 @@ import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 import SettingsIcon from '@mui/icons-material/Settings';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import LogoutIcon from '@mui/icons-material/Logout';
+import TestIcon from '@mui/icons-material/BugReport';
 import ConversationList from '../components/Chat/ConversationList';
 import ChatWindow from '../components/Chat/ChatWindow';
 import { supabase } from '../lib/supabase';
@@ -59,6 +63,9 @@ export default function Chat() {
   const [phoneNumberId, setPhoneNumberId] = useState('');
   const [whatsappToken, setWhatsappToken] = useState('');
   const [saving, setSaving] = useState(false);
+  
+  // État pour le bouton de test de notification
+  const [notifTestLoading, setNotifTestLoading] = useState(false);
 
   const navigate = useNavigate();
 
@@ -306,6 +313,21 @@ export default function Chat() {
       setConfigOpen(true);
     } catch (error) {
       console.error('Erreur:', error);
+    }
+  };
+  
+  // Fonction de test des notifications
+  const testNotification = async () => {
+    try {
+      setNotifTestLoading(true);
+      console.log('Test de notification FCM...');
+      await MobileNotificationService.sendTestNotification();
+      alert('Test de notification envoyé avec succès! Vérifiez la console pour plus de détails.');
+    } catch (error) {
+      console.error('Erreur lors du test de notification:', error);
+      alert(`Erreur lors du test: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+    } finally {
+      setNotifTestLoading(false);
     }
   };
 
@@ -602,6 +624,26 @@ export default function Chat() {
         </Box>
       </Paper>
 
+      {/* Bouton flottant de test des notifications - visible en desktop et mobile */}
+      <Zoom in={true} style={{ transitionDelay: '500ms' }}>
+        <Tooltip title="Tester les notifications" placement="left">
+          <Fab 
+            color="secondary" 
+            size="medium"
+            onClick={testNotification}
+            disabled={notifTestLoading}
+            sx={{ 
+              position: 'fixed', 
+              bottom: isMobile ? 70 : 20, 
+              right: 20,
+              zIndex: 1300 
+            }}
+          >
+            <TestIcon />
+          </Fab>
+        </Tooltip>
+      </Zoom>
+      
       {/* Dialog de configuration WhatsApp */}
       <Dialog 
         open={configOpen} 
