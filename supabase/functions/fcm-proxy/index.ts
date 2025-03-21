@@ -125,11 +125,44 @@ serve(async (req) => {
       }
     }
     
-    // Préparer le message à envoyer
+    // Préparer le message à envoyer avec configurations spécifiques pour iOS et Android
     const message = {
       token: payload.to,
       notification: payload.notification || {},
-      data: payload.data || {}
+      data: payload.data || {},
+      // Configuration spécifique pour Android
+      android: {
+        priority: 'high',
+        notification: {
+          sound: 'default',
+          channelId: 'default-channel',
+          priority: 'high',
+          defaultSound: true,
+          visibility: 'public'
+        }
+      },
+      // Configuration spécifique pour iOS (APNs)
+      apns: {
+        headers: {
+          'apns-priority': '10',
+          'apns-push-type': 'alert'
+        },
+        payload: {
+          aps: {
+            alert: {
+              title: payload.notification?.title,
+              body: payload.notification?.body
+            },
+            sound: 'default',
+            badge: 1,
+            contentAvailable: true,
+            mutableContent: true,
+            category: 'NEW_MESSAGE'
+          },
+          // Transférer les données pour les avoir accessibles dans iOS
+          ...payload.data
+        }
+      }
     }
     
     // Envoyer le message via Firebase Admin SDK

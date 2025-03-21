@@ -1,6 +1,7 @@
 import { BaseNotificationService } from './base-notification.service';
 import { supabase } from '../../lib/supabase';
 import { Message } from '../../types/message';
+import { requestFCMPermission, setMessagingCallback } from '../../lib/firebase';
 
 export class MobileNotificationService extends BaseNotificationService {
   private static fcmToken: string | null = null;
@@ -11,6 +12,25 @@ export class MobileNotificationService extends BaseNotificationService {
   static async init(): Promise<void> {
     await super.init();
     await this.loadFCMToken();
+    
+    // Configurer le callback pour les messages FCM reçus quand l'app est au premier plan
+    setMessagingCallback((payload: any) => {
+      console.log('[NOTIF DEBUG] Message FCM reçu au premier plan:', payload);
+      // Vous pouvez ajouter ici une logique pour gérer les notifications au premier plan
+      // Par exemple, afficher une notification dans l'interface utilisateur
+    });
+    
+    // Demander la permission et obtenir un token si on n'en a pas déjà un
+    if (!this.fcmToken) {
+      try {
+        const token = await requestFCMPermission();
+        if (token) {
+          await this.registerToken(token);
+        }
+      } catch (error) {
+        console.error('[NOTIF DEBUG] Erreur lors de l\'initialisation FCM:', error);
+      }
+    }
   }
 
   /**
