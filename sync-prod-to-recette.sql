@@ -1,0 +1,73 @@
+-- Différences de structure pour la table 'conversations'
+-- Modifier la colonne 'id' en recette:
+-- ALTER TABLE public.conversations ALTER COLUMN id TYPE uuid;
+-- ALTER TABLE public.conversations ALTER COLUMN id SET DEFAULT gen_random_uuid();
+-- Colonne différente: guest_name (prod) vs guest_number (recette)
+-- Colonne différente: guest_phone (prod) vs unread_count (recette)
+-- Modifier la colonne 'unread_count' en recette:
+-- ALTER TABLE public.conversations ALTER COLUMN unread_count TYPE text;
+-- ALTER TABLE public.conversations ALTER COLUMN unread_count SET NOT NULL;
+-- ALTER TABLE public.conversations ALTER COLUMN unread_count DROP DEFAULT;
+-- Modifier la colonne 'unread_count' en recette:
+-- ALTER TABLE public.conversations ALTER COLUMN unread_count TYPE text;
+-- ALTER TABLE public.conversations ALTER COLUMN unread_count SET NOT NULL;
+-- ALTER TABLE public.conversations ALTER COLUMN unread_count DROP DEFAULT;
+-- Modifier la colonne 'unread_count' en recette:
+-- ALTER TABLE public.conversations ALTER COLUMN unread_count TYPE text;
+-- ALTER TABLE public.conversations ALTER COLUMN unread_count SET NOT NULL;
+-- ALTER TABLE public.conversations ALTER COLUMN unread_count DROP DEFAULT;
+-- Colonne différente: check_in_date (prod) vs last_message (recette)
+-- Modifier la colonne 'last_message' en recette:
+-- ALTER TABLE public.conversations ALTER COLUMN last_message TYPE date;
+-- Colonne différente: check_out_date (prod) vs last_message_at (recette)
+-- Modifier la colonne 'last_message_at' en recette:
+-- ALTER TABLE public.conversations ALTER COLUMN last_message_at TYPE date;
+-- ALTER TABLE public.conversations ALTER COLUMN last_message_at DROP DEFAULT;
+-- Modifier la colonne 'last_message_at' en recette:
+-- ALTER TABLE public.conversations ALTER COLUMN last_message_at TYPE date;
+-- ALTER TABLE public.conversations ALTER COLUMN last_message_at DROP DEFAULT;
+-- Colonne différente: status (prod) vs created_at (recette)
+-- Modifier la colonne 'created_at' en recette:
+-- ALTER TABLE public.conversations ALTER COLUMN created_at TYPE text;
+-- ALTER TABLE public.conversations ALTER COLUMN created_at DROP NOT NULL;
+-- ALTER TABLE public.conversations ALTER COLUMN created_at SET DEFAULT 'active'::text;
+-- Modifier la colonne 'created_at' en recette:
+-- ALTER TABLE public.conversations ALTER COLUMN created_at TYPE text;
+-- ALTER TABLE public.conversations ALTER COLUMN created_at DROP NOT NULL;
+-- ALTER TABLE public.conversations ALTER COLUMN created_at SET DEFAULT 'active'::text;
+-- Modifier la colonne 'created_at' en recette:
+-- ALTER TABLE public.conversations ALTER COLUMN created_at TYPE text;
+-- ALTER TABLE public.conversations ALTER COLUMN created_at DROP NOT NULL;
+-- ALTER TABLE public.conversations ALTER COLUMN created_at SET DEFAULT 'active'::text;
+-- Colonne différente: last_message_at (prod) vs guest_name (recette)
+-- Modifier la colonne 'guest_name' en recette:
+-- ALTER TABLE public.conversations ALTER COLUMN guest_name TYPE timestamp with time zone;
+-- ALTER TABLE public.conversations ALTER COLUMN guest_name SET DEFAULT CURRENT_TIMESTAMP;
+-- Modifier la colonne 'guest_name' en recette:
+-- ALTER TABLE public.conversations ALTER COLUMN guest_name TYPE timestamp with time zone;
+-- ALTER TABLE public.conversations ALTER COLUMN guest_name SET DEFAULT CURRENT_TIMESTAMP;
+-- Colonne différente: created_at (prod) vs guest_phone (recette)
+-- Modifier la colonne 'guest_phone' en recette:
+-- ALTER TABLE public.conversations ALTER COLUMN guest_phone TYPE timestamp with time zone;
+-- ALTER TABLE public.conversations ALTER COLUMN guest_phone SET DEFAULT CURRENT_TIMESTAMP;
+-- Modifier la colonne 'guest_phone' en recette:
+-- ALTER TABLE public.conversations ALTER COLUMN guest_phone TYPE timestamp with time zone;
+-- ALTER TABLE public.conversations ALTER COLUMN guest_phone SET DEFAULT CURRENT_TIMESTAMP;
+-- Colonne différente: last_message (prod) vs check_in_date (recette)
+-- Modifier la colonne 'check_in_date' en recette:
+-- ALTER TABLE public.conversations ALTER COLUMN check_in_date TYPE text;
+-- Colonne différente: guest_number (prod) vs check_out_date (recette)
+-- Modifier la colonne 'check_out_date' en recette:
+-- ALTER TABLE public.conversations ALTER COLUMN check_out_date TYPE text;
+-- Colonne différente: unread_count (prod) vs status (recette)
+-- Modifier la colonne 'status' en recette:
+-- ALTER TABLE public.conversations ALTER COLUMN status TYPE integer;
+-- ALTER TABLE public.conversations ALTER COLUMN status SET DEFAULT 0;
+-- Modifier la colonne 'status' en recette:
+-- ALTER TABLE public.conversations ALTER COLUMN status TYPE integer;
+-- ALTER TABLE public.conversations ALTER COLUMN status SET DEFAULT 0;
+
+-- Différences de structure pour la table 'messages'
+-- Colonnes présentes en production mais pas en recette pour la table 'messages':
+-- ALTER TABLE public.messages ADD COLUMN payload jsonb;
+

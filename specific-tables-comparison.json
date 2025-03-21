@@ -1,0 +1,1903 @@
+{
+  "Liste des tables": {
+    "identical": false,
+    "prodResults": [
+      {
+        "table_name": "ai_presets"
+      },
+      {
+        "table_name": "ai_responses_log"
+      },
+      {
+        "table_name": "apartment_ai_logs"
+      },
+      {
+        "table_name": "apartments"
+      },
+      {
+        "table_name": "conversations"
+      },
+      {
+        "table_name": "hosts"
+      },
+      {
+        "table_name": "media"
+      },
+      {
+        "table_name": "messages"
+      },
+      {
+        "table_name": "profiles"
+      },
+      {
+        "table_name": "properties"
+      },
+      {
+        "table_name": "property_ai_configs"
+      },
+      {
+        "table_name": "property_templates"
+      },
+      {
+        "table_name": "templates"
+      },
+      {
+        "table_name": "whatsapp_config"
+      }
+    ],
+    "recetteResults": [
+      {
+        "table_name": "ai_presets"
+      },
+      {
+        "table_name": "ai_responses_log"
+      },
+      {
+        "table_name": "apartment_ai_logs"
+      },
+      {
+        "table_name": "apartments"
+      },
+      {
+        "table_name": "conversations"
+      },
+      {
+        "table_name": "faqs"
+      },
+      {
+        "table_name": "hosts"
+      },
+      {
+        "table_name": "media"
+      },
+      {
+        "table_name": "messages"
+      },
+      {
+        "table_name": "profiles"
+      },
+      {
+        "table_name": "properties"
+      },
+      {
+        "table_name": "property_ai_configs"
+      },
+      {
+        "table_name": "property_templates"
+      },
+      {
+        "table_name": "templates"
+      },
+      {
+        "table_name": "whatsapp_config"
+      }
+    ],
+    "comparison": {
+      "identical": false,
+      "prodCount": 14,
+      "recetteCount": 15,
+      "differences": "Nombre différent d'éléments",
+      "prodResults": [
+        {
+          "table_name": "ai_presets"
+        },
+        {
+          "table_name": "ai_responses_log"
+        },
+        {
+          "table_name": "apartment_ai_logs"
+        },
+        {
+          "table_name": "apartments"
+        },
+        {
+          "table_name": "conversations"
+        },
+        {
+          "table_name": "hosts"
+        },
+        {
+          "table_name": "media"
+        },
+        {
+          "table_name": "messages"
+        },
+        {
+          "table_name": "profiles"
+        },
+        {
+          "table_name": "properties"
+        },
+        {
+          "table_name": "property_ai_configs"
+        },
+        {
+          "table_name": "property_templates"
+        },
+        {
+          "table_name": "templates"
+        },
+        {
+          "table_name": "whatsapp_config"
+        }
+      ],
+      "recetteResults": [
+        {
+          "table_name": "ai_presets"
+        },
+        {
+          "table_name": "ai_responses_log"
+        },
+        {
+          "table_name": "apartment_ai_logs"
+        },
+        {
+          "table_name": "apartments"
+        },
+        {
+          "table_name": "conversations"
+        },
+        {
+          "table_name": "faqs"
+        },
+        {
+          "table_name": "hosts"
+        },
+        {
+          "table_name": "media"
+        },
+        {
+          "table_name": "messages"
+        },
+        {
+          "table_name": "profiles"
+        },
+        {
+          "table_name": "properties"
+        },
+        {
+          "table_name": "property_ai_configs"
+        },
+        {
+          "table_name": "property_templates"
+        },
+        {
+          "table_name": "templates"
+        },
+        {
+          "table_name": "whatsapp_config"
+        }
+      ]
+    }
+  },
+  "Structure de la table 'conversations'": {
+    "identical": false,
+    "prodResults": [
+      {
+        "column_name": "id",
+        "data_type": "uuid",
+        "character_maximum_length": null,
+        "is_nullable": "NO",
+        "column_default": "gen_random_uuid()"
+      },
+      {
+        "column_name": "property_id",
+        "data_type": "uuid",
+        "character_maximum_length": null,
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "column_name": "guest_name",
+        "data_type": "text",
+        "character_maximum_length": null,
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "column_name": "guest_phone",
+        "data_type": "text",
+        "character_maximum_length": null,
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "column_name": "check_in_date",
+        "data_type": "date",
+        "character_maximum_length": null,
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "column_name": "check_out_date",
+        "data_type": "date",
+        "character_maximum_length": null,
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "column_name": "status",
+        "data_type": "text",
+        "character_maximum_length": null,
+        "is_nullable": "YES",
+        "column_default": "'active'::text"
+      },
+      {
+        "column_name": "last_message_at",
+        "data_type": "timestamp with time zone",
+        "character_maximum_length": null,
+        "is_nullable": "YES",
+        "column_default": "CURRENT_TIMESTAMP"
+      },
+      {
+        "column_name": "created_at",
+        "data_type": "timestamp with time zone",
+        "character_maximum_length": null,
+        "is_nullable": "YES",
+        "column_default": "CURRENT_TIMESTAMP"
+      },
+      {
+        "column_name": "last_message",
+        "data_type": "text",
+        "character_maximum_length": null,
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "column_name": "guest_number",
+        "data_type": "text",
+        "character_maximum_length": null,
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "column_name": "unread_count",
+        "data_type": "integer",
+        "character_maximum_length": null,
+        "is_nullable": "YES",
+        "column_default": "0"
+      },
+      {
+        "column_name": "_refresh_trigger",
+        "data_type": "text",
+        "character_maximum_length": null,
+        "is_nullable": "YES",
+        "column_default": null
+      }
+    ],
+    "recetteResults": [
+      {
+        "column_name": "id",
+        "data_type": "uuid",
+        "character_maximum_length": null,
+        "is_nullable": "NO",
+        "column_default": "uuid_generate_v4()"
+      },
+      {
+        "column_name": "property_id",
+        "data_type": "uuid",
+        "character_maximum_length": null,
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "column_name": "guest_number",
+        "data_type": "text",
+        "character_maximum_length": null,
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "column_name": "unread_count",
+        "data_type": "integer",
+        "character_maximum_length": null,
+        "is_nullable": "YES",
+        "column_default": "0"
+      },
+      {
+        "column_name": "last_message",
+        "data_type": "text",
+        "character_maximum_length": null,
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "column_name": "last_message_at",
+        "data_type": "timestamp with time zone",
+        "character_maximum_length": null,
+        "is_nullable": "YES",
+        "column_default": "timezone('utc'::text, now())"
+      },
+      {
+        "column_name": "created_at",
+        "data_type": "timestamp with time zone",
+        "character_maximum_length": null,
+        "is_nullable": "NO",
+        "column_default": "timezone('utc'::text, now())"
+      },
+      {
+        "column_name": "guest_name",
+        "data_type": "text",
+        "character_maximum_length": null,
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "column_name": "guest_phone",
+        "data_type": "text",
+        "character_maximum_length": null,
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "column_name": "check_in_date",
+        "data_type": "date",
+        "character_maximum_length": null,
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "column_name": "check_out_date",
+        "data_type": "date",
+        "character_maximum_length": null,
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "column_name": "status",
+        "data_type": "text",
+        "character_maximum_length": null,
+        "is_nullable": "YES",
+        "column_default": "'active'::text"
+      },
+      {
+        "column_name": "_refresh_trigger",
+        "data_type": "text",
+        "character_maximum_length": null,
+        "is_nullable": "YES",
+        "column_default": null
+      }
+    ],
+    "comparison": {
+      "identical": false,
+      "differences": [
+        {
+          "index": 0,
+          "property": "column_default",
+          "prodValue": "gen_random_uuid()",
+          "recetteValue": "uuid_generate_v4()"
+        },
+        {
+          "index": 2,
+          "property": "column_name",
+          "prodValue": "guest_name",
+          "recetteValue": "guest_number"
+        },
+        {
+          "index": 3,
+          "property": "column_name",
+          "prodValue": "guest_phone",
+          "recetteValue": "unread_count"
+        },
+        {
+          "index": 3,
+          "property": "data_type",
+          "prodValue": "text",
+          "recetteValue": "integer"
+        },
+        {
+          "index": 3,
+          "property": "is_nullable",
+          "prodValue": "NO",
+          "recetteValue": "YES"
+        },
+        {
+          "index": 3,
+          "property": "column_default",
+          "prodValue": null,
+          "recetteValue": "0"
+        },
+        {
+          "index": 4,
+          "property": "column_name",
+          "prodValue": "check_in_date",
+          "recetteValue": "last_message"
+        },
+        {
+          "index": 4,
+          "property": "data_type",
+          "prodValue": "date",
+          "recetteValue": "text"
+        },
+        {
+          "index": 5,
+          "property": "column_name",
+          "prodValue": "check_out_date",
+          "recetteValue": "last_message_at"
+        },
+        {
+          "index": 5,
+          "property": "data_type",
+          "prodValue": "date",
+          "recetteValue": "timestamp with time zone"
+        },
+        {
+          "index": 5,
+          "property": "column_default",
+          "prodValue": null,
+          "recetteValue": "timezone('utc'::text, now())"
+        },
+        {
+          "index": 6,
+          "property": "column_name",
+          "prodValue": "status",
+          "recetteValue": "created_at"
+        },
+        {
+          "index": 6,
+          "property": "data_type",
+          "prodValue": "text",
+          "recetteValue": "timestamp with time zone"
+        },
+        {
+          "index": 6,
+          "property": "is_nullable",
+          "prodValue": "YES",
+          "recetteValue": "NO"
+        },
+        {
+          "index": 6,
+          "property": "column_default",
+          "prodValue": "'active'::text",
+          "recetteValue": "timezone('utc'::text, now())"
+        },
+        {
+          "index": 7,
+          "property": "column_name",
+          "prodValue": "last_message_at",
+          "recetteValue": "guest_name"
+        },
+        {
+          "index": 7,
+          "property": "data_type",
+          "prodValue": "timestamp with time zone",
+          "recetteValue": "text"
+        },
+        {
+          "index": 7,
+          "property": "column_default",
+          "prodValue": "CURRENT_TIMESTAMP",
+          "recetteValue": null
+        },
+        {
+          "index": 8,
+          "property": "column_name",
+          "prodValue": "created_at",
+          "recetteValue": "guest_phone"
+        },
+        {
+          "index": 8,
+          "property": "data_type",
+          "prodValue": "timestamp with time zone",
+          "recetteValue": "text"
+        },
+        {
+          "index": 8,
+          "property": "column_default",
+          "prodValue": "CURRENT_TIMESTAMP",
+          "recetteValue": null
+        },
+        {
+          "index": 9,
+          "property": "column_name",
+          "prodValue": "last_message",
+          "recetteValue": "check_in_date"
+        },
+        {
+          "index": 9,
+          "property": "data_type",
+          "prodValue": "text",
+          "recetteValue": "date"
+        },
+        {
+          "index": 10,
+          "property": "column_name",
+          "prodValue": "guest_number",
+          "recetteValue": "check_out_date"
+        },
+        {
+          "index": 10,
+          "property": "data_type",
+          "prodValue": "text",
+          "recetteValue": "date"
+        },
+        {
+          "index": 11,
+          "property": "column_name",
+          "prodValue": "unread_count",
+          "recetteValue": "status"
+        },
+        {
+          "index": 11,
+          "property": "data_type",
+          "prodValue": "integer",
+          "recetteValue": "text"
+        },
+        {
+          "index": 11,
+          "property": "column_default",
+          "prodValue": "0",
+          "recetteValue": "'active'::text"
+        }
+      ]
+    }
+  },
+  "Structure de la table 'messages'": {
+    "identical": false,
+    "prodResults": [
+      {
+        "column_name": "id",
+        "data_type": "uuid",
+        "character_maximum_length": null,
+        "is_nullable": "NO",
+        "column_default": "gen_random_uuid()"
+      },
+      {
+        "column_name": "conversation_id",
+        "data_type": "uuid",
+        "character_maximum_length": null,
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "column_name": "content",
+        "data_type": "text",
+        "character_maximum_length": null,
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "column_name": "direction",
+        "data_type": "text",
+        "character_maximum_length": null,
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "column_name": "status",
+        "data_type": "text",
+        "character_maximum_length": null,
+        "is_nullable": "YES",
+        "column_default": "'pending'::text"
+      },
+      {
+        "column_name": "created_at",
+        "data_type": "timestamp with time zone",
+        "character_maximum_length": null,
+        "is_nullable": "YES",
+        "column_default": "CURRENT_TIMESTAMP"
+      },
+      {
+        "column_name": "payload",
+        "data_type": "jsonb",
+        "character_maximum_length": null,
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "column_name": "type",
+        "data_type": "text",
+        "character_maximum_length": null,
+        "is_nullable": "NO",
+        "column_default": "'text'::text"
+      },
+      {
+        "column_name": "metadata",
+        "data_type": "jsonb",
+        "character_maximum_length": null,
+        "is_nullable": "YES",
+        "column_default": "'{}'::jsonb"
+      },
+      {
+        "column_name": "template_id",
+        "data_type": "uuid",
+        "character_maximum_length": null,
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "column_name": "delivered_at",
+        "data_type": "timestamp with time zone",
+        "character_maximum_length": null,
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "column_name": "read_at",
+        "data_type": "timestamp with time zone",
+        "character_maximum_length": null,
+        "is_nullable": "YES",
+        "column_default": null
+      }
+    ],
+    "recetteResults": [
+      {
+        "column_name": "id",
+        "data_type": "uuid",
+        "character_maximum_length": null,
+        "is_nullable": "NO",
+        "column_default": "uuid_generate_v4()"
+      },
+      {
+        "column_name": "conversation_id",
+        "data_type": "uuid",
+        "character_maximum_length": null,
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "column_name": "content",
+        "data_type": "text",
+        "character_maximum_length": null,
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "column_name": "type",
+        "data_type": "text",
+        "character_maximum_length": null,
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "column_name": "direction",
+        "data_type": "text",
+        "character_maximum_length": null,
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "column_name": "created_at",
+        "data_type": "timestamp with time zone",
+        "character_maximum_length": null,
+        "is_nullable": "NO",
+        "column_default": "timezone('utc'::text, now())"
+      },
+      {
+        "column_name": "metadata",
+        "data_type": "jsonb",
+        "character_maximum_length": null,
+        "is_nullable": "YES",
+        "column_default": "'{}'::jsonb"
+      },
+      {
+        "column_name": "template_id",
+        "data_type": "uuid",
+        "character_maximum_length": null,
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "column_name": "delivered_at",
+        "data_type": "timestamp with time zone",
+        "character_maximum_length": null,
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "column_name": "read_at",
+        "data_type": "timestamp with time zone",
+        "character_maximum_length": null,
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "column_name": "status",
+        "data_type": "text",
+        "character_maximum_length": null,
+        "is_nullable": "YES",
+        "column_default": "'sent'::text"
+      }
+    ],
+    "comparison": {
+      "identical": false,
+      "prodCount": 12,
+      "recetteCount": 11,
+      "differences": "Nombre différent d'éléments",
+      "prodResults": [
+        {
+          "column_name": "id",
+          "data_type": "uuid",
+          "character_maximum_length": null,
+          "is_nullable": "NO",
+          "column_default": "gen_random_uuid()"
+        },
+        {
+          "column_name": "conversation_id",
+          "data_type": "uuid",
+          "character_maximum_length": null,
+          "is_nullable": "NO",
+          "column_default": null
+        },
+        {
+          "column_name": "content",
+          "data_type": "text",
+          "character_maximum_length": null,
+          "is_nullable": "NO",
+          "column_default": null
+        },
+        {
+          "column_name": "direction",
+          "data_type": "text",
+          "character_maximum_length": null,
+          "is_nullable": "NO",
+          "column_default": null
+        },
+        {
+          "column_name": "status",
+          "data_type": "text",
+          "character_maximum_length": null,
+          "is_nullable": "YES",
+          "column_default": "'pending'::text"
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp with time zone",
+          "character_maximum_length": null,
+          "is_nullable": "YES",
+          "column_default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "column_name": "payload",
+          "data_type": "jsonb",
+          "character_maximum_length": null,
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "type",
+          "data_type": "text",
+          "character_maximum_length": null,
+          "is_nullable": "NO",
+          "column_default": "'text'::text"
+        },
+        {
+          "column_name": "metadata",
+          "data_type": "jsonb",
+          "character_maximum_length": null,
+          "is_nullable": "YES",
+          "column_default": "'{}'::jsonb"
+        },
+        {
+          "column_name": "template_id",
+          "data_type": "uuid",
+          "character_maximum_length": null,
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "delivered_at",
+          "data_type": "timestamp with time zone",
+          "character_maximum_length": null,
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "read_at",
+          "data_type": "timestamp with time zone",
+          "character_maximum_length": null,
+          "is_nullable": "YES",
+          "column_default": null
+        }
+      ],
+      "recetteResults": [
+        {
+          "column_name": "id",
+          "data_type": "uuid",
+          "character_maximum_length": null,
+          "is_nullable": "NO",
+          "column_default": "uuid_generate_v4()"
+        },
+        {
+          "column_name": "conversation_id",
+          "data_type": "uuid",
+          "character_maximum_length": null,
+          "is_nullable": "NO",
+          "column_default": null
+        },
+        {
+          "column_name": "content",
+          "data_type": "text",
+          "character_maximum_length": null,
+          "is_nullable": "NO",
+          "column_default": null
+        },
+        {
+          "column_name": "type",
+          "data_type": "text",
+          "character_maximum_length": null,
+          "is_nullable": "NO",
+          "column_default": null
+        },
+        {
+          "column_name": "direction",
+          "data_type": "text",
+          "character_maximum_length": null,
+          "is_nullable": "NO",
+          "column_default": null
+        },
+        {
+          "column_name": "created_at",
+          "data_type": "timestamp with time zone",
+          "character_maximum_length": null,
+          "is_nullable": "NO",
+          "column_default": "timezone('utc'::text, now())"
+        },
+        {
+          "column_name": "metadata",
+          "data_type": "jsonb",
+          "character_maximum_length": null,
+          "is_nullable": "YES",
+          "column_default": "'{}'::jsonb"
+        },
+        {
+          "column_name": "template_id",
+          "data_type": "uuid",
+          "character_maximum_length": null,
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "delivered_at",
+          "data_type": "timestamp with time zone",
+          "character_maximum_length": null,
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "read_at",
+          "data_type": "timestamp with time zone",
+          "character_maximum_length": null,
+          "is_nullable": "YES",
+          "column_default": null
+        },
+        {
+          "column_name": "status",
+          "data_type": "text",
+          "character_maximum_length": null,
+          "is_nullable": "YES",
+          "column_default": "'sent'::text"
+        }
+      ]
+    }
+  },
+  "Structure de la table 'whatsapp_config'": {
+    "identical": true,
+    "prodResults": [
+      {
+        "column_name": "id",
+        "data_type": "uuid",
+        "character_maximum_length": null,
+        "is_nullable": "NO",
+        "column_default": "gen_random_uuid()"
+      },
+      {
+        "column_name": "phone_number_id",
+        "data_type": "text",
+        "character_maximum_length": null,
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "column_name": "token",
+        "data_type": "text",
+        "character_maximum_length": null,
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "column_name": "created_at",
+        "data_type": "timestamp with time zone",
+        "character_maximum_length": null,
+        "is_nullable": "YES",
+        "column_default": "CURRENT_TIMESTAMP"
+      },
+      {
+        "column_name": "updated_at",
+        "data_type": "timestamp with time zone",
+        "character_maximum_length": null,
+        "is_nullable": "YES",
+        "column_default": "CURRENT_TIMESTAMP"
+      }
+    ],
+    "recetteResults": [
+      {
+        "column_name": "id",
+        "data_type": "uuid",
+        "character_maximum_length": null,
+        "is_nullable": "NO",
+        "column_default": "gen_random_uuid()"
+      },
+      {
+        "column_name": "phone_number_id",
+        "data_type": "text",
+        "character_maximum_length": null,
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "column_name": "token",
+        "data_type": "text",
+        "character_maximum_length": null,
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "column_name": "created_at",
+        "data_type": "timestamp with time zone",
+        "character_maximum_length": null,
+        "is_nullable": "YES",
+        "column_default": "CURRENT_TIMESTAMP"
+      },
+      {
+        "column_name": "updated_at",
+        "data_type": "timestamp with time zone",
+        "character_maximum_length": null,
+        "is_nullable": "YES",
+        "column_default": "CURRENT_TIMESTAMP"
+      }
+    ],
+    "comparison": {
+      "identical": true,
+      "differences": "Aucune différence"
+    }
+  },
+  "Permissions sur la table 'conversations'": {
+    "identical": true,
+    "prodResults": [
+      {
+        "grantor": "postgres",
+        "grantee": "anon",
+        "privilege_type": "DELETE"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "anon",
+        "privilege_type": "INSERT"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "anon",
+        "privilege_type": "REFERENCES"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "anon",
+        "privilege_type": "SELECT"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "anon",
+        "privilege_type": "TRIGGER"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "anon",
+        "privilege_type": "TRUNCATE"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "anon",
+        "privilege_type": "UPDATE"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "authenticated",
+        "privilege_type": "DELETE"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "authenticated",
+        "privilege_type": "INSERT"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "authenticated",
+        "privilege_type": "REFERENCES"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "authenticated",
+        "privilege_type": "SELECT"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "authenticated",
+        "privilege_type": "TRIGGER"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "authenticated",
+        "privilege_type": "TRUNCATE"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "authenticated",
+        "privilege_type": "UPDATE"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "postgres",
+        "privilege_type": "DELETE"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "postgres",
+        "privilege_type": "INSERT"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "postgres",
+        "privilege_type": "REFERENCES"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "postgres",
+        "privilege_type": "SELECT"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "postgres",
+        "privilege_type": "TRIGGER"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "postgres",
+        "privilege_type": "TRUNCATE"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "postgres",
+        "privilege_type": "UPDATE"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "service_role",
+        "privilege_type": "DELETE"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "service_role",
+        "privilege_type": "INSERT"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "service_role",
+        "privilege_type": "REFERENCES"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "service_role",
+        "privilege_type": "SELECT"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "service_role",
+        "privilege_type": "TRIGGER"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "service_role",
+        "privilege_type": "TRUNCATE"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "service_role",
+        "privilege_type": "UPDATE"
+      }
+    ],
+    "recetteResults": [
+      {
+        "grantor": "postgres",
+        "grantee": "anon",
+        "privilege_type": "DELETE"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "anon",
+        "privilege_type": "INSERT"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "anon",
+        "privilege_type": "REFERENCES"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "anon",
+        "privilege_type": "SELECT"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "anon",
+        "privilege_type": "TRIGGER"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "anon",
+        "privilege_type": "TRUNCATE"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "anon",
+        "privilege_type": "UPDATE"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "authenticated",
+        "privilege_type": "DELETE"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "authenticated",
+        "privilege_type": "INSERT"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "authenticated",
+        "privilege_type": "REFERENCES"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "authenticated",
+        "privilege_type": "SELECT"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "authenticated",
+        "privilege_type": "TRIGGER"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "authenticated",
+        "privilege_type": "TRUNCATE"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "authenticated",
+        "privilege_type": "UPDATE"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "postgres",
+        "privilege_type": "DELETE"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "postgres",
+        "privilege_type": "INSERT"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "postgres",
+        "privilege_type": "REFERENCES"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "postgres",
+        "privilege_type": "SELECT"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "postgres",
+        "privilege_type": "TRIGGER"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "postgres",
+        "privilege_type": "TRUNCATE"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "postgres",
+        "privilege_type": "UPDATE"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "service_role",
+        "privilege_type": "DELETE"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "service_role",
+        "privilege_type": "INSERT"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "service_role",
+        "privilege_type": "REFERENCES"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "service_role",
+        "privilege_type": "SELECT"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "service_role",
+        "privilege_type": "TRIGGER"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "service_role",
+        "privilege_type": "TRUNCATE"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "service_role",
+        "privilege_type": "UPDATE"
+      }
+    ],
+    "comparison": {
+      "identical": true,
+      "differences": "Aucune différence"
+    }
+  },
+  "Permissions sur la table 'messages'": {
+    "identical": true,
+    "prodResults": [
+      {
+        "grantor": "postgres",
+        "grantee": "anon",
+        "privilege_type": "DELETE"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "anon",
+        "privilege_type": "INSERT"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "anon",
+        "privilege_type": "REFERENCES"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "anon",
+        "privilege_type": "SELECT"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "anon",
+        "privilege_type": "TRIGGER"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "anon",
+        "privilege_type": "TRUNCATE"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "anon",
+        "privilege_type": "UPDATE"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "authenticated",
+        "privilege_type": "DELETE"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "authenticated",
+        "privilege_type": "INSERT"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "authenticated",
+        "privilege_type": "REFERENCES"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "authenticated",
+        "privilege_type": "SELECT"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "authenticated",
+        "privilege_type": "TRIGGER"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "authenticated",
+        "privilege_type": "TRUNCATE"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "authenticated",
+        "privilege_type": "UPDATE"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "postgres",
+        "privilege_type": "DELETE"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "postgres",
+        "privilege_type": "INSERT"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "postgres",
+        "privilege_type": "REFERENCES"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "postgres",
+        "privilege_type": "SELECT"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "postgres",
+        "privilege_type": "TRIGGER"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "postgres",
+        "privilege_type": "TRUNCATE"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "postgres",
+        "privilege_type": "UPDATE"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "service_role",
+        "privilege_type": "DELETE"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "service_role",
+        "privilege_type": "INSERT"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "service_role",
+        "privilege_type": "REFERENCES"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "service_role",
+        "privilege_type": "SELECT"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "service_role",
+        "privilege_type": "TRIGGER"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "service_role",
+        "privilege_type": "TRUNCATE"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "service_role",
+        "privilege_type": "UPDATE"
+      }
+    ],
+    "recetteResults": [
+      {
+        "grantor": "postgres",
+        "grantee": "anon",
+        "privilege_type": "DELETE"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "anon",
+        "privilege_type": "INSERT"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "anon",
+        "privilege_type": "REFERENCES"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "anon",
+        "privilege_type": "SELECT"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "anon",
+        "privilege_type": "TRIGGER"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "anon",
+        "privilege_type": "TRUNCATE"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "anon",
+        "privilege_type": "UPDATE"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "authenticated",
+        "privilege_type": "DELETE"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "authenticated",
+        "privilege_type": "INSERT"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "authenticated",
+        "privilege_type": "REFERENCES"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "authenticated",
+        "privilege_type": "SELECT"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "authenticated",
+        "privilege_type": "TRIGGER"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "authenticated",
+        "privilege_type": "TRUNCATE"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "authenticated",
+        "privilege_type": "UPDATE"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "postgres",
+        "privilege_type": "DELETE"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "postgres",
+        "privilege_type": "INSERT"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "postgres",
+        "privilege_type": "REFERENCES"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "postgres",
+        "privilege_type": "SELECT"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "postgres",
+        "privilege_type": "TRIGGER"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "postgres",
+        "privilege_type": "TRUNCATE"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "postgres",
+        "privilege_type": "UPDATE"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "service_role",
+        "privilege_type": "DELETE"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "service_role",
+        "privilege_type": "INSERT"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "service_role",
+        "privilege_type": "REFERENCES"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "service_role",
+        "privilege_type": "SELECT"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "service_role",
+        "privilege_type": "TRIGGER"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "service_role",
+        "privilege_type": "TRUNCATE"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "service_role",
+        "privilege_type": "UPDATE"
+      }
+    ],
+    "comparison": {
+      "identical": true,
+      "differences": "Aucune différence"
+    }
+  },
+  "Permissions sur la table 'whatsapp_config'": {
+    "identical": true,
+    "prodResults": [
+      {
+        "grantor": "postgres",
+        "grantee": "anon",
+        "privilege_type": "DELETE"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "anon",
+        "privilege_type": "INSERT"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "anon",
+        "privilege_type": "REFERENCES"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "anon",
+        "privilege_type": "SELECT"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "anon",
+        "privilege_type": "TRIGGER"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "anon",
+        "privilege_type": "TRUNCATE"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "anon",
+        "privilege_type": "UPDATE"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "authenticated",
+        "privilege_type": "DELETE"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "authenticated",
+        "privilege_type": "INSERT"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "authenticated",
+        "privilege_type": "REFERENCES"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "authenticated",
+        "privilege_type": "SELECT"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "authenticated",
+        "privilege_type": "TRIGGER"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "authenticated",
+        "privilege_type": "TRUNCATE"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "authenticated",
+        "privilege_type": "UPDATE"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "postgres",
+        "privilege_type": "DELETE"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "postgres",
+        "privilege_type": "INSERT"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "postgres",
+        "privilege_type": "REFERENCES"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "postgres",
+        "privilege_type": "SELECT"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "postgres",
+        "privilege_type": "TRIGGER"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "postgres",
+        "privilege_type": "TRUNCATE"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "postgres",
+        "privilege_type": "UPDATE"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "service_role",
+        "privilege_type": "DELETE"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "service_role",
+        "privilege_type": "INSERT"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "service_role",
+        "privilege_type": "REFERENCES"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "service_role",
+        "privilege_type": "SELECT"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "service_role",
+        "privilege_type": "TRIGGER"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "service_role",
+        "privilege_type": "TRUNCATE"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "service_role",
+        "privilege_type": "UPDATE"
+      }
+    ],
+    "recetteResults": [
+      {
+        "grantor": "postgres",
+        "grantee": "anon",
+        "privilege_type": "DELETE"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "anon",
+        "privilege_type": "INSERT"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "anon",
+        "privilege_type": "REFERENCES"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "anon",
+        "privilege_type": "SELECT"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "anon",
+        "privilege_type": "TRIGGER"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "anon",
+        "privilege_type": "TRUNCATE"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "anon",
+        "privilege_type": "UPDATE"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "authenticated",
+        "privilege_type": "DELETE"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "authenticated",
+        "privilege_type": "INSERT"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "authenticated",
+        "privilege_type": "REFERENCES"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "authenticated",
+        "privilege_type": "SELECT"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "authenticated",
+        "privilege_type": "TRIGGER"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "authenticated",
+        "privilege_type": "TRUNCATE"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "authenticated",
+        "privilege_type": "UPDATE"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "postgres",
+        "privilege_type": "DELETE"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "postgres",
+        "privilege_type": "INSERT"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "postgres",
+        "privilege_type": "REFERENCES"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "postgres",
+        "privilege_type": "SELECT"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "postgres",
+        "privilege_type": "TRIGGER"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "postgres",
+        "privilege_type": "TRUNCATE"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "postgres",
+        "privilege_type": "UPDATE"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "service_role",
+        "privilege_type": "DELETE"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "service_role",
+        "privilege_type": "INSERT"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "service_role",
+        "privilege_type": "REFERENCES"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "service_role",
+        "privilege_type": "SELECT"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "service_role",
+        "privilege_type": "TRIGGER"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "service_role",
+        "privilege_type": "TRUNCATE"
+      },
+      {
+        "grantor": "postgres",
+        "grantee": "service_role",
+        "privilege_type": "UPDATE"
+      }
+    ],
+    "comparison": {
+      "identical": true,
+      "differences": "Aucune différence"
+    }
+  },
+  "Triggers sur la table 'messages'": {
+    "identical": true,
+    "prodResults": [
+      {
+        "trigger_name": "handle_messages_updated_at",
+        "action_timing": "BEFORE",
+        "event_manipulation": "UPDATE",
+        "action_statement": "EXECUTE FUNCTION handle_updated_at()"
+      }
+    ],
+    "recetteResults": [
+      {
+        "trigger_name": "handle_messages_updated_at",
+        "action_timing": "BEFORE",
+        "event_manipulation": "UPDATE",
+        "action_statement": "EXECUTE FUNCTION handle_updated_at()"
+      }
+    ],
+    "comparison": {
+      "identical": true,
+      "differences": "Aucune différence"
+    }
+  },
+  "Triggers sur la table 'conversations'": {
+    "identical": true,
+    "prodResults": [],
+    "recetteResults": [],
+    "comparison": {
+      "identical": true,
+      "differences": "Aucune différence"
+    }
+  },
+  "Triggers sur la table 'whatsapp_config'": {
+    "identical": true,
+    "prodResults": [
+      {
+        "trigger_name": "update_whatsapp_config_updated_at",
+        "action_timing": "BEFORE",
+        "event_manipulation": "UPDATE",
+        "action_statement": "EXECUTE FUNCTION update_whatsapp_config_updated_at()"
+      }
+    ],
+    "recetteResults": [
+      {
+        "trigger_name": "update_whatsapp_config_updated_at",
+        "action_timing": "BEFORE",
+        "event_manipulation": "UPDATE",
+        "action_statement": "EXECUTE FUNCTION update_whatsapp_config_updated_at()"
+      }
+    ],
+    "comparison": {
+      "identical": true,
+      "differences": "Aucune différence"
+    }
+  }
+}

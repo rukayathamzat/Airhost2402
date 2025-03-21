@@ -1,0 +1,13 @@
+CREATE TABLE IF NOT EXISTS public.whatsapp_config (
+  id SERIAL PRIMARY KEY,
+  phone_number_id TEXT NOT NULL,
+  token TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+INSERT INTO public.whatsapp_config (phone_number_id, token)
+VALUES (
+  '477925252079395',
+  'EAAX0gXt8e64BO0HWIvhM3PzfaqdxUVPtcFjYXFtZC14NtdjmrNP13r7xaQtewLbjM9zYbgAcZAkkJCF0pZBRPEorCJjQBbERrM290mvtDD1ZC7HPLt3cEWnXxGxpZCpeCBDjZAjSUpfxZBPcCwcGTrFgShXV0Jd6smYruZBzWfbWEQ2yWcI8ZAbGShsOtRXpUfCXMe2fTc0UadD4d4ZC5UwCAZBQqlk'
+);

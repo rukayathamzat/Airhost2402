@@ -1,0 +1,11 @@
+{
+  "name": "netlify-functions",
+  "version": "1.0.0",
+  "dependencies": {
+    "@netlify/functions": "^2.0.0",
+    "@supabase/supabase-js": "^2.49.1",
+    "firebase-admin": "^13.2.0",
+    "node-fetch": "^2.6.1",
+    "openai": "^4.85.4"
+  }
+}
