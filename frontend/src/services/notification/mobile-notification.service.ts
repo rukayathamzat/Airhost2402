@@ -196,45 +196,91 @@ export class MobileNotificationService extends BaseNotificationService {
     try {
       console.log('[NOTIF DEBUG] Test d\'envoi de notification avec token test');
       
+      // 1. Vérifier si nous avons un token FCM enregistré
+      console.log('[NOTIF DEBUG] Token FCM actuel:', this.fcmToken);
+      const localToken = localStorage.getItem('fcm_token');
+      console.log('[NOTIF DEBUG] Token FCM dans localStorage:', localToken);
+      
       // Récupération du token JWT pour authentifier la demande
-      const { data: { session } } = await supabase.auth.getSession();
+      console.log('[NOTIF DEBUG] Récupération de la session utilisateur...');
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        console.error('[NOTIF DEBUG] Erreur de session:', sessionError);
+        throw new Error(`Erreur de session: ${sessionError.message}`);
+      }
+      
       if (!session?.access_token) {
+        console.error('[NOTIF DEBUG] Pas de token d\'accès dans la session');
         throw new Error('Session utilisateur non disponible');
       }
       
       console.log('[NOTIF DEBUG] Token JWT obtenu, envoi de la notification test');
       
-      // Utilisation de l'Edge Function Supabase
-      const response = await fetch('https://pnbfsiicxhckptlgtjoj.supabase.co/functions/v1/fcm-proxy', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
+      // URL de l'Edge Function Supabase
+      const edgeFunctionUrl = 'https://pnbfsiicxhckptlgtjoj.supabase.co/functions/v1/fcm-proxy';
+      console.log('[NOTIF DEBUG] URL de l\'Edge Function:', edgeFunctionUrl);
+      
+      // Corps de la requête
+      const requestBody = {
+        to: this.fcmToken || 'test-fcm-token', // Utiliser le token réel si disponible
+        notification: {
+          title: 'Test de notification',
+          body: 'Ceci est un test de notification push'
         },
-        body: JSON.stringify({
-          to: 'test-fcm-token',
-          notification: {
-            title: 'Test de notification',
-            body: 'Ceci est un test de notification push'
+        data: {
+          type: 'test',
+          timestamp: new Date().toISOString()
+        }
+      };
+      
+      console.log('[NOTIF DEBUG] Corps de la requête:', JSON.stringify(requestBody));
+      
+      // Tentative d'envoi avec gestion d'erreur détaillée
+      try {
+        console.log('[NOTIF DEBUG] Envoi de la requête...');
+        const response = await fetch(edgeFunctionUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`
           },
-          data: {
-            type: 'test',
-            timestamp: new Date().toISOString()
-          }
-        })
-      });
-      
-      const responseData = await response.json();
-      console.log('[NOTIF DEBUG] Réponse du test de notification:', responseData);
-      
-      if (!response.ok) {
-        throw new Error(`Erreur lors du test: ${responseData.error || 'Erreur inconnue'}`);
+          body: JSON.stringify(requestBody)
+        });
+        
+        console.log('[NOTIF DEBUG] Réponse reçue, statut:', response.status);
+        
+        // Tenter de récupérer le corps de la réponse même en cas d'erreur
+        let responseData;
+        try {
+          responseData = await response.json();
+          console.log('[NOTIF DEBUG] Réponse en JSON:', responseData);
+        } catch (jsonError) {
+          console.error('[NOTIF DEBUG] Impossible de parser la réponse en JSON:', jsonError);
+          const textResponse = await response.text();
+          console.log('[NOTIF DEBUG] Réponse en texte:', textResponse);
+          responseData = { error: 'Format de réponse invalide', text: textResponse };
+        }
+        
+        if (!response.ok) {
+          console.error('[NOTIF DEBUG] La requête a échoué, code:', response.status);
+          throw new Error(`Erreur HTTP ${response.status}: ${responseData.error || 'Erreur inconnue'}`);
+        }
+        
+        // Succès
+        console.log('[NOTIF DEBUG] Test de notification réussi!', responseData);
+        return responseData;
+      } catch (fetchError) {
+        console.error('[NOTIF DEBUG] Erreur fetch:', fetchError);
+        // Vérifier si c'est une erreur réseau
+        if (fetchError instanceof TypeError && fetchError.message.includes('fetch')) {
+          console.error('[NOTIF DEBUG] Erreur de connexion réseau. Vérifiez votre connexion internet.');
+          throw new Error(`Erreur de connexion: ${fetchError.message}. Vérifiez que vous êtes connecté à internet.`);
+        }
+        throw fetchError;
       }
-      
-      console.log('[NOTIF DEBUG] Test de notification réussi!', responseData);
-      return responseData;
     } catch (error) {
-      console.error('[NOTIF DEBUG] Erreur lors du test de notification:', error);
+      console.error('[NOTIF DEBUG] Erreur globale lors du test de notification:', error);
       throw error;
     }
   }
