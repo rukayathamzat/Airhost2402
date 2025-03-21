@@ -282,26 +282,34 @@ export class MobileNotificationService extends BaseNotificationService {
             // La réponse sera opaque (status 0, type: 'opaque') mais la requête sera envoyée
             console.log('[NOTIF DEBUG] Requête no-cors envoyée, réponse:', noCorsFetch.type);
             
-            // Simuler une notification locale car nous ne pouvons pas voir la réponse en mode no-cors
-            if ('Notification' in window) {
-              console.log('[NOTIF DEBUG] Simulation d\'une notification locale');
-              
-              const notification = new Notification('Test de notification', {
-                body: 'Ceci est un test de notification (mode local)',
-                icon: '/favicon.ico'
-              });
-              
-              notification.onclick = () => {
-                console.log('[NOTIF DEBUG] Notification locale cliquée');
-                window.focus();
-              };
-              
-              // On retourne void comme attendu par la signature
-              console.log('[NOTIF DEBUG] Notification locale affichée');
-              return;
+            // Simuler une notification via le service worker
+            console.log('[NOTIF DEBUG] Tentative d\'affichage d\'une notification via service worker');
+            
+            try {
+              if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+                // Récupérer l'enregistrement du service worker actif
+                const registration = await navigator.serviceWorker.ready;
+                
+                if (registration && registration.showNotification) {
+                  await registration.showNotification('Test de notification', {
+                    body: 'Ceci est un test de notification (via service worker)',
+                    icon: '/favicon.ico',
+                    tag: 'test-notification',
+                    data: { type: 'test', timestamp: new Date().toISOString() }
+                  });
+                  
+                  console.log('[NOTIF DEBUG] Notification via service worker affichée');
+                } else {
+                  console.error('[NOTIF DEBUG] L\'enregistrement du service worker n\'a pas de méthode showNotification');
+                }
+              } else {
+                console.error('[NOTIF DEBUG] Service worker non disponible ou non contrôlé');
+              }
+            } catch (notifError) {
+              console.error('[NOTIF DEBUG] Erreur lors de l\'affichage de la notification via service worker:', notifError);
             }
             
-            console.log('[NOTIF DEBUG] Requête no-cors envoyée avec succès');
+            // On retourne void comme attendu par la signature
             return;
           }
           
@@ -310,18 +318,37 @@ export class MobileNotificationService extends BaseNotificationService {
       } catch (fetchError) {
         console.error('[NOTIF DEBUG] Erreur fetch:', fetchError);
         
-        // En cas d'erreur, tenter de simuler une notification locale
-        if ('Notification' in window && Notification.permission === 'granted') {
-          console.log('[NOTIF DEBUG] Erreur d\'envoi, simulation d\'une notification locale');
-          
-          // Créer et utiliser la notification locale
-          new Notification('Test de notification', {
-            body: 'Notification locale (après erreur Edge Function)',
-            icon: '/favicon.ico'
-          });
-          
-          // Lève quand même l'erreur d'origine pour l'afficher dans l'UI
-          throw new Error(`Erreur de connexion: ${fetchError instanceof Error ? fetchError.message : 'Erreur inconnue'}. Une notification locale a été simulée à la place.`);
+        // En cas d'erreur, tenter de simuler une notification via le service worker
+        try {
+          if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+            console.log('[NOTIF DEBUG] Erreur d\'envoi, tentative via service worker');
+            
+            // Récupérer l'enregistrement du service worker actif
+            const registration = await navigator.serviceWorker.ready;
+            
+            if (registration && registration.showNotification) {
+              await registration.showNotification('Test de notification', {
+                body: 'Test via service worker (après erreur Edge Function)',
+                icon: '/favicon.ico',
+                // vibrate est supporté par l'API mais pas par le type TypeScript
+                // @ts-ignore
+                vibrate: [200, 100, 200],
+                tag: 'error-notification',
+                data: { type: 'error', timestamp: new Date().toISOString() }
+              });
+              
+              console.log('[NOTIF DEBUG] Notification d\'erreur via service worker affichée');
+              
+              // Lève quand même l'erreur d'origine mais informe de la simulation
+              throw new Error(`Erreur de connexion: ${fetchError instanceof Error ? fetchError.message : 'Erreur inconnue'}. Une notification via service worker a été simulée à la place.`);
+            } else {
+              console.error('[NOTIF DEBUG] Service worker sans méthode showNotification');
+            }
+          } else {
+            console.error('[NOTIF DEBUG] Service worker non disponible pour notifications');
+          }
+        } catch (notifError) {
+          console.error('[NOTIF DEBUG] Erreur lors de la notification via service worker:', notifError);
         }
         
         throw fetchError;
