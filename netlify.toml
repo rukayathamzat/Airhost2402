@@ -14,6 +14,7 @@
 
 [functions]
   directory = "frontend/netlify/functions"
+  included_files = ["!**/fcm-send.js"]
 
 [[plugins]]
   package = "@netlify/plugin-functions-install-core"
