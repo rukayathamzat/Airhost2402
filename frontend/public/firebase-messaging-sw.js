@@ -6,12 +6,18 @@ importScripts('https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js'
 importScripts('https://www.gstatic.com/firebasejs/9.6.10/firebase-messaging-compat.js');
 
 // Configuration Firebase - Uniquement données publiques
-firebase.initializeApp({
-  apiKey: "AIzaSyBVmT8MxmCnCL2RrHA5y5ftvHxcbkcj5Co",  // API key publique limitée aux notifications
+const firebaseConfig = {
+  apiKey: "AIzaSyDIR2xWvAVLOw1VtKFkK-bDdxOd9dCzC5w",  // API key publique limitée aux notifications
+  authDomain: "airhost-d9c48.firebaseapp.com",
   projectId: "airhost-d9c48",
+  storageBucket: "airhost-d9c48.appspot.com",
   messagingSenderId: "107044522957",
   appId: "1:107044522957:web:ad4e9a0c48dc18cd2bb18e"
-});
+};
+
+console.log('[FIREBASE-SW DEBUG] Configuration Firebase utilisée:', JSON.stringify(firebaseConfig));
+
+firebase.initializeApp(firebaseConfig);
 
 const messaging = firebase.messaging();
 

@@ -5,11 +5,15 @@ import { getMessaging, getToken, onMessage, Messaging, MessagePayload } from 'fi
 // Configuration Firebase - Utilisez ces informations pour l'initialisation côté client
 // Ces données sont publiques et peuvent être incluses en toute sécurité dans le code
 const firebaseConfig = {
-  apiKey: "AIzaSyBVmT8MxmCnCL2RrHA5y5ftvHxcbkcj5Co", // Cette clé est publique et limitée aux notifications
+  apiKey: "AIzaSyDIR2xWvAVLOw1VtKFkK-bDdxOd9dCzC5w", // Utiliser la même clé API que dans le service worker
+  authDomain: "airhost-d9c48.firebaseapp.com",
   projectId: "airhost-d9c48",
+  storageBucket: "airhost-d9c48.appspot.com",
   messagingSenderId: "107044522957",
   appId: "1:107044522957:web:ad4e9a0c48dc18cd2bb18e"
 };
+
+console.log('[FIREBASE DEBUG] Configuration Firebase utilisée:', JSON.stringify(firebaseConfig));
 
 // Initialisation de l'application Firebase
 let firebaseApp: any;
