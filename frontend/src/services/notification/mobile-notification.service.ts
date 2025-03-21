@@ -133,8 +133,25 @@ export class MobileNotificationService extends BaseNotificationService {
    * Envoie une notification push via FCM
    */
   static async sendPushNotification(message: Message): Promise<void> {
+    console.log('[NOTIF DEBUG] Tentative d\'envoi de notification push pour le message:', message.id);
+    
+    // Vérifier tous les prérequis
     if (!this.fcmToken) {
       console.warn('[NOTIF DEBUG] Pas de token FCM disponible');
+      return;
+    }
+    
+    // Vérifier les permissions
+    const permission = this.getNotificationPermission();
+    if (permission !== 'granted') {
+      console.warn('[NOTIF DEBUG] Permission de notification non accordée:', permission);
+      return;
+    }
+    
+    // Vérifier que le service worker est enregistré
+    const isRegistered = this.isServiceWorkerRegistered();
+    if (!isRegistered) {
+      console.warn('[NOTIF DEBUG] Service worker non enregistré');
       return;
     }
 
@@ -187,12 +204,54 @@ export class MobileNotificationService extends BaseNotificationService {
    * Vérifie si les notifications push sont disponibles
    */
   static async arePushNotificationsAvailable(): Promise<boolean> {
-    return !!this.fcmToken && this.isServiceWorkerRegistered();
+    // Vérifier si un token FCM est disponible
+    const fcmToken = this.fcmToken || localStorage.getItem('fcm_token');
+    console.log('[NOTIF DEBUG] Vérification disponibilité notifications push - Token FCM:', !!fcmToken);
+    
+    // Vérifier si le service worker est enregistré
+    const isSwRegistered = this.isServiceWorkerRegistered();
+    console.log('[NOTIF DEBUG] Vérification disponibilité notifications push - Service Worker:', isSwRegistered);
+    
+    // Vérifier si les notifications sont autorisées
+    const notificationPermission = this.getNotificationPermission();
+    console.log('[NOTIF DEBUG] Vérification disponibilité notifications push - Permission:', notificationPermission);
+    
+    return !!fcmToken && isSwRegistered && notificationPermission === 'granted';
   }
 
   /**
    * Méthode de test pour envoyer une notification au token de test
    */
+  /**
+   * Vérifie si le service worker est enregistré
+   * Note: réimplémentation de la méthode de la classe de base
+   */
+  static isServiceWorkerRegistered(): boolean {
+    // D'abord vérifier avec la méthode de la classe de base
+    const baseRegistration = super.isServiceWorkerRegistered();
+    if (baseRegistration) {
+      return true;
+    }
+    
+    // Vérification supplémentaire pour les PWA mobiles
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+      return true;
+    }
+    
+    return false;
+  }
+  
+  /**
+   * Récupère la permission actuelle pour les notifications
+   */
+  static getNotificationPermission(): NotificationPermission {
+    if (!('Notification' in window)) {
+      return 'denied';
+    }
+    
+    return Notification.permission;
+  }
+  
   static async sendTestNotification(): Promise<void> {
     try {
       console.log('[NOTIF DEBUG] Test d\'envoi de notification avec token test');
