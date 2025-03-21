@@ -12,8 +12,22 @@ const firebaseConfig = {
 };
 
 // Initialisation de l'application Firebase
-const firebaseApp = initializeApp(firebaseConfig);
-const messaging = getMessaging(firebaseApp);
+let firebaseApp: any;
+let messaging: Messaging;
+
+try {
+  console.log('[FIREBASE DEBUG] Initialisation de Firebase avec config:', firebaseConfig);
+  firebaseApp = initializeApp(firebaseConfig);
+  console.log('[FIREBASE DEBUG] Firebase App initialisé avec succès');
+  
+  messaging = getMessaging(firebaseApp);
+  console.log('[FIREBASE DEBUG] Firebase Messaging initialisé avec succès');
+} catch (error) {
+  console.error('[FIREBASE DEBUG] Erreur lors de l\'initialisation de Firebase:', error);
+  // Initialisation par défaut pour éviter les erreurs
+  firebaseApp = initializeApp(firebaseConfig);
+  messaging = getMessaging(firebaseApp);
+}
 
 // Objet pour stocker la fonction de callback des messages FCM
 let messagingCallback: ((payload: MessagePayload) => void) | null = null;
@@ -61,27 +75,38 @@ export const requestFCMPermission = async (): Promise<string | null> => {
     console.log('[FIREBASE] Permission de notification accordée');
     
     // Récupérer le token FCM
-    const token = await getToken(messaging, {
-      vapidKey: 'BCeZrB7xYF6LkY0vq4NEG3AZaHaKHn2RrzzM5WYtBsQpdYkLQs0tkjx-hcN6XlmNNPt4cKpbLJEi6TP_Qqt7Jck', // Clé VAPID publique
-      serviceWorkerRegistration: registration
-    });
-    
-    console.log('[FIREBASE] Token FCM obtenu:', token);
-
-    // Notification simple au service worker que nous avons un token
+    console.log('[FIREBASE DEBUG] Tentative d\'obtention du token FCM...');
     try {
-      if (registration.active) {
-        registration.active.postMessage({
-          type: 'FCM_TOKEN_RECEIVED',
-          token: token
-        });
-        console.log('[FIREBASE] Token envoyé au service worker');
+      const fcmToken = await getToken(messaging, {
+        vapidKey: 'BCeZrB7xYF6LkY0vq4NEG3AZaHaKHn2RrzzM5WYtBsQpdYkLQs0tkjx-hcN6XlmNNPt4cKpbLJEi6TP_Qqt7Jck', // Clé VAPID publique
+        serviceWorkerRegistration: registration
+      });
+      
+      if (fcmToken) {
+        console.log('[FIREBASE DEBUG] Token FCM obtenu avec succès:', fcmToken);
+        
+        // Notification simple au service worker que nous avons un token
+        try {
+          if (registration.active) {
+            registration.active.postMessage({
+              type: 'FCM_TOKEN_RECEIVED',
+              token: fcmToken
+            });
+            console.log('[FIREBASE] Token envoyé au service worker');
+          }
+        } catch (swError) {
+          console.error('[FIREBASE] Erreur de communication avec le service worker:', swError);
+        }
+        
+        return fcmToken;
+      } else {
+        console.warn('[FIREBASE DEBUG] Token FCM null ou vide');
+        return null;
       }
-    } catch (error) {
-      console.error('[FIREBASE] Erreur de communication avec le service worker:', error);
+    } catch (tokenError) {
+      console.error('[FIREBASE DEBUG] Erreur lors de l\'obtention du token:', tokenError);
+      return null;
     }
-    
-    return token;
   } catch (error) {
     console.error('[FIREBASE] Erreur lors de la demande de permission:', error);
     return null;
@@ -126,7 +151,7 @@ interface FirebaseMessagingInterface {
 }
 
 const firebaseMessaging: FirebaseMessagingInterface = {
-  messaging,
+  messaging: messaging,
   requestFCMPermission,
   setMessagingCallback
 };
