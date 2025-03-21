@@ -118,13 +118,20 @@ export class MobileNotificationService extends BaseNotificationService {
     }
 
     try {
-      console.log('[NOTIF DEBUG] Utilisation de la fonction Netlify pour l\'envoi de notification');
+      console.log('[NOTIF DEBUG] Utilisation de l\'Edge Function Supabase pour l\'envoi de notification');
       
-      // Utilisation de la fonction Netlify au lieu de l'Edge Function Supabase
-      const response = await fetch('/.netlify/functions/fcm-send', {
+      // Récupération du token JWT pour authentifier la demande
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error('Session utilisateur non disponible');
+      }
+      
+      // Utilisation de l'Edge Function Supabase au lieu de la fonction Netlify
+      const response = await fetch('https://pnbfsiicxhckptlgtjoj.supabase.co/functions/v1/fcm-proxy', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
         },
         body: JSON.stringify({
           to: this.fcmToken,
@@ -147,7 +154,7 @@ export class MobileNotificationService extends BaseNotificationService {
 
       // Traitement de la réponse
       const responseData = await response.json();
-      console.log('[NOTIF DEBUG] Réponse de la fonction Netlify:', responseData);
+      console.log('[NOTIF DEBUG] Réponse de l\'Edge Function Supabase:', responseData);
       console.log('[NOTIF DEBUG] Notification push envoyée avec succès');
     } catch (error) {
       console.error('[NOTIF DEBUG] Erreur lors de l\'envoi de la notification push:', error);
