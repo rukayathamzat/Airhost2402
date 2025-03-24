@@ -193,8 +193,9 @@ class FirebaseNotificationService {
       
       console.log('[FIREBASE] Permission de notification accordée');
       
-      // Obtenir le token FCM
+      // Stratégie principale - Obtenir le token FCM avec VAPID key
       try {
+        console.log('[FIREBASE DEBUG] Tentative d\'obtention du token avec VAPID key...');
         const fcmToken = await getToken(this.messagingInstance, {
           vapidKey: 'BCeZrB7xYF6LkY0vq4NEG3AZaHaKHn2RrzzM5WYtBsQpdYkLQs0tkjx-hcN6XlmNNPt4cKpbLJEi6TP_Qqt7Jck',
           serviceWorkerRegistration: registration
@@ -219,12 +220,34 @@ class FirebaseNotificationService {
           return fcmToken;
         } else {
           console.warn('[FIREBASE DEBUG] Token FCM null ou vide');
-          return null;
         }
       } catch (tokenError) {
-        console.error('[FIREBASE DEBUG] Erreur lors de l\'obtention du token:', tokenError);
-        return null;
+        // Ne pas échouer immédiatement, mais essayer la stratégie de secours
+        console.warn('[FIREBASE DEBUG] Erreur avec la stratégie principale:', tokenError);
+        console.log('[FIREBASE DEBUG] Tentative avec la stratégie de secours...');
       }
+      
+      // Stratégie de secours pour environnement de recette et développement
+      // Fournir un token simulé pour permettre le fonctionnement de base de l'application
+      if (window.location.hostname === 'localhost' || window.location.hostname === 'airhost-rec.netlify.app') {
+        const mockToken = `mock-fcm-token-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`;
+        console.log('[FIREBASE DEBUG] Utilisation d\'un token de développement:', mockToken);
+        
+        // Enregistrer ce token de secours dans le service worker
+        if (registration && registration.active) {
+          registration.active.postMessage({
+            type: 'FCM_TOKEN_RECEIVED',
+            token: mockToken,
+            isMockToken: true
+          });
+          console.log('[FIREBASE] Token simulé envoyé au service worker');
+        }
+        
+        return mockToken;
+      }
+      
+      console.error('[FIREBASE DEBUG] Toutes les tentatives d\'obtention de token ont échoué');
+      return null;
     } catch (error) {
       console.error('[FIREBASE] Erreur dans requestFCMPermission:', error);
       return null;
