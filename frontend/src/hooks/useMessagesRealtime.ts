@@ -33,6 +33,12 @@ export function useMessagesRealtime(conversationId: string): UseMessagesRealtime
   const messagesChannelRef = useRef<any>(null);
   const { getLocalMessages } = useMessageSender();
   
+  // Références pour les mécanismes de rafraîchissement spécifiques au mobile
+  const mobileRefreshAttempts = useRef<number>(0);
+  const mobileMessagesCache = useRef<Map<string, Message>>(new Map());
+  const isMobileDevice = useRef<boolean>(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
+  const forceMobileMode = useRef<boolean>(localStorage.getItem('force_mobile_mode') === 'true');
+  
   // Fonction pour charger les messages
   const loadMessages = async (showRefreshing = true, forceNetwork = true) => {
     if (!conversationId) {
@@ -108,8 +114,43 @@ export function useMessagesRealtime(conversationId: string): UseMessagesRealtime
         }
       }
       
-      // Mettre à jour l'état des messages
-      setMessages(sortedMessages);
+      // Spécifique mobile: s'assurer que les messages sont correctement mis à jour
+      if (isMobileDevice.current || forceMobileMode.current) {
+        // Ceci est critique pour les appareils mobiles: force un nouveau tableau
+        // pour garantir que React détecte le changement
+        console.log(`${DEBUG_PREFIX} [${timestamp}] [MOBILE] Application du traitement spécifique mobile`);
+        
+        // Sauvegarder en cache les messages pour pouvoir les restaurer si nécessaire
+        sortedMessages.forEach(msg => {
+          mobileMessagesCache.current.set(msg.id, { ...msg });
+        });
+        
+        // Forcer la mise à jour en créant un nouveau tableau
+        const mobileMessages = [...sortedMessages];
+        
+        // Forcer un délai pour s'assurer que le rendu se fait après l'update du DOM
+        setTimeout(() => {
+          setMessages(mobileMessages);
+          console.log(`${DEBUG_PREFIX} [${timestamp}] [MOBILE] État des messages mis à jour avec délai`);
+          
+          // Incrémenter le compteur de tentatives
+          mobileRefreshAttempts.current += 1;
+          
+          // Si on est à moins de 3 tentatives, programmer un nouveau rafraîchissement
+          if (mobileRefreshAttempts.current < 3) {
+            console.log(`${DEBUG_PREFIX} [${timestamp}] [MOBILE] Programmation d'un rafraîchissement supplémentaire (tentative ${mobileRefreshAttempts.current})`);
+            setTimeout(() => {
+              // Forcer un nouveau rendu avec les mêmes données mais une référence différente
+              const refreshedMessages = sortedMessages.map(msg => ({ ...msg }));
+              setMessages(refreshedMessages);
+            }, 800 * mobileRefreshAttempts.current);
+          }
+        }, 50);
+      } else {
+        // Comportement standard pour les autres appareils
+        setMessages(sortedMessages);
+      }
+      
       setLastMessageCount(sortedMessages.length);
     } catch (error) {
       console.error(`${DEBUG_PREFIX} [${timestamp}] Erreur lors du chargement des messages:`, error);
