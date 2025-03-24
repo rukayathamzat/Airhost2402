@@ -100,11 +100,33 @@ export const requestFCMPermission = async (): Promise<string | null> => {
     }
 
     // S'assurer que le service worker est enregistré
-    const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
-      scope: '/'
-    });
-    console.log('[FIREBASE] Service Worker enregistré avec succès', registration);
+    // Utiliser le service worker principal qui contient maintenant la fonctionnalité Firebase
+    const registration = await navigator.serviceWorker.getRegistration();
     
+    if (!registration) {
+      console.log('[FIREBASE] Aucun service worker enregistré, tentative d\'enregistrement...');
+      const newRegistration = await navigator.serviceWorker.register('/sw.js', {
+        scope: '/'
+      });
+      console.log('[FIREBASE] Service Worker enregistré avec succès', newRegistration);
+      return await requestFCMPermissionWithRegistration(newRegistration);
+    }
+    
+    console.log('[FIREBASE] Service Worker existant utilisé:', registration);
+    
+    // Utiliser la fonction auxiliaire avec la registration existante
+    return await requestFCMPermissionWithRegistration(registration);
+  } catch (error) {
+    console.error('[FIREBASE] Erreur lors de la demande de permission:', error);
+    return null;
+  }
+};
+
+/**
+ * Fonction auxiliaire pour demander la permission FCM avec une registration existante
+ */
+const requestFCMPermissionWithRegistration = async (registration: ServiceWorkerRegistration): Promise<string | null> => {
+  try {
     // Demander la permission de notification
     const permission = await Notification.requestPermission();
     
@@ -116,7 +138,7 @@ export const requestFCMPermission = async (): Promise<string | null> => {
     console.log('[FIREBASE] Permission de notification accordée');
     
     // Récupérer le token FCM
-    console.log('[FIREBASE DEBUG] Tentative d\'obtention du token FCM...');
+    console.log('[FIREBASE DEBUG] Tentative d\'obtention du token FCM avec registration existante...');
     try {
       const fcmToken = await getToken(messaging, {
         vapidKey: 'BCeZrB7xYF6LkY0vq4NEG3AZaHaKHn2RrzzM5WYtBsQpdYkLQs0tkjx-hcN6XlmNNPt4cKpbLJEi6TP_Qqt7Jck', // Clé VAPID publique
@@ -146,10 +168,11 @@ export const requestFCMPermission = async (): Promise<string | null> => {
       }
     } catch (tokenError) {
       console.error('[FIREBASE DEBUG] Erreur lors de l\'obtention du token:', tokenError);
+      console.error('[FIREBASE DEBUG] Détails:', JSON.stringify(tokenError));
       return null;
     }
   } catch (error) {
-    console.error('[FIREBASE] Erreur lors de la demande de permission:', error);
+    console.error('[FIREBASE] Erreur dans requestFCMPermissionWithRegistration:', error);
     return null;
   }
 };
