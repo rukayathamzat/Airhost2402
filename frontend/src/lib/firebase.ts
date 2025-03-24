@@ -140,6 +140,11 @@ const requestFCMPermissionWithRegistration = async (registration: ServiceWorkerR
     // Récupérer le token FCM
     console.log('[FIREBASE DEBUG] Tentative d\'obtention du token FCM avec registration existante...');
     try {
+      if (!messaging) {
+        console.error('[FIREBASE DEBUG] Impossible d\'obtenir le token: messaging est null');
+        return null;
+      }
+
       const fcmToken = await getToken(messaging, {
         vapidKey: 'BCeZrB7xYF6LkY0vq4NEG3AZaHaKHn2RrzzM5WYtBsQpdYkLQs0tkjx-hcN6XlmNNPt4cKpbLJEi6TP_Qqt7Jck', // Clé VAPID publique
         serviceWorkerRegistration: registration
