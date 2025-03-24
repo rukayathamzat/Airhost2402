@@ -16,7 +16,7 @@ import { Session } from '@supabase/supabase-js';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import './App.css';
-import NotificationTestButton from './components/NotificationTestButton';
+// import NotificationTestButton from './components/NotificationTestButton';
 
 function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -165,7 +165,9 @@ function App() {
           }
         />
       </Routes>
-      {session && <NotificationTestButton />}
+      {/* Boutons de test de notification masqués 
+      {session && <NotificationTestButton />} 
+      */}
     </Router>
   );
 }

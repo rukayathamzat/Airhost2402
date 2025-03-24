@@ -444,8 +444,8 @@ export default function Chat() {
                 conversationId={selectedConversation.id}
                 isMobile={isMobile}
                 apartmentId={selectedConversation.property?.[0]?.id || 'default'}
-                guestName={selectedConversation.guest_name}
                 whatsappContactId={selectedConversation.guest_phone || selectedConversation.guest_number}
+                guestName={selectedConversation.guest_name}
                 // Props temporairement commentées car interface mise à jour
                 // guestNumber={selectedConversation.guest_number || ''}
                 // conversationStartTime={selectedConversation.created_at || new Date().toISOString()}
@@ -626,26 +626,6 @@ export default function Chat() {
         </Box>
       </Paper>
 
-      {/* Bouton flottant de test des notifications - visible en desktop et mobile */}
-      <Zoom in={true} style={{ transitionDelay: '500ms' }}>
-        <Tooltip title="Tester les notifications" placement="left">
-          <Fab 
-            color="secondary" 
-            size="medium"
-            onClick={testNotification}
-            disabled={notifTestLoading}
-            sx={{ 
-              position: 'fixed', 
-              bottom: isMobile ? 70 : 20, 
-              right: 20,
-              zIndex: 1300 
-            }}
-          >
-            <TestIcon />
-          </Fab>
-        </Tooltip>
-      </Zoom>
-      
       {/* Dialog de configuration WhatsApp */}
       <Dialog 
         open={configOpen} 
