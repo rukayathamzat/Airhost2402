@@ -57,13 +57,16 @@ export default function ChatWindow({ conversationId, whatsappContactId, guestNam
   const { templates } = useTemplates();
   
   // Gestionnaire pour l'envoi de message
-  const handleSendMessage = useCallback(async () => {
-    if (!messageInput.trim()) return;
+  const handleSendMessage = useCallback(async (messageToSend: string = messageInput) => {
+    const contentToSend = messageToSend.trim();
+    if (!contentToSend) return;
     
     try {
-      console.log(`${DEBUG_PREFIX} Envoi du message: ${messageInput}`);
+      console.log(`${DEBUG_PREFIX} Envoi du message: ${contentToSend}`);
+      console.log(`${DEBUG_PREFIX} ID WhatsApp utilisé: ${whatsappContactId || 'NON DÉFINI'}`);
+      
       const sentMessage = await sendMessage(
-        messageInput,
+        contentToSend,
         conversationId,
         whatsappContactId
       );
@@ -200,8 +203,10 @@ export default function ChatWindow({ conversationId, whatsappContactId, guestNam
       <Box sx={{ bgcolor: 'background.default' }}>
         <ChatInput
           onSendMessage={async (message) => {
-            setMessageInput(message);
-            await handleSendMessage();
+            // Passage direct du message à handleSendMessage pour éviter le problème de timing du state
+            await handleSendMessage(message);
+            // On met quand même à jour le state pour garder une cohérence
+            setMessageInput('');
           }}
           onOpenAIModal={handleOpenAIModal}
           onOpenTemplates={handleTemplatesMenuOpen}
