@@ -15,6 +15,9 @@ const firebaseConfig = {
   appId: "1:107044522957:web:ad4e9a0c48dc18cd2bb18e"
 };
 
+// Note: Les configurations statiques sont nécessaires pour le service worker
+// car il ne peut pas faire d'appels API pour récupérer les configurations
+
 console.log('[FIREBASE-SW DEBUG] Configuration Firebase utilisée:', JSON.stringify(firebaseConfig));
 
 firebase.initializeApp(firebaseConfig);
@@ -24,19 +27,26 @@ const messaging = firebase.messaging();
 // Gestion des notifications en arrière-plan
 messaging.onBackgroundMessage((payload) => {
   console.log('[firebase-messaging-sw.js] Received background message ', payload);
+  console.log('[firebase-messaging-sw.js] Payload details:', JSON.stringify(payload));
   
   // Personnalisation de la notification pour PWA
-  const notificationTitle = payload.notification.title || 'Nouveau message';
+  const notificationTitle = payload.notification?.title || payload.data?.title || 'Nouveau message';
   const notificationOptions = {
-    body: payload.notification.body || 'Vous avez un nouveau message',
+    body: payload.notification?.body || payload.data?.body || 'Vous avez un nouveau message',
     icon: '/icons/icon-192x192.png',
     badge: '/icons/badge-96x96.png',
-    data: payload.data,
+    data: payload.data || {},
     vibrate: [200, 100, 200],
     // Options spécifiques pour PWA
     tag: payload.data?.messageId || 'default', // Regroupe les notifications avec le même tag
     renotify: true, // Notifie l'utilisateur même si une notification avec le même tag existe déjà
-    requireInteraction: true // La notification reste visible jusqu'à interaction de l'utilisateur
+    requireInteraction: true, // La notification reste visible jusqu'à interaction de l'utilisateur
+    actions: [
+      {
+        action: 'open',
+        title: 'Ouvrir',
+      }
+    ]
   };
 
   // Affichage de la notification

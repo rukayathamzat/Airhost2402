@@ -2,10 +2,9 @@
 import { initializeApp } from 'firebase/app';
 import { getMessaging, getToken, onMessage, Messaging, MessagePayload } from 'firebase/messaging';
 
-// Configuration Firebase - Utilisez ces informations pour l'initialisation côté client
-// Ces données sont publiques et peuvent être incluses en toute sécurité dans le code
-const firebaseConfig = {
-  apiKey: "AIzaSyDIR2xWvAVLOw1VtKFkK-bDdxOd9dCzC5w", // Utiliser la même clé API que dans le service worker
+// Configuration Firebase initiale par défaut (sera remplacée par la configuration de l'Edge Function)
+let firebaseConfig = {
+  apiKey: '',
   authDomain: "airhost-d9c48.firebaseapp.com",
   projectId: "airhost-d9c48",
   storageBucket: "airhost-d9c48.appspot.com",
@@ -13,24 +12,57 @@ const firebaseConfig = {
   appId: "1:107044522957:web:ad4e9a0c48dc18cd2bb18e"
 };
 
-console.log('[FIREBASE DEBUG] Configuration Firebase utilisée:', JSON.stringify(firebaseConfig));
+// Fonction pour récupérer la configuration Firebase depuis l'Edge Function
+async function loadFirebaseConfig() {
+  try {
+    const response = await fetch('https://pnbfsiicxhckptlgtjoj.supabase.co/functions/v1/fcm-proxy/config', {
+      headers: {
+        'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+      }
+    });
+    if (!response.ok) {
+      throw new Error(`Erreur lors de la récupération de la configuration: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    if (data.config && data.config.apiKey) {
+      console.log('[FIREBASE DEBUG] Configuration récupérée depuis l\'Edge Function');
+      firebaseConfig = data.config;
+    } else {
+      console.error('[FIREBASE DEBUG] Configuration invalide reçue de l\'Edge Function');
+    }
+  } catch (error) {
+    console.error('[FIREBASE DEBUG] Impossible de récupérer la configuration:', error);
+  }
+  
+  return firebaseConfig;
+}
 
 // Initialisation de l'application Firebase
 let firebaseApp: any;
-let messaging: Messaging;
+let messaging: Messaging | null = null;
+let initialized = false;
 
-try {
-  console.log('[FIREBASE DEBUG] Initialisation de Firebase avec config:', firebaseConfig);
-  firebaseApp = initializeApp(firebaseConfig);
-  console.log('[FIREBASE DEBUG] Firebase App initialisé avec succès');
+// Fonction pour initialiser Firebase après avoir chargé la configuration
+async function initializeFirebase() {
+  if (initialized) return;
   
-  messaging = getMessaging(firebaseApp);
-  console.log('[FIREBASE DEBUG] Firebase Messaging initialisé avec succès');
-} catch (error) {
-  console.error('[FIREBASE DEBUG] Erreur lors de l\'initialisation de Firebase:', error);
-  // Initialisation par défaut pour éviter les erreurs
-  firebaseApp = initializeApp(firebaseConfig);
-  messaging = getMessaging(firebaseApp);
+  // Charger la configuration depuis l'Edge Function
+  const config = await loadFirebaseConfig();
+  console.log('[FIREBASE DEBUG] Configuration Firebase utilisée:', JSON.stringify(config));
+
+  try {
+    console.log('[FIREBASE DEBUG] Initialisation de Firebase avec config:', config);
+    firebaseApp = initializeApp(config);
+    console.log('[FIREBASE DEBUG] Firebase App initialisé avec succès');
+    
+    messaging = getMessaging(firebaseApp);
+    console.log('[FIREBASE DEBUG] Firebase Messaging initialisé avec succès');
+    initialized = true;
+  } catch (error) {
+    console.error('[FIREBASE DEBUG] Erreur lors de l\'initialisation de Firebase:', error);
+    // Ne pas initialiser par défaut en cas d'erreur, car cela pourrait provoquer d'autres erreurs
+  }
 }
 
 // Objet pour stocker la fonction de callback des messages FCM
@@ -44,6 +76,11 @@ export const requestFCMPermission = async (): Promise<string | null> => {
   console.log('[FIREBASE] Demande de permission de notification...');
   
   try {
+    // S'assurer que Firebase est initialisé
+    if (!initialized) {
+      await initializeFirebase();
+    }
+    
     // Vérifier que le service worker et la messagerie sont disponibles
     if (!('serviceWorker' in navigator)) {
       console.warn('[FIREBASE] Les service workers ne sont pas pris en charge par ce navigateur');
@@ -123,6 +160,27 @@ export const requestFCMPermission = async (): Promise<string | null> => {
  */
 export const setMessagingCallback = (callback: (payload: MessagePayload) => void): void => {
   messagingCallback = callback;
+
+  // Vérifier si messaging est initialisé
+  if (!messaging) {
+    console.warn('[FIREBASE] Impossible de configurer le callback: messaging non initialisé');
+    // Tenter d'initialiser Firebase et réessayer ensuite
+    initializeFirebase().then(() => {
+      if (messaging) {
+        setupMessageHandler();
+      } else {
+        console.error('[FIREBASE] Échec de l\'initialisation de Firebase Messaging');
+      }
+    });
+    return;
+  }
+  
+  setupMessageHandler();
+};
+
+// Fonction interne pour configurer le gestionnaire de messages
+function setupMessageHandler(): void {
+  if (!messaging) return;
   
   onMessage(messaging, (payload) => {
     console.log('[FIREBASE] Message reçu au premier plan:', payload);
@@ -149,7 +207,7 @@ export const setMessagingCallback = (callback: (payload: MessagePayload) => void
 };
 
 interface FirebaseMessagingInterface {
-  messaging: Messaging;
+  messaging: Messaging | null;
   requestFCMPermission: typeof requestFCMPermission;
   setMessagingCallback: typeof setMessagingCallback;
 }
@@ -187,8 +245,55 @@ export const testFirebaseNotification = async () => {
     // 4. Essayer d'obtenir un token FCM
     const token = await requestFCMPermission();
     console.log('[FIREBASE TEST] Token FCM obtenu:', token);
+
+    if (token) {
+      // 5. Envoyer une notification de test via l'Edge Function
+      console.log('[FIREBASE TEST] Envoi d\'une notification via l\'Edge Function...');
+      const response = await fetch('https://pnbfsiicxhckptlgtjoj.supabase.co/functions/v1/fcm-proxy', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+        },
+        body: JSON.stringify({
+          to: token,
+          notification: {
+            title: 'Test de notification FCM',
+            body: 'Ceci est un test de notification via l\'Edge Function'
+          },
+          data: {
+            type: 'test',
+            title: 'Test pour mobile', // Titre de fallback pour mobile
+            body: 'Ce message devrait apparaître sur mobile', // Texte de fallback pour mobile
+            timestamp: new Date().toISOString(),
+            click_action: 'FLUTTER_NOTIFICATION_CLICK' // Important pour Android
+          },
+          // Paramètres spécifiques à Android
+          android: {
+            priority: 'high',
+            notification: {
+              sound: 'default',
+              click_action: 'FLUTTER_NOTIFICATION_CLICK'
+            }
+          },
+          // Paramètres spécifiques à iOS/Apple
+          apns: {
+            payload: {
+              aps: {
+                sound: 'default',
+                badge: 1,
+                content_available: true
+              }
+            }
+          }
+        })
+      });
+
+      const result = await response.json();
+      console.log('[FIREBASE TEST] Résultat de l\'envoi:', result);
+    }
     
-    // 5. Exposer aux variables globales pour accès facile
+    // 6. Exposer aux variables globales pour accès facile
     // @ts-ignore
     window.testFirebaseNotification = testFirebaseNotification;
     // @ts-ignore
