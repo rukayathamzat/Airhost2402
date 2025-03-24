@@ -19,7 +19,7 @@ class FirebaseNotificationService {
   private firebaseConfig = {
     apiKey: '',
     authDomain: "airhost-d9c48.firebaseapp.com",
-    projectId: "airhost-d9c48",
+    projectId: "airhost-supabase", // ID correct du projet selon la console Firebase
     storageBucket: "airhost-d9c48.appspot.com",
     messagingSenderId: "107044522957",
     appId: "1:107044522957:web:ad4e9a0c48dc18cd2bb18e"
@@ -59,13 +59,13 @@ class FirebaseNotificationService {
       if (data.config && data.config.apiKey) {
         console.log('[FIREBASE DEBUG] Configuration récupérée depuis l\'Edge Function');
         
-        // CORRECTION: Forcer le projectId à "airhost-d9c48" pour éviter des incohérences
+        // CORRECTION: S'assurer que le projectId est "airhost-supabase" (valeur correcte selon la console Firebase)
         this.firebaseConfig = {
           ...data.config,
-          projectId: "airhost-d9c48" // Forcer la valeur correcte, quelle que soit celle renvoyée par l'Edge Function
+          projectId: "airhost-supabase" // Forcer la valeur correcte, quelle que soit celle renvoyée par l'Edge Function
         };
         
-        console.log('[FIREBASE DEBUG] ProjectId forcé à "airhost-d9c48" pour résoudre les problèmes de permission');
+        console.log('[FIREBASE DEBUG] ProjectId forcé à "airhost-supabase" pour correspondre au projet Firebase réel');
       } else {
         console.error('[FIREBASE DEBUG] Configuration invalide reçue de l\'Edge Function');
       }

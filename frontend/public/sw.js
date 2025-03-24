@@ -7,7 +7,7 @@ importScripts('https://www.gstatic.com/firebasejs/9.6.10/firebase-messaging-comp
 const firebaseConfig = {
   apiKey: "AIzaSyC1ew_x6gQvsTdnJ-gTqVot2XPCa2qKXX0",
   authDomain: "airhost-d9c48.firebaseapp.com",
-  projectId: "airhost-d9c48", // Correction pour cohérence avec les autres paramètres
+  projectId: "airhost-supabase", // ID correct du projet selon la console Firebase
   storageBucket: "airhost-d9c48.appspot.com",
   messagingSenderId: "107044522957",
   appId: "1:107044522957:web:ad4e9a0c48dc18cd2bb18e"
