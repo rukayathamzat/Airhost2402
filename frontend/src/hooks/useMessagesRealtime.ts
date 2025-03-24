@@ -312,6 +312,48 @@ export function useMessagesRealtime(conversationId: string): UseMessagesRealtime
       loadMessages(false, true); // Force une requête fraîche sans montrer l'indicateur de chargement
     }, AUTO_REFRESH_INTERVAL);
     
+    // Gestionnaire pour les messages du service worker (spécifique mobile)
+    const handleServiceWorkerMessage = (event: MessageEvent) => {
+      const timestamp = new Date().toISOString();
+      
+      if (event.data && event.data.type === 'FORCE_REFRESH') {
+        console.log(`${DEBUG_PREFIX} [${timestamp}] [MOBILE] Message reçu du service worker:`, event.data);
+        
+        // Vérifier si le message concerne la conversation actuelle
+        const payload = event.data.payload;
+        if (payload && payload.conversation_id === conversationId) {
+          console.log(`${DEBUG_PREFIX} [${timestamp}] [MOBILE] Rafraîchissement forcé pour la conversation: ${conversationId}`);
+          
+          // Forcer un rafraîchissement immédiat
+          loadMessages(false, true);
+          
+          // Programmer un second rafraîchissement après un court délai pour s'assurer que tous les messages sont synchronisés
+          setTimeout(() => {
+            console.log(`${DEBUG_PREFIX} [${timestamp}] [MOBILE] Second rafraîchissement après message du service worker`);
+            loadMessages(false, true);
+          }, 1000);
+        } else {
+          console.log(`${DEBUG_PREFIX} [${timestamp}] [MOBILE] Message ignoré car il ne concerne pas la conversation actuelle`);
+        }
+      }
+    };
+    
+    // Enregistrer le gestionnaire de messages du service worker
+    if (isMobileDevice && navigator.serviceWorker) {
+      console.log(`${DEBUG_PREFIX} [MOBILE] Enregistrement du gestionnaire de messages du service worker`);
+      navigator.serviceWorker.addEventListener('message', handleServiceWorkerMessage);
+      
+      // Informer le service worker que le client est prêt à recevoir des messages
+      if (navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({
+          type: 'CLIENT_READY',
+          conversationId: conversationId,
+          timestamp: Date.now()
+        });
+        console.log(`${DEBUG_PREFIX} [MOBILE] Notification au service worker: client prêt`);
+      }
+    }
+    
     // Nettoyage
     return () => {
       console.log(`${DEBUG_PREFIX} Nettoyage: désinscription du canal Realtime, arrêt du polling et du rafraîchissement automatique`);
@@ -329,6 +371,12 @@ export function useMessagesRealtime(conversationId: string): UseMessagesRealtime
         clearInterval(autoRefreshInterval);
         autoRefreshInterval = null;
         console.log(`${DEBUG_PREFIX} Arrêt du rafraîchissement automatique`);  
+      }
+      
+      // Supprimer l'écouteur d'événements du service worker
+      if (isMobileDevice && navigator.serviceWorker) {
+        console.log(`${DEBUG_PREFIX} [MOBILE] Suppression du gestionnaire de messages du service worker`);
+        navigator.serviceWorker.removeEventListener('message', handleServiceWorkerMessage);
       }
     };
   }, [conversationId]);
