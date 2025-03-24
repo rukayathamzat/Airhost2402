@@ -8,8 +8,6 @@ declare namespace Deno {
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { initializeApp, cert, type ServiceAccount } from 'https://esm.sh/firebase-admin@11.9.0/app'
-import { getMessaging } from 'https://esm.sh/firebase-admin@11.9.0/messaging'
 
 interface PushNotificationPayload {
   to: string
@@ -20,26 +18,39 @@ interface PushNotificationPayload {
   data?: Record<string, string>
 }
 
-// Fonction auxiliaire pour obtenir les identifiants de manière sécurisée
-function getServiceAccount(): ServiceAccount | null {
-  const fcmProjectId = Deno.env.get('FCM_PROJECT_ID')
-  const fcmPrivateKey = Deno.env.get('FCM_PRIVATE_KEY')
-  const fcmClientEmail = Deno.env.get('FCM_CLIENT_EMAIL')
+// Fonction auxiliaire pour obtenir la clé serveur FCM
+function getFCMServerKey(): string | null {
+  const fcmServerKey = Deno.env.get('FCM_SERVER_KEY')
   
-  if (!fcmProjectId || !fcmPrivateKey || !fcmClientEmail) {
-    console.error('Variables d\'environnement FCM manquantes')
+  if (!fcmServerKey) {
+    console.error('Variable d\'environnement FCM_SERVER_KEY manquante')
     return null
   }
   
+  return fcmServerKey
+}
+
+// Fonction pour récupérer les informations de configuration Firebase publiques
+function getFirebasePublicConfig() {
+  const apiKey = Deno.env.get('FIREBASE_API_KEY') || ''
+  const authDomain = "airhost-d9c48.firebaseapp.com"
+  const projectId = Deno.env.get('FCM_PROJECT_ID') || ''
+  const storageBucket = "airhost-d9c48.appspot.com"
+  const messagingSenderId = "107044522957"
+  const appId = "1:107044522957:web:ad4e9a0c48dc18cd2bb18e"
+  
   return {
-    projectId: fcmProjectId,
-    privateKey: fcmPrivateKey.replace(/\\n/g, '\n'),
-    clientEmail: fcmClientEmail
+    apiKey,
+    authDomain,
+    projectId,
+    storageBucket,
+    messagingSenderId,
+    appId
   }
 }
 
-// Variable pour suivre l'initialisation de Firebase
-let firebaseInitialized = false
+// URL de l'API FCM
+const FCM_API_URL = 'https://fcm.googleapis.com/fcm/send'
 
 serve(async (req) => {
   // Gérer les requêtes préflight OPTIONS pour CORS
@@ -48,9 +59,21 @@ serve(async (req) => {
       status: 204,
       headers: {
         'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type, Authorization',
         'Access-Control-Max-Age': '86400'
+      }
+    })
+  }
+  
+  // Endpoint pour récupérer la configuration Firebase (accessible publiquement)
+  if (req.method === 'GET' && new URL(req.url).pathname.endsWith('/config')) {
+    const config = getFirebasePublicConfig()
+    return new Response(JSON.stringify({ config }), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
       }
     })
   }
@@ -81,27 +104,39 @@ serve(async (req) => {
 
     // Vérification du token JWT
     const token = authHeader.replace('Bearer ', '')
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token)
     
-    if (authError || !user) {
-      throw new Error('Token invalide')
+    // Vérifier si c'est la clé de service
+    const isServiceKey = token === Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+    
+    if (!isServiceKey) {
+      // Si ce n'est pas la clé de service, vérifier l'utilisateur
+      const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token)
+      
+      if (authError || !user) {
+        throw new Error('Token invalide')
+      }
     }
 
     // Récupération du payload
     const payload: PushNotificationPayload = await req.json()
 
     // Vérification que le token FCM appartient bien à l'utilisateur
-    const { data: subscription, error: dbError } = await supabaseClient
-      .from('push_subscriptions')
-      .select('token')
-      .eq('user_id', user.id)
-      .eq('token', payload.to)
-      .single()
+    if (!isServiceKey) {
+      // Récupérer les informations de l'utilisateur
+      const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
+      
+      const { data: subscription, error: dbError } = await supabaseClient
+        .from('push_subscriptions')
+        .select('token')
+        .eq('user_id', user.id)
+        .eq('token', payload.to)
+        .single()
 
-    if (dbError || !subscription) {
-      // Pour les tests, nous autorisons un token spécial
-      if (payload.to !== 'test-fcm-token') {
-        throw new Error('Token FCM non autorisé pour cet utilisateur')
+      if (dbError || !subscription) {
+        // Pour les tests, nous autorisons un token spécial
+        if (payload.to !== 'test-fcm-token') {
+          throw new Error('Token FCM non autorisé pour cet utilisateur')
+        }
       }
     }
 
@@ -120,76 +155,63 @@ serve(async (req) => {
       })
     }
 
-    // Initialiser Firebase Admin SDK si ce n'est pas déjà fait
-    if (!firebaseInitialized) {
-      try {
-        const serviceAccount = getServiceAccount()
-        
-        // Vérifier que les variables nécessaires sont disponibles
-        if (!serviceAccount) {
-          throw new Error('Configuration FCM manquante ou incomplète')
-        }
-        
-        // Initialiser l'app Firebase
-        console.log("Initialisation de Firebase Admin SDK...")
-        initializeApp({
-          credential: cert(serviceAccount)
-        })
-        
-        firebaseInitialized = true
-        console.log("Firebase Admin SDK initialisé avec succès")
-      } catch (error) {
-        console.error("Erreur lors de l'initialisation de Firebase Admin:", error)
-        throw new Error('Erreur de configuration Firebase')
-      }
+    // Vérifier que la clé serveur FCM est disponible
+    const serverKey = getFCMServerKey()
+    if (!serverKey) {
+      throw new Error('Clé serveur FCM manquante')
     }
     
-    // Préparer le message à envoyer avec configurations spécifiques pour iOS et Android
-    const message = {
-      token: payload.to,
-      notification: payload.notification || {},
+    // Préparer le message pour l'API FCM HTTP v1
+    const fcmMessage = {
+      to: payload.to,
+      notification: payload.notification,
       data: payload.data || {},
-      // Configuration spécifique pour Android
+      priority: 'high',
+      content_available: true,
+      mutable_content: true,
       android: {
         priority: 'high',
         notification: {
           sound: 'default',
-          channelId: 'default-channel',
-          priority: 'high',
-          defaultSound: true,
-          visibility: 'public'
+          channel_id: 'default-channel',
+          priority: 'high'
         }
       },
-      // Configuration spécifique pour iOS (APNs)
       apns: {
-        headers: {
-          'apns-priority': '10',
-          'apns-push-type': 'alert'
-        },
         payload: {
           aps: {
-            alert: {
-              title: payload.notification?.title,
-              body: payload.notification?.body
-            },
             sound: 'default',
             badge: 1,
-            contentAvailable: true,
-            mutableContent: true,
             category: 'NEW_MESSAGE'
-          },
-          // Transférer les données pour les avoir accessibles dans iOS
-          ...payload.data
+          }
+        },
+        headers: {
+          'apns-priority': '10'
         }
       }
     }
     
-    // Envoyer le message via Firebase Admin SDK
-    console.log("Envoi du message FCM...")
-    const response = await getMessaging().send(message)
+    // Envoyer le message via l'API HTTP FCM
+    console.log("Envoi du message FCM via API HTTP...")
+    const fcmResponse = await fetch(FCM_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `key=${serverKey}`
+      },
+      body: JSON.stringify(fcmMessage)
+    })
+    
+    const responseData = await fcmResponse.json()
+    
+    if (!fcmResponse.ok) {
+      console.error("Erreur FCM:", responseData)
+      throw new Error(`Erreur FCM: ${fcmResponse.status} ${responseData.error || 'Unknown error'}`)
+    }
+    
     console.log("Message FCM envoyé avec succès")
     
-    return new Response(JSON.stringify({ success: true, messageId: response }), {
+    return new Response(JSON.stringify({ success: true, messageId: responseData.multicast_id || responseData.message_id }), {
       status: 200,
       headers: { 
         'Content-Type': 'application/json',
