@@ -445,6 +445,7 @@ export default function Chat() {
                 isMobile={isMobile}
                 apartmentId={selectedConversation.property?.[0]?.id || 'default'}
                 guestName={selectedConversation.guest_name}
+                whatsappContactId={selectedConversation.guest_phone || selectedConversation.guest_number}
                 // Props temporairement commentées car interface mise à jour
                 // guestNumber={selectedConversation.guest_number || ''}
                 // conversationStartTime={selectedConversation.created_at || new Date().toISOString()}
@@ -601,6 +602,7 @@ export default function Chat() {
                 conversationId={selectedConversation.id}
                 isMobile={isMobile}
                 apartmentId={selectedConversation.property?.[0]?.id || 'default'}
+                whatsappContactId={selectedConversation.guest_phone || selectedConversation.guest_number}
                 guestName={selectedConversation.guest_name}
                 // Props temporairement commentées car interface mise à jour
                 // guestNumber={selectedConversation.guest_number || ''}
