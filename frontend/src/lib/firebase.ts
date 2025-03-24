@@ -306,9 +306,107 @@ export const testFirebaseNotification = async () => {
   }
 };
 
+/**
+ * Fonction de test spécifique pour simuler les notifications mobiles sur desktop
+ * Peut être appelée directement depuis la console du navigateur
+ */
+export const testMobileNotification = async () => {
+  try {
+    console.log('[FIREBASE TEST] Début du test de notifications format mobile...');
+    
+    // 1. Vérifier l'état des permissions
+    console.log('[FIREBASE TEST] Permission actuelle:', Notification.permission);
+    
+    // 2. Demander la permission si nécessaire
+    if (Notification.permission !== 'granted') {
+      console.log('[FIREBASE TEST] Demande de permission...');
+      const newPermission = await Notification.requestPermission();
+      console.log('[FIREBASE TEST] Nouvelle permission:', newPermission);
+      
+      if (newPermission !== 'granted') {
+        console.error('[FIREBASE TEST] Permission refusée, impossible de continuer le test');
+        return false;
+      }
+    }
+    
+    // 3. Essayer d'obtenir un token FCM
+    const token = await requestFCMPermission();
+    console.log('[FIREBASE TEST] Token FCM obtenu:', token);
+
+    if (token) {
+      // 4. Envoyer une notification au format mobile via l'Edge Function
+      console.log('[FIREBASE TEST] Envoi d\'une notification format mobile...');
+      const response = await fetch('https://pnbfsiicxhckptlgtjoj.supabase.co/functions/v1/fcm-proxy', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+        },
+        body: JSON.stringify({
+          to: token,
+          // Format spécifique mobile : uniquement data, pas de notification
+          data: {
+            title: 'Test format mobile',
+            body: 'Ceci est un test de notification au format mobile',
+            type: 'test-mobile',
+            timestamp: new Date().toISOString(),
+            click_action: 'FLUTTER_NOTIFICATION_CLICK'
+          },
+          // Paramètres spécifiques à Android
+          android: {
+            priority: 'high',
+            notification: {
+              sound: 'default',
+              click_action: 'FLUTTER_NOTIFICATION_CLICK'
+            }
+          }
+        })
+      });
+
+      const result = await response.json();
+      console.log('[FIREBASE TEST] Résultat de l\'envoi format mobile:', result);
+      
+      // 5. Tester aussi le format hybride (notification + data)
+      console.log('[FIREBASE TEST] Envoi d\'une notification hybride...');
+      const hybridResponse = await fetch('https://pnbfsiicxhckptlgtjoj.supabase.co/functions/v1/fcm-proxy', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+        },
+        body: JSON.stringify({
+          to: token,
+          notification: {
+            title: 'Test hybride',
+            body: 'Notification avec format hybride'
+          },
+          data: {
+            title: 'Test hybride (data)',
+            body: 'Version data de la notification hybride',
+            type: 'test-hybrid',
+            timestamp: new Date().toISOString()
+          }
+        })
+      });
+
+      const hybridResult = await hybridResponse.json();
+      console.log('[FIREBASE TEST] Résultat de l\'envoi hybride:', hybridResult);
+    }
+    
+    // 6. Exposer aux variables globales pour accès facile
+    // @ts-ignore
+    window.testMobileNotification = testMobileNotification;
+    
+    return true;
+  } catch (error) {
+    console.error('[FIREBASE TEST] Erreur lors du test de notification mobile:', error);
+    return false;
+  }
+};
+
 // Exposer la fonction de test globalement
 // @ts-ignore
-window.testFirebaseNotification = testFirebaseNotification;
+window.testMobileNotification = testMobileNotification;
 
 const firebaseMessaging: FirebaseMessagingInterface = {
   messaging: messaging,
