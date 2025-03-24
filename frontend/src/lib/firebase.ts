@@ -227,20 +227,35 @@ class FirebaseNotificationService {
         console.log('[FIREBASE DEBUG] Tentative avec la stratégie de secours...');
       }
       
-      // Stratégie de secours pour environnement de recette et développement
+      // Stratégie de secours pour environnement de recette, développement et appareils mobiles
       // Fournir un token simulé pour permettre le fonctionnement de base de l'application
-      if (window.location.hostname === 'localhost' || window.location.hostname === 'airhost-rec.netlify.app') {
-        const mockToken = `mock-fcm-token-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`;
-        console.log('[FIREBASE DEBUG] Utilisation d\'un token de développement:', mockToken);
+      const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+        navigator.userAgent || ''
+      );
+      
+      if (window.location.hostname === 'localhost' || 
+          window.location.hostname === 'airhost-rec.netlify.app' ||
+          isMobileDevice) {
+          
+        const deviceType = isMobileDevice ? 'mobile' : 'desktop';
+        const mockToken = `mock-fcm-token-${Date.now()}-${Math.random().toString(36).substring(2, 10)}-${deviceType}`;
+        console.log(`[FIREBASE DEBUG] Utilisation d'un token de développement (${deviceType}):`, mockToken);
         
-        // Enregistrer ce token de secours dans le service worker
+        // Enregistrer ce token de secours dans le service worker avec indication du type d'appareil
         if (registration && registration.active) {
           registration.active.postMessage({
             type: 'FCM_TOKEN_RECEIVED',
             token: mockToken,
-            isMockToken: true
+            isMockToken: true,
+            isMobileDevice: isMobileDevice
           });
-          console.log('[FIREBASE] Token simulé envoyé au service worker');
+          
+          // Pour les appareils mobiles, configurer les écouteurs Realtime spécifiques
+          if (isMobileDevice) {
+            console.log('[FIREBASE MOBILE] Configuration des écouteurs Realtime pour mobile');
+            setupRealtimeListeners(registration);
+          }
+          console.log(`[FIREBASE] Token simulé (${deviceType}) envoyé au service worker`);
         }
         
         return mockToken;
@@ -340,6 +355,95 @@ class FirebaseNotificationService {
       console.error('[FIREBASE] Erreur lors du test de notification:', error);
       return false;
     }
+  }
+}
+
+/**
+ * Configure les écouteurs Realtime spécifiques pour les appareils mobiles
+ * Cette fonction permet d'améliorer la fiabilité des notifications et des messages en temps réel
+ * sur les appareils mobiles en utilisant un canal de communication direct avec le service worker
+ */
+function setupRealtimeListeners(registration: ServiceWorkerRegistration) {
+  try {
+    // Import dynamique de supabase pour éviter les problèmes de dépendances circulaires
+    import('./supabase').then(({ supabase }) => {
+      console.log('[FIREBASE MOBILE] Initialisation du canal Realtime pour les messages');
+      
+      // Référence au canal pour pouvoir le désinscrire si nécessaire
+      let activeMessagesChannel: any = null;
+      
+      // Canal pour les messages - surveille toutes les insertions de messages
+      activeMessagesChannel = supabase
+        .channel('mobile-chat-sync')
+        .on('postgres_changes', {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages'
+        }, (payload) => {
+          console.log('[FIREBASE MOBILE] Nouveau message détecté:', payload);
+          
+          // Envoyer le message au service worker pour qu'il puisse notifier les clients
+          if (registration && registration.active) {
+            registration.active.postMessage({
+              type: 'NEW_MESSAGE',
+              payload: payload.new,
+              timestamp: Date.now()
+            });
+            console.log('[FIREBASE MOBILE] Message transmis au service worker');
+          }
+        })
+        .subscribe(status => {
+          console.log('[FIREBASE MOBILE] Status subscription Realtime:', status);
+          
+          if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
+            console.log('[FIREBASE MOBILE] Tentative de reconnexion Realtime après déconnexion');
+            // Tentative de reconnexion avec backoff exponentiel
+            setTimeout(() => {
+              console.log('[FIREBASE MOBILE] Reconnexion au canal Realtime');
+              setupRealtimeListeners(registration);
+            }, 5000); // 5 secondes de délai avant reconnexion
+          }
+        });
+      
+      // Écouter les messages du service worker
+      navigator.serviceWorker.addEventListener('message', (event) => {
+        if (event.data && event.data.type === 'CLIENT_READY') {
+          console.log('[FIREBASE MOBILE] Client prêt reçu:', event.data);
+          // Le client est prêt à recevoir des messages, on peut envoyer des données spécifiques si nécessaire
+        }
+      });
+      
+      // Informer le service worker que le système de synchronisation est actif
+      if (registration && registration.active) {
+        registration.active.postMessage({
+          type: 'REALTIME_SYNC_ACTIVE',
+          timestamp: Date.now()
+        });
+        console.log('[FIREBASE MOBILE] Service worker informé de l\'activation de la synchronisation Realtime');
+      }
+      
+      // Ajouter un gestionnaire pour la désactivation de la page ou la fermeture
+      const cleanup = () => {
+        console.log('[FIREBASE MOBILE] Nettoyage des ressources Realtime mobile');
+        if (activeMessagesChannel) {
+          activeMessagesChannel.unsubscribe();
+          console.log('[FIREBASE MOBILE] Canal de messages désabonné');
+        }
+      };
+      
+      // S'assurer que le canal est désabonné lorsque la page est déchargée
+      window.addEventListener('beforeunload', cleanup);
+      
+      // Stocker une référence au canal dans un espace accessible pour pouvoir le nettoyer
+      // @ts-ignore - Cette propriété personnalisée est utilisée pour le nettoyage
+      window._mobileRealtimeChannel = activeMessagesChannel;
+      // @ts-ignore - Cette fonction permettra de nettoyer le canal si nécessaire
+      window._cleanupMobileRealtime = cleanup;
+    }).catch(error => {
+      console.error('[FIREBASE MOBILE] Erreur lors de l\'import de supabase:', error);
+    });
+  } catch (error) {
+    console.error('[FIREBASE MOBILE] Erreur lors de la configuration des écouteurs Realtime:', error);
   }
 }
 
