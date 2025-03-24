@@ -1,4 +1,24 @@
-// Service Worker pour les notifications push
+// Service Worker intégré pour PWA et Firebase Cloud Messaging
+// Import des scripts Firebase nécessaires
+importScripts('https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/9.6.10/firebase-messaging-compat.js');
+
+// Configuration Firebase - Paramètres publiques uniquement
+const firebaseConfig = {
+  apiKey: "AIzaSyC1ew_x6gQvsTdnJ-gTqVot2XPCa2qKXX0",
+  authDomain: "airhost-d9c48.firebaseapp.com",
+  projectId: "airhost-supabase",
+  storageBucket: "airhost-d9c48.appspot.com",
+  messagingSenderId: "107044522957",
+  appId: "1:107044522957:web:ad4e9a0c48dc18cd2bb18e"
+};
+
+// Initialisation de Firebase dans le Service Worker
+firebase.initializeApp(firebaseConfig);
+const messaging = firebase.messaging();
+
+console.log('[SW DEBUG] Firebase initialisé dans le service worker');
+
 self.addEventListener('install', (event) => {
   console.log('[SW DEBUG] Service Worker installé');
   self.skipWaiting();
@@ -12,7 +32,7 @@ self.addEventListener('activate', (event) => {
 // Log au démarrage du service worker
 console.log('[SW DEBUG] Service Worker chargé et en attente d\'événements');
 
-// Gestion des notifications push
+// Gestion des notifications push WebPush classiques
 self.addEventListener('push', (event) => {
   console.log('[SW DEBUG] Notification push reçue', event);
 
@@ -101,6 +121,53 @@ self.addEventListener('notificationclick', (event) => {
       console.error('[SW DEBUG] Erreur lors de la gestion du clic sur notification:', error);
     })
   );
+});
+
+// Gestionnaire de messages Firebase en arrière-plan (format mobile)
+messaging.onBackgroundMessage((payload) => {
+  console.log('[SW DEBUG] Message FCM en arrière-plan reçu', payload);
+  
+  try {
+    // Déterminer si c'est un message de données uniquement ou si contient une notification
+    if (payload.data) {
+      console.log('[SW DEBUG] Données FCM reçues:', payload.data);
+      
+      // Construire les options de notification à partir des données
+      const notificationTitle = payload.data.title || payload.notification?.title || 'Airhost';
+      const notificationOptions = {
+        body: payload.data.body || payload.notification?.body || 'Nouveau message reçu',
+        icon: '/icons/icon-192x192.png',
+        badge: '/icons/icon-72x72.png',
+        data: {
+          url: payload.data.url || '/chat',
+          conversationId: payload.data.conversationId,
+          timestamp: payload.data.timestamp || Date.now(),
+          click_action: payload.data.click_action || 'FLUTTER_NOTIFICATION_CLICK'
+        },
+        actions: [
+          {
+            action: 'open',
+            title: 'Ouvrir'
+          },
+          {
+            action: 'close',
+            title: 'Fermer'
+          }
+        ],
+        vibrate: [100, 50, 100],
+        timestamp: new Date(payload.data.timestamp || Date.now())
+      };
+      
+      console.log('[SW DEBUG] Affichage notification FCM:', { notificationTitle, notificationOptions });
+      return self.registration.showNotification(notificationTitle, notificationOptions);
+    } else if (payload.notification) {
+      // Gérer les notifications directes de FCM (moins courantes)
+      console.log('[SW DEBUG] Notification FCM standard reçue:', payload.notification);
+      // Firebase gère automatiquement l'affichage de ces notifications
+    }
+  } catch (error) {
+    console.error('[SW DEBUG] Erreur lors du traitement du message FCM en arrière-plan:', error);
+  }
 });
 
 // Gestion des messages entre le service worker et l'application
