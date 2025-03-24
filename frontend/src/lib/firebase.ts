@@ -598,6 +598,49 @@ export const testMobileNotification = async () => {
 window.testMobileNotification = testMobileNotification;
 
 /**
+ * Initialiser la synchronisation des messages pour mobile
+ * Cette fonction est appelée automatiquement sur mobile,
+ * mais peut aussi être appelée manuellement pour des tests
+ */
+export const initMobileSync = () => {
+  const isMobileDevice = typeof navigator !== 'undefined' && 
+    /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  
+  console.log('[FIREBASE] Détection d\'appareil: ' + (isMobileDevice ? 'Mobile' : 'Desktop'));
+  
+  // Forcer le mode mobile pour les tests si demandé via localStorage
+  const forceMobile = typeof localStorage !== 'undefined' && localStorage.getItem('force_mobile_mode') === 'true';
+  if (forceMobile) {
+    console.log('[FIREBASE] Mode mobile forcé activé pour les tests');
+  }
+  
+  if ((isMobileDevice || forceMobile) && typeof navigator !== 'undefined' && navigator.serviceWorker) {
+    console.log('[FIREBASE] Initialisation de la synchronisation Realtime mobile');
+    
+    navigator.serviceWorker.ready
+      .then(registration => {
+        console.log('[FIREBASE] Service worker prêt, configuration des écouteurs Realtime mobile');
+        setupRealtimeListeners(registration);
+        
+        // Tester le mécanisme avec un message simulé après 5 secondes
+        setTimeout(() => {
+          console.log('[FIREBASE] Test de synchronisation mobile avec un message simulé');
+          registration.active?.postMessage({
+            type: 'TEST_MOBILE',
+            timestamp: Date.now()
+          });
+        }, 5000);
+      })
+      .catch(error => {
+        console.error('[FIREBASE] Erreur lors de l\'initialisation du service worker pour mobile:', error);
+      });
+  }
+};
+
+// Exécuter l'initialisation mobile automatiquement
+initMobileSync();
+
+/**
  * Objet principal exporté avec l'API Firebase Messaging
  */
 const firebaseMessaging: FirebaseMessagingInterface = {
@@ -606,5 +649,8 @@ const firebaseMessaging: FirebaseMessagingInterface = {
   setMessagingCallback,
   testFirebaseNotification
 };
+
+// Exporter la fonction de configuration Realtime pour les appareils mobiles
+export { setupRealtimeListeners };
 
 export default firebaseMessaging;

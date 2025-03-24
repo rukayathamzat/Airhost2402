@@ -350,6 +350,12 @@ function testMobileNotification() {
 self.addEventListener('message', (event) => {
   console.log('[SW MOBILE] Message reçu du client:', event.data);
   
+  // Stocker la source du message pour pouvoir répondre directement à ce client
+  const clientId = event.source ? event.source.id : null;
+  if (clientId) {
+    console.log(`[SW MOBILE] Message reçu du client ${clientId}`);
+  }
+  
   // Traitement des messages de type NEW_MESSAGE
   if (event.data && event.data.type === 'NEW_MESSAGE') {
     console.log('[SW MOBILE] Nouveau message de chat détecté, notification aux clients');

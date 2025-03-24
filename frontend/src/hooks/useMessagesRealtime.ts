@@ -316,22 +316,36 @@ export function useMessagesRealtime(conversationId: string): UseMessagesRealtime
     const handleServiceWorkerMessage = (event: MessageEvent) => {
       const timestamp = new Date().toISOString();
       
-      if (event.data && event.data.type === 'FORCE_REFRESH') {
-        console.log(`${DEBUG_PREFIX} [${timestamp}] [MOBILE] Message reçu du service worker:`, event.data);
+      if (event.data && (event.data.type === 'FORCE_REFRESH' || event.data.type === 'NEW_MESSAGE')) {
+        console.log(`${DEBUG_PREFIX} [${timestamp}] [MOBILE] Message reçu du service worker:`, event.data.type, event.data);
         
         // Vérifier si le message concerne la conversation actuelle
         const payload = event.data.payload;
-        if (payload && payload.conversation_id === conversationId) {
+        // Compatibilité avec différents formats de messages
+        const messageConversationId = payload?.conversation_id || payload?.conversationId;
+        
+        if (messageConversationId === conversationId || !messageConversationId) {
           console.log(`${DEBUG_PREFIX} [${timestamp}] [MOBILE] Rafraîchissement forcé pour la conversation: ${conversationId}`);
           
           // Forcer un rafraîchissement immédiat
           loadMessages(false, true);
           
-          // Programmer un second rafraîchissement après un court délai pour s'assurer que tous les messages sont synchronisés
-          setTimeout(() => {
-            console.log(`${DEBUG_PREFIX} [${timestamp}] [MOBILE] Second rafraîchissement après message du service worker`);
-            loadMessages(false, true);
-          }, 1000);
+          // Programmer plusieurs rafraîchissements avec délais variables pour s'assurer de la synchronisation complète
+          [1000, 3000, 7000].forEach(delay => {
+            setTimeout(() => {
+              console.log(`${DEBUG_PREFIX} [${timestamp}] [MOBILE] Rafraîchissement #${delay/1000} après message du service worker`);
+              loadMessages(false, true);
+            }, delay);
+          });
+          
+          // Confirmer la réception et le traitement au service worker si possible
+          if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+            navigator.serviceWorker.controller.postMessage({
+              type: 'MESSAGE_PROCESSED',
+              conversationId,
+              timestamp: Date.now()
+            });
+          }
         } else {
           console.log(`${DEBUG_PREFIX} [${timestamp}] [MOBILE] Message ignoré car il ne concerne pas la conversation actuelle`);
         }
