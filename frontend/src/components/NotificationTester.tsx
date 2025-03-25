@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Button, Alert, Box, Typography, Paper, CircularProgress, Chip } from '@mui/material';
 import { MobileNotificationService } from '../services/notification/mobile-notification.service';
 import { requestFCMPermission } from '../lib/firebase';
-import { supabase } from '../services/supabase.service';
+import { supabase } from '../lib/supabase';
 
 /**
  * Composant de test des notifications FCM

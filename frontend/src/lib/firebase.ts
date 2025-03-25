@@ -561,8 +561,7 @@ export const testMobileNotification = async () => {
       
       // 5. Tester aussi le format hybride (notification + data)
       console.log('[FIREBASE TEST] Envoi d\'une notification hybride...');
-      // Utiliser l'URL Supabase configurée dans l'environnement
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://tornfqtvnzkgnwfudxdb.supabase.co';
+      // Utiliser l'URL Supabase configurée précédemment
       const hybridResponse = await fetch(`${supabaseUrl}/functions/v1/fcm-proxy`, {
         method: 'POST',
         headers: {
