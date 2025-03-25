@@ -10,6 +10,7 @@ import ChatSandbox from './pages/ChatSandbox';
 import Properties from './pages/Properties';
 import Settings from './pages/Settings';
 import Debug from './pages/Debug';
+import NotificationTester from './components/NotificationTester';
 import Layout from './components/Layout/Layout';
 import { supabase } from './lib/supabase';
 import { Session } from '@supabase/supabase-js';
@@ -133,7 +134,12 @@ function App() {
         />
         <Route 
           path="/debug" 
-          element={<Debug />} 
+          element={
+            <>
+              <Debug />
+              {session && <NotificationTester />}
+            </>
+          } 
         />
         <Route
           path="/"

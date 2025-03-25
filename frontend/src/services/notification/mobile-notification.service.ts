@@ -31,6 +31,88 @@ export class MobileNotificationService extends BaseNotificationService {
       } catch (error) {
         console.error('[NOTIF DEBUG] Erreur lors de l\'initialisation FCM:', error);
       }
+    } else {
+      // Vérifier que le token existant est bien enregistré dans Supabase
+      this.verifyTokenRegistration();
+    }
+    
+    // Configurer une vérification périodique du token
+    this.setupPeriodicTokenCheck();
+  }
+  
+  /**
+   * Configure une vérification périodique du token FCM
+   * Cela permet de s'assurer que le token est toujours valide et enregistré
+   */
+  private static setupPeriodicTokenCheck(): void {
+    // Vérifier le token toutes les 12 heures
+    const CHECK_INTERVAL = 12 * 60 * 60 * 1000; // 12 heures en millisecondes
+    
+    const performCheck = () => {
+      this.verifyTokenRegistration();
+    };
+    
+    // Première vérification après 5 minutes
+    setTimeout(performCheck, 5 * 60 * 1000);
+    
+    // Vérifications périodiques ensuite
+    setInterval(performCheck, CHECK_INTERVAL);
+    
+    // Vérifier également à chaque reprise de l'application (visibilitychange)
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        console.log('[NOTIF DEBUG] Application revenue au premier plan, vérification du token FCM');
+        performCheck();
+      }
+    });
+  }
+  
+  /**
+   * Vérifie que le token FCM actuel est bien enregistré dans Supabase
+   * Si ce n'est pas le cas, tente de le réenregistrer
+   */
+  private static async verifyTokenRegistration(): Promise<void> {
+    try {
+      if (!this.fcmToken) {
+        console.log('[NOTIF DEBUG] Pas de token FCM à vérifier');
+        return;
+      }
+      
+      console.log('[NOTIF DEBUG] Vérification de l\'enregistrement du token FCM:', this.fcmToken.substring(0, 10) + '...');
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.warn('[NOTIF DEBUG] Impossible de vérifier le token: utilisateur non authentifié');
+        return;
+      }
+      
+      // Vérifier si le token est enregistré dans Supabase
+      const { data, error } = await supabase
+        .from('push_subscriptions')
+        .select('id, updated_at')
+        .eq('user_id', user.id)
+        .eq('token', this.fcmToken)
+        .single();
+      
+      if (error || !data) {
+        console.warn('[NOTIF DEBUG] Token FCM non trouvé dans la base de données, réenregistrement...');
+        await this.registerToken(this.fcmToken);
+        return;
+      }
+      
+      // Vérifier si l'enregistrement date de plus de 7 jours
+      const lastUpdate = new Date(data.updated_at);
+      const now = new Date();
+      const daysSinceUpdate = Math.floor((now.getTime() - lastUpdate.getTime()) / (1000 * 60 * 60 * 24));
+      
+      if (daysSinceUpdate > 7) {
+        console.log(`[NOTIF DEBUG] Enregistrement du token datant de ${daysSinceUpdate} jours, mise à jour...`);
+        await this.registerToken(this.fcmToken);
+      } else {
+        console.log('[NOTIF DEBUG] Token FCM correctement enregistré et à jour');
+      }
+    } catch (error) {
+      console.error('[NOTIF DEBUG] Erreur lors de la vérification du token FCM:', error);
     }
   }
 
@@ -50,50 +132,116 @@ export class MobileNotificationService extends BaseNotificationService {
   }
 
   /**
-   * Enregistre un nouveau token FCM
+   * Enregistre un nouveau token FCM avec mécanisme de reprise
    */
   static async registerToken(token: string): Promise<void> {
-    console.log('[NOTIF DEBUG] Enregistrement du token FCM');
+    console.log('[NOTIF DEBUG] Enregistrement du token FCM:', token.substring(0, 10) + '...');
     
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
+    // Sauvegarder le token localement immédiatement
+    localStorage.setItem('fcm_token', token);
+    this.fcmToken = token;
+    
+    // Variable pour le nombre de tentatives
+    let attempts = 0;
+    const maxAttempts = 3;
+    
+    const registerWithRetry = async (): Promise<boolean> => {
+      attempts++;
       
-      if (!user) {
-        throw new Error('Utilisateur non authentifié');
-      }
-
-      // Sauvegarder le token localement
-      localStorage.setItem('fcm_token', token);
-      this.fcmToken = token;
-
-      // Enregistrer dans Supabase
-      const { error } = await supabase
-        .from('push_subscriptions')
-        .upsert({
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) {
+          console.warn(`[NOTIF DEBUG] Tentative ${attempts}/${maxAttempts}: Utilisateur non authentifié`);
+          return false;
+        }
+        
+        // Préparer les données à insérer
+        const subscriptionData = {
           user_id: user.id,
           token,
           platform: 'fcm',
           subscription: {}, // Valeur par défaut pour satisfaire la contrainte NOT NULL
+          created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'user_id'
-        });
+        };
         
-      console.log('[NOTIF DEBUG] Tentative d\'insertion dans push_subscriptions', {
-        user_id: user.id,
-        token,
-        platform: 'fcm',
-        subscription: {}
-      });
+        console.log(`[NOTIF DEBUG] Tentative ${attempts}/${maxAttempts} d'insertion dans push_subscriptions`, {
+          user_id: user.id,
+          token: token.substring(0, 10) + '...',
+          platform: 'fcm'
+        });
 
-      if (error) {
-        throw error;
+        // Tenter d'abord un upsert avec onConflict sur la combinaison user_id et token
+        const { error: upsertError } = await supabase
+          .from('push_subscriptions')
+          .upsert(subscriptionData, {
+            onConflict: 'user_id,token'
+          });
+          
+        // Si l'upsert échoue à cause d'un problème avec onConflict
+        if (upsertError) {
+          console.warn(`[NOTIF DEBUG] Échec de l'upsert (conflit): ${upsertError.message}`);
+          
+          // Essayer une approche alternative : vérifier si l'entrée existe déjà
+          const { data: existingTokens } = await supabase
+            .from('push_subscriptions')
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('token', token);
+            
+          if (existingTokens && existingTokens.length > 0) {
+            // Le token existe déjà, mettre à jour
+            console.log('[NOTIF DEBUG] Token existant trouvé, mise à jour');
+            const { error: updateError } = await supabase
+              .from('push_subscriptions')
+              .update({
+                updated_at: new Date().toISOString()
+              })
+              .eq('user_id', user.id)
+              .eq('token', token);
+              
+            if (updateError) {
+              throw updateError;
+            }
+          } else {
+            // Le token n'existe pas, insérer
+            console.log('[NOTIF DEBUG] Token non trouvé, insertion');
+            const { error: insertError } = await supabase
+              .from('push_subscriptions')
+              .insert(subscriptionData);
+              
+            if (insertError) {
+              throw insertError;
+            }
+          }
+        }
+
+        console.log('[NOTIF DEBUG] Token FCM enregistré avec succès');
+        return true;
+      } catch (error) {
+        console.error(`[NOTIF DEBUG] Erreur lors de la tentative ${attempts}/${maxAttempts}:`, error);
+        
+        // Vérifier si on peut réessayer
+        if (attempts < maxAttempts) {
+          // Attente exponentielle avant la prochaine tentative
+          const delay = Math.pow(2, attempts) * 1000;
+          console.log(`[NOTIF DEBUG] Nouvelle tentative dans ${delay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          return registerWithRetry();
+        }
+        
+        console.error('[NOTIF DEBUG] Nombre maximum de tentatives atteint. Échec de l\'enregistrement du token');
+        return false;
       }
-
-      console.log('[NOTIF DEBUG] Token FCM enregistré avec succès');
-    } catch (error) {
-      console.error('[NOTIF DEBUG] Erreur lors de l\'enregistrement du token FCM:', error);
-      throw error;
+    };
+    
+    // Démarrer le processus d'enregistrement avec retries
+    try {
+      await registerWithRetry();
+    } catch (finalError) {
+      console.error('[NOTIF DEBUG] Erreur fatale lors de l\'enregistrement du token FCM:', finalError);
+      // Ne pas propager l'erreur pour éviter de bloquer l'application
     }
   }
 
