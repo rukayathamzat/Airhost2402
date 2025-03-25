@@ -156,15 +156,8 @@ export class MobileNotificationService extends BaseNotificationService {
           return false;
         }
         
-        // Préparer les données à insérer
-        const subscriptionData = {
-          user_id: user.id,
-          token,
-          platform: 'fcm',
-          subscription: {}, // Valeur par défaut pour satisfaire la contrainte NOT NULL
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        };
+        // Log des informations d'enregistrement du token
+        console.log(`[NOTIF DEBUG] Enregistrement du token FCM pour l'utilisateur ${user.id}`);
         
         console.log(`[NOTIF DEBUG] Tentative ${attempts}/${maxAttempts} d'insertion dans push_subscriptions`, {
           user_id: user.id,
@@ -172,50 +165,21 @@ export class MobileNotificationService extends BaseNotificationService {
           platform: 'fcm'
         });
 
-        // Tenter d'abord un upsert avec onConflict sur la combinaison user_id et token
-        const { error: upsertError } = await supabase
-          .from('push_subscriptions')
-          .upsert(subscriptionData, {
-            onConflict: 'user_id,token'
+        // Appeler la fonction Supabase qui gère l'upsert (mise à jour ou insertion)
+        // Cette fonction garantit qu'un seul token est conservé par utilisateur (le plus récent)
+        const { error: functionError } = await supabase
+          .rpc('upsert_push_token', {
+            p_user_id: user.id,
+            p_token: token,
+            p_platform: 'fcm'
           });
           
-        // Si l'upsert échoue à cause d'un problème avec onConflict
-        if (upsertError) {
-          console.warn(`[NOTIF DEBUG] Échec de l'upsert (conflit): ${upsertError.message}`);
-          
-          // Essayer une approche alternative : vérifier si l'entrée existe déjà
-          const { data: existingTokens } = await supabase
-            .from('push_subscriptions')
-            .select('id')
-            .eq('user_id', user.id)
-            .eq('token', token);
-            
-          if (existingTokens && existingTokens.length > 0) {
-            // Le token existe déjà, mettre à jour
-            console.log('[NOTIF DEBUG] Token existant trouvé, mise à jour');
-            const { error: updateError } = await supabase
-              .from('push_subscriptions')
-              .update({
-                updated_at: new Date().toISOString()
-              })
-              .eq('user_id', user.id)
-              .eq('token', token);
-              
-            if (updateError) {
-              throw updateError;
-            }
-          } else {
-            // Le token n'existe pas, insérer
-            console.log('[NOTIF DEBUG] Token non trouvé, insertion');
-            const { error: insertError } = await supabase
-              .from('push_subscriptions')
-              .insert(subscriptionData);
-              
-            if (insertError) {
-              throw insertError;
-            }
-          }
+        if (functionError) {
+          console.error(`[NOTIF DEBUG] Erreur lors de l'appel à upsert_push_token: ${functionError.message}`);
+          throw functionError;
         }
+        
+        console.log('[NOTIF DEBUG] Token FCM mis à jour avec succès via la fonction upsert_push_token');
 
         console.log('[NOTIF DEBUG] Token FCM enregistré avec succès');
         return true;
