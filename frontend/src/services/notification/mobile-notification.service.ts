@@ -165,7 +165,9 @@ export class MobileNotificationService extends BaseNotificationService {
       }
       
       // Utilisation de l'Edge Function Supabase au lieu de la fonction Netlify
-      const response = await fetch('https://pnbfsiicxhckptlgtjoj.supabase.co/functions/v1/fcm-proxy', {
+      // Utiliser l'URL Supabase configurée dans l'environnement
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://tornfqtvnzkgnwfudxdb.supabase.co';
+      const response = await fetch(`${supabaseUrl}/functions/v1/fcm-proxy`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -277,8 +279,9 @@ export class MobileNotificationService extends BaseNotificationService {
       
       console.log('[NOTIF DEBUG] Token JWT obtenu, envoi de la notification test');
       
-      // URL de l'Edge Function Supabase
-      const edgeFunctionUrl = 'https://pnbfsiicxhckptlgtjoj.supabase.co/functions/v1/fcm-proxy';
+      // URL de l'Edge Function Supabase (utilisation de l'URL configurée dans l'environnement)
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://tornfqtvnzkgnwfudxdb.supabase.co';
+      const edgeFunctionUrl = `${supabaseUrl}/functions/v1/fcm-proxy`;
       console.log('[NOTIF DEBUG] URL de l\'Edge Function:', edgeFunctionUrl);
       
       // Corps de la requête

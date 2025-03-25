@@ -45,7 +45,9 @@ class FirebaseNotificationService {
   private async loadFirebaseConfig(): Promise<any> {
     try {
       console.log('[FIREBASE DEBUG] Récupération de la configuration Firebase depuis l\'Edge Function...');
-      const response = await fetch('https://pnbfsiicxhckptlgtjoj.supabase.co/functions/v1/fcm-proxy/config', {
+      // Utiliser l'URL Supabase configurée dans l'environnement
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://tornfqtvnzkgnwfudxdb.supabase.co';
+      const response = await fetch(`${supabaseUrl}/functions/v1/fcm-proxy/config`, {
         headers: {
           'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
         }
@@ -525,7 +527,9 @@ export const testMobileNotification = async () => {
     if (token) {
       // 4. Envoyer une notification au format mobile via l'Edge Function
       console.log('[FIREBASE TEST] Envoi d\'une notification format mobile...');
-      const response = await fetch('https://pnbfsiicxhckptlgtjoj.supabase.co/functions/v1/fcm-proxy', {
+      // Utiliser l'URL Supabase configurée dans l'environnement
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://tornfqtvnzkgnwfudxdb.supabase.co';
+      const response = await fetch(`${supabaseUrl}/functions/v1/fcm-proxy`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -557,7 +561,9 @@ export const testMobileNotification = async () => {
       
       // 5. Tester aussi le format hybride (notification + data)
       console.log('[FIREBASE TEST] Envoi d\'une notification hybride...');
-      const hybridResponse = await fetch('https://pnbfsiicxhckptlgtjoj.supabase.co/functions/v1/fcm-proxy', {
+      // Utiliser l'URL Supabase configurée dans l'environnement
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://tornfqtvnzkgnwfudxdb.supabase.co';
+      const hybridResponse = await fetch(`${supabaseUrl}/functions/v1/fcm-proxy`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
