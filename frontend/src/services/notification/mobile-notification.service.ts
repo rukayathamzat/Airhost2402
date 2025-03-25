@@ -1,17 +1,149 @@
-import { BaseNotificationService } from './base-notification.service';
 import { supabase } from '../../lib/supabase';
-import { Message } from '../../types/message';
 // @ts-ignore - Ignorer l'erreur de type pour firebase
 import { requestFCMPermission, setMessagingCallback } from '../../lib/firebase';
+
+// Définition simplifiée de la classe abstraite BaseNotificationService
+abstract class BaseNotificationService {
+  abstract sendNotification(title: string, body: string, data?: any): Promise<boolean>;
+  abstract initialize(): Promise<boolean>;
+  abstract requestPermission(): Promise<boolean>;
+  abstract isSupported(): boolean;
+}
+
+// Définition simplifiée de Message pour éviter l'import externe
+interface Message {
+  id?: string;
+  conversation_id: string;
+  content: string;
+  created_at: string;
+  sender_id: string;
+  sender_type: 'host' | 'guest' | 'system';
+  read?: boolean;
+  attachments?: any[];
+}
 
 export class MobileNotificationService extends BaseNotificationService {
   private static fcmToken: string | null = null;
 
   /**
+   * Envoie une notification via le service de notification mobile
+   * @param title - Titre de la notification
+   * @param body - Corps de la notification
+   * @param data - Données supplémentaires (optionnel)
+   */
+  /**
+   * Obtient le token FCM à partir du cache ou en le demandant à Firebase
+   */
+  async getFCMToken(): Promise<string | null> {
+    // Vérifier si on a déjà un token en cache
+    if (MobileNotificationService.fcmToken) {
+      return MobileNotificationService.fcmToken;
+    }
+    
+    try {
+      // Sinon, demander un nouveau token
+      const token = await requestFCMPermission();
+      if (token) {
+        // Mettre en cache le token
+        MobileNotificationService.fcmToken = token;
+        console.log('[MOBILE NOTIFICATION] Token FCM obtenu:', token);
+        return token;
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('[MOBILE NOTIFICATION] Erreur lors de l\'obtention du token FCM:', error);
+      return null;
+    }
+  }
+
+  async sendNotification(title: string, body: string, data?: any): Promise<boolean> {
+    console.log('[MOBILE NOTIFICATION] Envoi de notification:', title, body, data);
+    
+    try {
+      // Dans le cas mobile, on utilise FCM
+      // Les notifications sont gérées par le service worker Firebase
+      const token = await this.getFCMToken();
+      if (!token) {
+        console.error('[MOBILE NOTIFICATION] Impossible d\'envoyer la notification: pas de token FCM');
+        return false;
+      }
+      
+      // Nous utilisons notre Edge Function pour envoyer la notification
+      // URL de l'Edge Function Supabase (utilisation de l'URL configurée dans l'environnement)
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://tornfqtvnzkgnwfudxdb.supabase.co';
+      const edgeFunctionUrl = `${supabaseUrl}/functions/v1/fcm-proxy`;
+      
+      const response = await fetch(edgeFunctionUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+        },
+        body: JSON.stringify({
+          to: token,
+          notification: {
+            title,
+            body,
+          },
+          data: data || {}
+        })
+      });
+      
+      if (!response.ok) {
+        console.error('[MOBILE NOTIFICATION] Erreur lors de l\'envoi de la notification:', await response.text());
+        return false;
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('[MOBILE NOTIFICATION] Erreur lors de l\'envoi de la notification:', error);
+      return false;
+    }
+  }
+  
+  /**
+   * Vérifie si les notifications mobiles sont supportées
+   */
+  isSupported(): boolean {
+    // Vérifier si on est sur un appareil mobile et si FCM est disponible
+    return typeof window !== 'undefined' && 
+           'serviceWorker' in navigator && 
+           typeof requestFCMPermission === 'function';
+  }
+  
+  /**
+   * Initialise le service de notification mobile
+   */
+  async initialize(): Promise<boolean> {
+    try {
+      // Initialiser et charger le token FCM
+      await MobileNotificationService.init();
+      return true;
+    } catch (error) {
+      console.error('[MOBILE NOTIFICATION] Erreur lors de l\'initialisation:', error);
+      return false;
+    }
+  }
+  
+  /**
+   * Demande l'autorisation pour envoyer des notifications
+   */
+  async requestPermission(): Promise<boolean> {
+    try {
+      const token = await requestFCMPermission();
+      return !!token;
+    } catch (error) {
+      console.error('[MOBILE NOTIFICATION] Erreur lors de la demande de permission:', error);
+      return false;
+    }
+  }
+
+  /**
    * Initialise le service de notification mobile
    */
   static async init(): Promise<void> {
-    await super.init();
+    // Pas besoin d'initialiser la classe parent car elle est abstraite
     await this.loadFCMToken();
     
     // Configurer le callback pour les messages FCM reçus quand l'app est au premier plan
@@ -230,7 +362,7 @@ export class MobileNotificationService extends BaseNotificationService {
    */
   static isServiceWorkerRegistered(): boolean {
     // D'abord vérifier avec la méthode de la classe de base
-    const baseRegistration = super.isServiceWorkerRegistered();
+    const baseRegistration = null; // ServiceWorker géré par Firebase
     if (baseRegistration) {
       return true;
     }

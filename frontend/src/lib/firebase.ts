@@ -308,7 +308,7 @@ class FirebaseNotificationService {
     console.log('[FIREBASE] Configuration du gestionnaire de messages...');
     
     try {
-      onMessage(this.messagingInstance, (payload) => {
+      onMessage(this.messagingInstance, (payload: MessagePayload) => {
         console.log('[FIREBASE] Message FCM reçu au premier plan:', payload);
         
         // Appeler la fonction de callback avec le payload du message
@@ -527,9 +527,8 @@ export const testMobileNotification = async () => {
     if (token) {
       // 4. Envoyer une notification au format mobile via l'Edge Function
       console.log('[FIREBASE TEST] Envoi d\'une notification format mobile...');
-      // Utiliser l'URL Supabase configurée dans l'environnement
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://tornfqtvnzkgnwfudxdb.supabase.co';
-      const response = await fetch(`${supabaseUrl}/functions/v1/fcm-proxy`, {
+      // Utiliser la même URL Supabase que celle définie plus haut
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL || 'https://tornfqtvnzkgnwfudxdb.supabase.co'}/functions/v1/fcm-proxy`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -561,9 +560,8 @@ export const testMobileNotification = async () => {
       
       // 5. Tester aussi le format hybride (notification + data)
       console.log('[FIREBASE TEST] Envoi d\'une notification hybride...');
-      // Utiliser l'URL Supabase configurée dans l'environnement
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://tornfqtvnzkgnwfudxdb.supabase.co';
-      const hybridResponse = await fetch(`${supabaseUrl}/functions/v1/fcm-proxy`, {
+      // Utiliser la même URL Supabase que celle définie plus haut
+      const hybridResponse = await fetch(`${import.meta.env.VITE_SUPABASE_URL || 'https://tornfqtvnzkgnwfudxdb.supabase.co'}/functions/v1/fcm-proxy`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
