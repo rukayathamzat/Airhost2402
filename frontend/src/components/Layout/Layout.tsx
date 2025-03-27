@@ -29,17 +29,42 @@ const Layout = ({ children }: LayoutProps) => {
 
   // Gestion de la configuration WhatsApp
   const openWhatsAppConfig = async () => {
-    console.log('Ouverture de la configuration WhatsApp');
+    console.log('Ouverture de la configuration WhatsApp via Edge Function');
     
     try {
-      const { data, error } = await supabase
-        .from('whatsapp_config')
-        .select('*')
-        .single();
-
-      if (error && error.code !== 'PGRST116') {
-        console.error('Erreur lors du chargement de la configuration WhatsApp:', error);
+      // Récupérer la session pour obtenir le token JWT
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        console.error("Erreur: Aucune session disponible pour récupérer la configuration WhatsApp");
+        return;
       }
+      
+      // Utiliser l'Edge Function pour récupérer la configuration WhatsApp
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/whatsapp-config`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`Erreur HTTP: ${response.status} ${response.statusText}`, errorText);
+        return;
+      }
+      
+      const { data, error } = await response.json();
+      
+      if (error) {
+        console.error("Erreur lors de l'appel à l'Edge Function:", error);
+        return;
+      }
+      
+      console.log("Configuration WhatsApp récupérée via Edge Function avec succès:", data);
 
       if (data) {
         setPhoneNumberId(data.phone_number_id || '');
@@ -57,37 +82,49 @@ const Layout = ({ children }: LayoutProps) => {
     setSaving(true);
     
     try {
-      const { data, error } = await supabase
-        .from('whatsapp_config')
-        .select('id')
-        .single();
-      
-      if (error && error.code !== 'PGRST116') {
-        throw error;
+      // Récupérer la session pour obtenir le token JWT
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        console.error("Erreur: Aucune session disponible pour sauvegarder la configuration WhatsApp");
+        setSaving(false);
+        return;
       }
       
-      if (data) {
-        // Mise à jour de la configuration existante
-        const { error: updateError } = await supabase
-          .from('whatsapp_config')
-          .update({
-            phone_number_id: phoneNumberId,
-            token: whatsappToken
-          })
-          .eq('id', data.id);
-        
-        if (updateError) throw updateError;
-      } else {
-        // Création d'une nouvelle configuration
-        const { error: insertError } = await supabase
-          .from('whatsapp_config')
-          .insert({
-            phone_number_id: phoneNumberId,
-            token: whatsappToken
-          });
-        
-        if (insertError) throw insertError;
+      // Préparer les données de configuration
+      const configData = {
+        phone_number_id: phoneNumberId,
+        token: whatsappToken
+      };
+      
+      console.log("Sauvegarde de la configuration WhatsApp via Edge Function:", configData);
+      
+      // Utiliser l'Edge Function pour sauvegarder la configuration WhatsApp
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/whatsapp-config`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(configData)
+        }
+      );
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`Erreur HTTP: ${response.status} ${response.statusText}`, errorText);
+        throw new Error(`Erreur HTTP: ${response.status} ${response.statusText}`);
       }
+      
+      const result = await response.json();
+      
+      if (result.error) {
+        console.error("Erreur lors de l'appel à l'Edge Function:", result.error);
+        throw new Error(result.error);
+      }
+      
+      console.log("Configuration WhatsApp sauvegardée via Edge Function avec succès:", result);
 
       console.log('Configuration WhatsApp enregistrée avec succès');
       setConfigOpen(false);
