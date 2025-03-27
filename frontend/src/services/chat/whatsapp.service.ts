@@ -10,7 +10,7 @@ export interface WhatsAppConfig {
 export class WhatsAppService {
   static async getConfig(): Promise<WhatsAppConfig | null> {
     try {
-      console.log("Tentative de récupération de la configuration WhatsApp...");
+      console.log("[WhatsAppService] v1.0.1 - Tentative de récupération de la configuration WhatsApp...");
       
       // Récupérer la session pour obtenir le token JWT
       const { data: { session } } = await supabase.auth.getSession();
@@ -69,7 +69,7 @@ export class WhatsAppService {
 
   static async saveConfig(config: Partial<WhatsAppConfig>) {
     try {
-      console.log("Tentative de sauvegarde de la configuration WhatsApp:", config);
+      console.log("[WhatsAppService] v1.0.1 - Tentative de sauvegarde de la configuration WhatsApp:", config);
       
       // Récupérer la session pour obtenir le token JWT
       const { data: { session } } = await supabase.auth.getSession();
