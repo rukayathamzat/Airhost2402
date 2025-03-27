@@ -71,7 +71,7 @@ const TestConversationCreation = () => {
       console.error('Erreur lors du test:', error);
       setResult({
         success: false,
-        message: `Erreur: ${error.message || 'Erreur inconnue'}`
+        message: `Erreur: ${error instanceof Error ? error.message : 'Erreur inconnue'}`
       });
     } finally {
       setLoading(false);
