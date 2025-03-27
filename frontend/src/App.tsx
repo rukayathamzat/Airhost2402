@@ -10,6 +10,7 @@ import ChatSandbox from './pages/ChatSandbox';
 import Properties from './pages/Properties';
 import Settings from './pages/Settings';
 import Debug from './pages/Debug';
+import TestConversation from './pages/TestConversation';
 import NotificationTester from './components/NotificationTester';
 import Layout from './components/Layout/Layout';
 import { supabase } from './lib/supabase';
@@ -163,6 +164,7 @@ function App() {
                   <Route path="/properties" element={<Properties />} />
                   <Route path="/settings" element={<Settings />} />
                   <Route path="/debug" element={<Debug />} />
+                  <Route path="/test-conversation" element={<TestConversation />} />
                 </Routes>
               </Layout>
             ) : (
