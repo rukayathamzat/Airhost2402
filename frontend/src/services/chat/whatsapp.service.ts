@@ -9,26 +9,54 @@ export interface WhatsAppConfig {
 
 export class WhatsAppService {
   static async getConfig(): Promise<WhatsAppConfig | null> {
-    const { data, error } = await supabase
-      .from('whatsapp_config')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
+    try {
+      console.log("Tentative de récupération de la configuration WhatsApp...");
+      
+      // Ajout d'en-têtes explicites pour éviter les problèmes de format
+      const { data, error } = await supabase
+        .from('whatsapp_config')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
 
-    if (error) throw error;
-    return data;
+      if (error) {
+        console.error("Erreur lors de la récupération de la configuration WhatsApp:", error);
+        // Ne pas lancer d'erreur, retourner null pour utiliser les valeurs par défaut
+        return null;
+      }
+      
+      console.log("Configuration WhatsApp récupérée avec succès:", data);
+      return data;
+    } catch (err) {
+      console.error("Exception lors de la récupération de la configuration WhatsApp:", err);
+      // Utiliser des valeurs par défaut en cas d'erreur
+      console.log("Aucune configuration WhatsApp trouvée, utilisation des valeurs par défaut");
+      return null;
+    }
   }
 
   static async saveConfig(config: Partial<WhatsAppConfig>) {
-    const { error } = await supabase
-      .from('whatsapp_config')
-      .upsert({
-        ...config,
-        updated_at: new Date().toISOString()
-      });
+    try {
+      console.log("Tentative de sauvegarde de la configuration WhatsApp:", config);
+      
+      const { error } = await supabase
+        .from('whatsapp_config')
+        .upsert({
+          ...config,
+          updated_at: new Date().toISOString()
+        });
 
-    if (error) throw error;
+      if (error) {
+        console.error("Erreur lors de la sauvegarde de la configuration WhatsApp:", error);
+        throw error;
+      }
+      
+      console.log("Configuration WhatsApp sauvegardée avec succès");
+    } catch (err) {
+      console.error("Exception lors de la sauvegarde de la configuration WhatsApp:", err);
+      throw err;
+    }
   }
 
   static async sendMessage(to: string, content: string) {
