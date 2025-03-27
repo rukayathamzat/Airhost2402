@@ -10,17 +10,41 @@ export interface WhatsAppConfig {
 export class WhatsAppService {
   static async getConfig(): Promise<WhatsAppConfig | null> {
     try {
-      console.log("[WhatsAppService] v1.0.2 - Tentative de récupération de la configuration WhatsApp via RPC...");
+      console.log("[WhatsAppService] v1.0.3 - Tentative de récupération de la configuration WhatsApp via Edge Function...");
       
-      // Utiliser la fonction RPC de Supabase pour contourner les problèmes d'API REST
-      const { data, error } = await supabase.rpc('get_whatsapp_config');
-      
-      if (error) {
-        console.error("Erreur lors de l'appel RPC:", error);
+      // Récupérer la session pour obtenir le token JWT
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        console.error("Erreur: Aucune session disponible pour récupérer la configuration WhatsApp");
         return null;
       }
       
-      console.log("Configuration WhatsApp récupérée via RPC avec succès:", data);
+      // Utiliser l'Edge Function pour récupérer la configuration WhatsApp
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/whatsapp-config`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`Erreur HTTP: ${response.status} ${response.statusText}`, errorText);
+        return null;
+      }
+      
+      const { data, error } = await response.json();
+      
+      if (error) {
+        console.error("Erreur lors de l'appel à l'Edge Function:", error);
+        return null;
+      }
+      
+      console.log("Configuration WhatsApp récupérée via Edge Function avec succès:", data);
       
       // La fonction RPC retourne directement un objet JSON, pas un tableau
       if (data && typeof data === 'object') {
@@ -38,21 +62,38 @@ export class WhatsAppService {
 
   static async saveConfig(config: Partial<WhatsAppConfig>): Promise<boolean> {
     try {
-      console.log("[WhatsAppService] v1.0.2 - Tentative de sauvegarde de la configuration WhatsApp via API standard:", config);
+      console.log("[WhatsAppService] v1.0.3 - Tentative de sauvegarde de la configuration WhatsApp via Edge Function:", config);
       
-      // Préparer les données avec updated_at
-      const dataToSave = {
-        ...config,
-        updated_at: new Date().toISOString()
-      };
+      // Récupérer la session pour obtenir le token JWT
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        console.error("Erreur: Aucune session disponible pour sauvegarder la configuration WhatsApp");
+        return false;
+      }
       
-      // Utiliser l'API standard de Supabase pour l'insertion/mise à jour
-      const { error } = await supabase
-        .from('whatsapp_config')
-        .upsert(dataToSave);
+      // Utiliser l'Edge Function pour sauvegarder la configuration WhatsApp
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/whatsapp-config`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(config)
+        }
+      );
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`Erreur HTTP: ${response.status} ${response.statusText}`, errorText);
+        return false;
+      }
+      
+      const { error } = await response.json();
       
       if (error) {
-        console.error("Erreur lors de la sauvegarde via Supabase:", error);
+        console.error("Erreur lors de l'appel à l'Edge Function:", error);
         return false;
       }
       
