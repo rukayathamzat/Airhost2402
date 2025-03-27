@@ -11,7 +11,7 @@ import {
   Alert,
   CircularProgress
 } from '@mui/material';
-import { WhatsAppService, WhatsAppConfig as WhatsAppConfigType } from '../../../services/chat/whatsapp.service';
+import { WhatsAppConfig as WhatsAppConfigType } from '../../../services/chat/whatsapp.service';
 import { supabase } from '../../../lib/supabase';
 
 interface WhatsAppConfigProps {
