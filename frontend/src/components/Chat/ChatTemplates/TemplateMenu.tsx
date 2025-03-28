@@ -4,9 +4,15 @@ import {
   ListItemText,
   Divider,
   Typography,
-  Box
+  Box,
+  Button,
+  Stack,
+  IconButton,
+  Tooltip
 } from '@mui/material';
 import WhatsAppIcon from '@mui/icons-material/WhatsApp';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import SendIcon from '@mui/icons-material/Send';
 import { Template } from '../../../services/chat/template.service';
 
 interface TemplateMenuProps {
@@ -15,6 +21,10 @@ interface TemplateMenuProps {
   onClose: () => void;
   templates: Template[];
   onSelectTemplate: (template: Template) => void;
+  // Nouvelle fonction pour envoyer un template WhatsApp
+  onSendWhatsAppTemplate?: (template: Template) => void;
+  // Numéro WhatsApp du contact (nécessaire pour l'affichage de l'option WhatsApp)
+  whatsappContactId?: string | null;
 }
 
 export default function TemplateMenu({ 
@@ -22,8 +32,13 @@ export default function TemplateMenu({
   open,
   onClose, 
   templates,
-  onSelectTemplate 
+  onSelectTemplate,
+  onSendWhatsAppTemplate,
+  whatsappContactId
 }: TemplateMenuProps) {
+  
+  // Déterminer si l'option WhatsApp doit être affichée
+  const canSendWhatsAppTemplate = Boolean(onSendWhatsAppTemplate && whatsappContactId);
   return (
     <Menu
       anchorEl={anchorEl}
@@ -57,12 +72,9 @@ export default function TemplateMenu({
         templates.map((template) => (
           <MenuItem 
             key={template.id}
-            onClick={() => {
-              onSelectTemplate(template);
-              onClose();
-            }}
             sx={{ 
               py: 1.5,
+              display: 'block',
               '&:hover': {
                 backgroundColor: 'rgba(59, 130, 246, 0.08)'
               }
@@ -80,6 +92,41 @@ export default function TemplateMenu({
                 </Typography>
               }
             />
+            
+            <Stack direction="row" spacing={1} mt={1} justifyContent="flex-end">
+              <Tooltip title="Copier dans le chat">
+                <Button 
+                  size="small" 
+                  startIcon={<ContentCopyIcon />}
+                  variant="text"
+                  onClick={() => {
+                    onSelectTemplate(template);
+                    onClose();
+                  }}
+                >
+                  Copier
+                </Button>
+              </Tooltip>
+              
+              {canSendWhatsAppTemplate && (
+                <Tooltip title="Envoyer comme template WhatsApp">
+                  <Button 
+                    size="small" 
+                    color="primary"
+                    variant="contained"
+                    startIcon={<WhatsAppIcon />}
+                    onClick={() => {
+                      if (onSendWhatsAppTemplate) {
+                        onSendWhatsAppTemplate(template);
+                        onClose();
+                      }
+                    }}
+                  >
+                    Envoyer
+                  </Button>
+                </Tooltip>
+              )}
+            </Stack>
           </MenuItem>
         ))
       )}

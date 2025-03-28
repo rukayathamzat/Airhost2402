@@ -10,7 +10,9 @@ import {
   MenuItem,
   ListItemIcon,
   ListItemText,
-  CircularProgress
+  CircularProgress,
+  Snackbar,
+  Alert
 } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
@@ -22,9 +24,11 @@ import PaletteIcon from '@mui/icons-material/Palette';
 import ChatMessages from './ChatMessages';
 import ChatInput from './ChatInput';
 import AIResponseModal from '../AIResponseModal';
+import TemplateMenu from './ChatTemplates/TemplateMenu';
 import { useMessagesRealtime } from '../../hooks/useMessagesRealtime';
 import { useMessageSender } from '../../hooks/useMessageSender';
 import { useTemplates, Template } from '../../hooks/useTemplates';
+import { TemplateService } from '../../services/chat/template.service';
 
 // Préfixe pour les logs liés à ce composant
 const DEBUG_PREFIX = 'DEBUG_CHAT_WINDOW';
@@ -43,6 +47,10 @@ export default function ChatWindow({ conversationId, whatsappContactId, guestNam
   const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null);
   const [templatesMenuAnchorEl, setTemplatesMenuAnchorEl] = useState<null | HTMLElement>(null);
   const [aiModalOpen, setAiModalOpen] = useState(false);
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
+  const [sendingTemplate, setSendingTemplate] = useState(false);
   
   // Utilisation des hooks personnalisés
   const { 
@@ -83,11 +91,48 @@ export default function ChatWindow({ conversationId, whatsappContactId, guestNam
   // Cette fonction est gérée par le composant ChatInput
   // Aucun gestionnaire handleKeyPress direct n'est nécessaire ici
   
-  // Gestionnaire pour la sélection d'un template
+  // Gestionnaire pour la sélection d'un template (copier son contenu dans le champ de message)
   const handleTemplateSelect = useCallback((template: Template) => {
     setMessageInput(template.content);
     setTemplatesMenuAnchorEl(null);
   }, []);
+  
+  // Gestionnaire pour l'envoi d'un template WhatsApp
+  const handleSendWhatsAppTemplate = useCallback(async (template: Template) => {
+    if (!whatsappContactId) {
+      setSnackbarMessage('Impossible d\'envoyer le template : numéro WhatsApp manquant');
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
+      return;
+    }
+    
+    try {
+      console.log(`${DEBUG_PREFIX} Envoi du template WhatsApp:`, {
+        template_name: template.name,
+        language: template.language,
+        to: whatsappContactId
+      });
+      
+      setSendingTemplate(true);
+      await TemplateService.sendTemplate(conversationId, whatsappContactId, template);
+      
+      setSnackbarMessage('Template WhatsApp envoyé avec succès');
+      setSnackbarSeverity('success');
+      setSnackbarOpen(true);
+      
+      // Force le rafraîchissement des messages pour voir le template envoyé
+      forceRefresh();
+    } catch (error) {
+      console.error(`${DEBUG_PREFIX} Erreur lors de l'envoi du template WhatsApp:`, error);
+      setSnackbarMessage(
+        `Erreur lors de l'envoi du template: ${error instanceof Error ? error.message : 'Erreur inconnue'}`
+      );
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
+    } finally {
+      setSendingTemplate(false);
+    }
+  }, [conversationId, whatsappContactId, forceRefresh]);
   
   // Cette fonctionnalité est déléguée au composant ChatInput
   
@@ -108,6 +153,10 @@ export default function ChatWindow({ conversationId, whatsappContactId, guestNam
   
   const handleTemplatesMenuClose = () => {
     setTemplatesMenuAnchorEl(null);
+  };
+  
+  const handleSnackbarClose = () => {
+    setSnackbarOpen(false);
   };
   
   // Fonctions pour le modal IA
@@ -240,24 +289,33 @@ export default function ChatWindow({ conversationId, whatsappContactId, guestNam
         </MenuItem>
       </Menu>
       
-      {/* Menu des templates */}
-      <Menu
+      {/* Menu des templates avec la nouvelle interface */}
+      <TemplateMenu
         anchorEl={templatesMenuAnchorEl}
         open={Boolean(templatesMenuAnchorEl)}
         onClose={handleTemplatesMenuClose}
+        templates={templates}
+        onSelectTemplate={handleTemplateSelect}
+        onSendWhatsAppTemplate={handleSendWhatsAppTemplate}
+        whatsappContactId={whatsappContactId}
+      />
+      
+      {/* Notification pour l'envoi de template */}
+      <Snackbar 
+        open={snackbarOpen} 
+        autoHideDuration={6000} 
+        onClose={handleSnackbarClose}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
-        {templates.length === 0 ? (
-          <MenuItem disabled>
-            <ListItemText>Aucun modèle disponible</ListItemText>
-          </MenuItem>
-        ) : (
-          templates.map(template => (
-            <MenuItem key={template.id} onClick={() => handleTemplateSelect(template)}>
-              <ListItemText primary={template.name} />
-            </MenuItem>
-          ))
-        )}
-      </Menu>
+        <Alert 
+          onClose={handleSnackbarClose} 
+          severity={snackbarSeverity} 
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
       
       {/* Modal pour la génération de réponse IA */}
       <AIResponseModal
