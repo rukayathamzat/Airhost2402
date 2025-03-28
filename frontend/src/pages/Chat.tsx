@@ -286,27 +286,17 @@ export default function Chat() {
   
   // Gestion de la configuration WhatsApp
   const openWhatsAppConfig = async () => {
-    console.log('Ouverture de la configuration WhatsApp via Edge Function (invoke)');
+    console.log('Ouverture de la configuration WhatsApp via service WhatsApp');
     
     try {
-      // Utiliser supabase.functions.invoke au lieu de fetch pour gérer automatiquement l'authentification
-      console.log('Appel de l\'Edge Function avec supabase.functions.invoke');
-      const { data, error } = await supabase.functions.invoke('whatsapp-config', {
-        method: 'GET'
-      });
+      // Utiliser le service WhatsApp directement
+      const config = await WhatsAppService.getConfig();
       
-      console.log('Réponse de l\'Edge Function:', data, error);
+      console.log('Configuration WhatsApp récupérée:', config);
       
-      if (error) {
-        console.error("Erreur lors de l'appel à l'Edge Function:", error);
-        return;
-      }
-      
-      console.log("Configuration WhatsApp récupérée via Edge Function avec succès:", data);
-
-      if (data) {
-        setPhoneNumberId(data.phone_number_id || '');
-        setWhatsappToken(data.token || '');
+      if (config) {
+        setPhoneNumberId(config.phone_number_id || '');
+        setWhatsappToken(config.token || '');
       } else {
         console.log('Aucune configuration WhatsApp trouvée, utilisation des valeurs par défaut');
       }
@@ -314,7 +304,7 @@ export default function Chat() {
       // Force l'ouverture de la popup
       setConfigOpen(true);
     } catch (error) {
-      console.error('Erreur:', error);
+      console.error('Erreur lors de la récupération de la configuration WhatsApp:', error);
     }
   };
   
@@ -327,27 +317,21 @@ export default function Chat() {
       // Préparer les données de configuration
       const configData = {
         phone_number_id: phoneNumberId,
-        token: whatsappToken,
-        updated_at: new Date().toISOString()
+        token: whatsappToken
       };
       
-      console.log("Sauvegarde de la configuration WhatsApp via Edge Function (invoke):", configData);
+      console.log("Sauvegarde de la configuration WhatsApp via service WhatsApp:", configData);
       
-      // Utiliser supabase.functions.invoke au lieu de fetch pour gérer automatiquement l'authentification
-      const { data: result, error } = await supabase.functions.invoke('whatsapp-config', {
-        method: 'POST',
-        body: configData
-      });
+      // Utiliser le service WhatsApp directement
+      const success = await WhatsAppService.saveConfig(configData);
       
-      console.log('Réponse de l\'Edge Function (sauvegarde):', result, error);
-      
-      if (error) {
-        console.error("Erreur lors de l'appel à l'Edge Function:", error);
+      if (!success) {
+        console.error("Erreur lors de la sauvegarde de la configuration WhatsApp");
         setSaving(false);
         return;
       }
       
-      console.log("Configuration WhatsApp sauvegardée via Edge Function avec succès:", result);
+      console.log("Configuration WhatsApp sauvegardée avec succès");
 
       setConfigOpen(false);
       setSaving(false);
