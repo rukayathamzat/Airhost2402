@@ -155,12 +155,6 @@ export class MessageService {
    */
   private static async notifyNewMessage(message: Message, conversationId: string) {
     try {
-      // Vérifier si c'est un message entrant
-      if (message.direction !== 'inbound') {
-        console.log('[NOTIFICATION DEBUG] Message non entrant, pas de notification');
-        return;
-      }
-      
       console.log('[NOTIFICATION DEBUG] Tentative d\'envoi de notification pour le message:', message.id);
       
       // Vérifier si nous sommes sur la page de chat pour cette conversation
