@@ -10,13 +10,15 @@ export interface WhatsAppConfig {
 export class WhatsAppService {
   static async getConfig(): Promise<WhatsAppConfig | null> {
     try {
-      console.log("[WhatsAppService] v2.0.0 - Tentative de récupération de la configuration WhatsApp via API Supabase directe...");
+      console.log("[WhatsAppService] v3.0.0 - Tentative de récupération de la configuration WhatsApp via API Supabase directe...");
       
       // Utiliser directement l'API Supabase pour récupérer la configuration WhatsApp
+      // On récupère tous les enregistrements, triés par date de mise à jour décroissante
       const { data, error } = await supabase
         .from('whatsapp_config')
         .select('*')
-        .single();
+        .order('updated_at', { ascending: false })
+        .limit(1);
       
       if (error) {
         console.error("Erreur lors de la récupération de la configuration WhatsApp:", error);
@@ -25,8 +27,8 @@ export class WhatsAppService {
       
       console.log("Configuration WhatsApp récupérée via API Supabase avec succès:", data);
       
-      if (data) {
-        return data as WhatsAppConfig;
+      if (data && data.length > 0) {
+        return data[0] as WhatsAppConfig;
       }
       
       console.log("Aucune configuration WhatsApp trouvée");
