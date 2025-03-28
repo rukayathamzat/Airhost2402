@@ -42,38 +42,17 @@ const SideMenu: React.FC = () => {
   };
 
   const openWhatsAppConfig = async () => {
-    console.log('Ouverture de la configuration WhatsApp via Edge Function');
+    console.log('Ouverture de la configuration WhatsApp via Edge Function (invoke)');
     toast.info('Chargement de la configuration WhatsApp...');
     
     try {
-      // Récupérer la session pour obtenir le token JWT
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        console.error("Erreur: Aucune session disponible pour récupérer la configuration WhatsApp");
-        toast.error('Erreur lors du chargement de la configuration');
-        return;
-      }
+      // Utiliser supabase.functions.invoke au lieu de fetch pour gérer automatiquement l'authentification
+      console.log('Appel de l\'Edge Function avec supabase.functions.invoke');
+      const { data, error } = await supabase.functions.invoke('whatsapp-config', {
+        method: 'GET'
+      });
       
-      // Utiliser l'Edge Function pour récupérer la configuration WhatsApp
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/whatsapp-config`,
-        {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`Erreur HTTP: ${response.status} ${response.statusText}`, errorText);
-        toast.error(`Erreur lors du chargement de la configuration: ${response.status}`);
-        return;
-      }
-      
-      const { data, error } = await response.json();
+      console.log('Réponse de l\'Edge Function:', data, error);
       
       if (error) {
         console.error("Erreur lors de l'appel à l'Edge Function:", error);
@@ -103,15 +82,6 @@ const SideMenu: React.FC = () => {
     try {
       setSaving(true);
       
-      // Récupérer la session pour obtenir le token JWT
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        console.error("Erreur: Aucune session disponible pour sauvegarder la configuration WhatsApp");
-        toast.error('Erreur lors de la sauvegarde');
-        setSaving(false);
-        return;
-      }
-      
       // Préparer les données de configuration
       const configData = {
         phone_number_id: phoneNumberId,
@@ -119,33 +89,18 @@ const SideMenu: React.FC = () => {
         updated_at: new Date().toISOString()
       };
       
-      console.log("Sauvegarde de la configuration WhatsApp via Edge Function:", configData);
+      console.log("Sauvegarde de la configuration WhatsApp via Edge Function (invoke):", configData);
       
-      // Utiliser l'Edge Function pour sauvegarder la configuration WhatsApp
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/whatsapp-config`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(configData)
-        }
-      );
+      // Utiliser supabase.functions.invoke au lieu de fetch pour gérer automatiquement l'authentification
+      const { data: result, error } = await supabase.functions.invoke('whatsapp-config', {
+        method: 'POST',
+        body: configData
+      });
       
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`Erreur HTTP: ${response.status} ${response.statusText}`, errorText);
-        toast.error(`Erreur lors de la sauvegarde: ${response.status}`);
-        setSaving(false);
-        return;
-      }
+      console.log('Réponse de l\'Edge Function (sauvegarde):', result, error);
       
-      const result = await response.json();
-      
-      if (result.error) {
-        console.error("Erreur lors de l'appel à l'Edge Function:", result.error);
+      if (error) {
+        console.error("Erreur lors de l'appel à l'Edge Function:", error);
         toast.error('Erreur lors de la sauvegarde');
         setSaving(false);
         return;
