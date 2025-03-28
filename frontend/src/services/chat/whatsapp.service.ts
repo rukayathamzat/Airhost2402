@@ -103,4 +103,55 @@ export class WhatsAppService {
       throw error;
     }
   }
+  
+  static async sendTemplate(to: string, templateName: string, language: string) {
+    console.log('[WhatsAppService] Tentative d\'envoi de template WhatsApp:', { to, templateName, language });
+    
+    try {
+      // Récupérer la configuration WhatsApp
+      const config = await this.getConfig();
+      if (!config) {
+        throw new Error('Configuration WhatsApp non trouvée');
+      }
+      
+      console.log('[WhatsAppService] Configuration récupérée, envoi du template...');
+      
+      // Appel direct à l'API WhatsApp
+      const response = await fetch(
+        `https://graph.facebook.com/v22.0/${config.phone_number_id}/messages`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${config.token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            messaging_product: 'whatsapp',
+            to: to,
+            type: 'template',
+            template: {
+              name: templateName,
+              language: {
+                code: language
+              }
+            },
+          }),
+        }
+      );
+      
+      const result = await response.json();
+      
+      if (!response.ok) {
+        const errorMsg = result?.error?.message || `Erreur ${response.status}: ${response.statusText}`;
+        console.error('[WhatsAppService] Erreur lors de l\'envoi du template WhatsApp:', errorMsg, result);
+        throw new Error(errorMsg);
+      }
+      
+      console.log('[WhatsAppService] Template WhatsApp envoyé avec succès:', result);
+      return result;
+    } catch (error) {
+      console.error('[WhatsAppService] Erreur lors de l\'envoi du template WhatsApp:', error);
+      throw error;
+    }
+  }
 }

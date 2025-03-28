@@ -1,4 +1,5 @@
 import { supabase } from '../../lib/supabase';
+import { WhatsAppService } from './whatsapp.service';
 
 export interface Template {
   id: string;
@@ -39,40 +40,22 @@ export class TemplateService {
     guestPhone: string, 
     template: Template
   ) {
-    // Récupérer la session
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    if (sessionError || !session?.access_token) {
-      throw new Error('Non authentifié');
-    }
-
-    console.log('[TemplateService] Envoi du template via Edge Function Supabase:', {
+    console.log('[TemplateService] Envoi du template via WhatsAppService:', {
       template_name: template.name,
       language: template.language,
       to: guestPhone
     });
     
-    // Utiliser l'URL Supabase depuis l'environnement ou la valeur par défaut
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://tornfqtvnzkgnwfudxdb.supabase.co';
-    
-    // Envoyer le template via l'Edge Function Supabase
-    const response = await fetch(`${supabaseUrl}/functions/v1/send-whatsapp-template`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session.access_token}`,
-        'Accept': 'application/json'
-      },
-      body: JSON.stringify({
-        template_name: template.name,
-        language: template.language,
-        to: guestPhone
-      })
-    });
+    // Utiliser directement le service WhatsApp pour envoyer le template
+    // Cette approche est cohérente avec les modifications précédentes où nous avons remplacé
+    // les appels aux Edge Functions par des appels directs au service WhatsApp
+    await WhatsAppService.sendTemplate(
+      guestPhone,
+      template.name,
+      template.language
+    );
 
-    if (!response.ok) {
-      const result = await response.json();
-      throw new Error(result?.error || `Erreur ${response.status}: ${response.statusText}`);
-    }
+    // Pas besoin de vérifier la réponse ici car WhatsAppService.sendTemplate gère déjà les erreurs
 
     // Créer le message dans la base de données avec le contenu réel du template
     const { error: msgError } = await supabase
