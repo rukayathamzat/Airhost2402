@@ -7,12 +7,10 @@ import {
   Box,
   Button,
   Stack,
-  IconButton,
   Tooltip
 } from '@mui/material';
 import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
-import SendIcon from '@mui/icons-material/Send';
 import { Template } from '../../../services/chat/template.service';
 
 interface TemplateMenuProps {

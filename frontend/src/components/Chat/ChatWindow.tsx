@@ -27,8 +27,8 @@ import AIResponseModal from '../AIResponseModal';
 import TemplateMenu from './ChatTemplates/TemplateMenu';
 import { useMessagesRealtime } from '../../hooks/useMessagesRealtime';
 import { useMessageSender } from '../../hooks/useMessageSender';
-import { useTemplates, Template } from '../../hooks/useTemplates';
-import { TemplateService } from '../../services/chat/template.service';
+import { useTemplates } from '../../hooks/useTemplates';
+import { TemplateService, Template } from '../../services/chat/template.service';
 
 // Préfixe pour les logs liés à ce composant
 const DEBUG_PREFIX = 'DEBUG_CHAT_WINDOW';
@@ -50,7 +50,6 @@ export default function ChatWindow({ conversationId, whatsappContactId, guestNam
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
-  const [sendingTemplate, setSendingTemplate] = useState(false);
   
   // Utilisation des hooks personnalisés
   const { 
@@ -109,11 +108,9 @@ export default function ChatWindow({ conversationId, whatsappContactId, guestNam
     try {
       console.log(`${DEBUG_PREFIX} Envoi du template WhatsApp:`, {
         template_name: template.name,
-        language: template.language,
         to: whatsappContactId
       });
       
-      setSendingTemplate(true);
       await TemplateService.sendTemplate(conversationId, whatsappContactId, template);
       
       setSnackbarMessage('Template WhatsApp envoyé avec succès');
@@ -129,8 +126,6 @@ export default function ChatWindow({ conversationId, whatsappContactId, guestNam
       );
       setSnackbarSeverity('error');
       setSnackbarOpen(true);
-    } finally {
-      setSendingTemplate(false);
     }
   }, [conversationId, whatsappContactId, forceRefresh]);
   
