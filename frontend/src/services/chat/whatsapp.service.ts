@@ -69,52 +69,36 @@ export class WhatsAppService {
   }
 
   static async sendMessage(to: string, content: string) {
-    console.log('Tentative d\'envoi WhatsApp:', { to, content });
-    
-    try {
-      // Récupérer la session
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError || !session?.access_token) {
-        throw new Error('Non authentifié');
-      }
-
-      const response = await fetch(`/.netlify/functions/send-whatsapp-message`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify({ content, to })
-      });
-
-      if (!response.ok) {
-        const result = await response.json();
-        const errorMsg = result?.error || `Erreur ${response.status}: ${response.statusText}`;
-        console.error('Erreur WhatsApp:', errorMsg);
-        throw new Error(errorMsg);
-      }
-      
-      const responseData = await response.json();
-      console.log('Message WhatsApp envoyé avec succès:', responseData);
-      return responseData;
-    } catch (error) {
-      console.error('Erreur lors de l\'envoi WhatsApp:', error);
-      throw error;
-    }
-  }
-  
-  static async sendTemplate(to: string, templateName: string, language: string) {
-    console.log('[WhatsAppService] Tentative d\'envoi de template WhatsApp:', { to, templateName, language });
+    console.log('[WhatsAppService] DEBUG v1.10.6 - Tentative d\'envoi de message WhatsApp:', { to, content });
     
     try {
       // Récupérer la configuration WhatsApp
+      console.log('[WhatsAppService] Avant getConfig()');
       const config = await this.getConfig();
+      console.log('[WhatsAppService] Après getConfig(), résultat:', config);
+      
       if (!config) {
+        console.error('[WhatsAppService] Configuration WhatsApp non trouvée');
         throw new Error('Configuration WhatsApp non trouvée');
       }
       
-      console.log('[WhatsAppService] Configuration récupérée, envoi du template...');
+      console.log('[WhatsAppService] Configuration récupérée, envoi du message...', {
+        phone_number_id: config.phone_number_id,
+        token_length: config.token ? config.token.length : 0
+      });
+      
+      // Préparer le corps de la requête
+      const requestBody = {
+        messaging_product: 'whatsapp',
+        to: to,
+        type: 'text',
+        text: {
+          body: content
+        }
+      };
+      
+      console.log('[WhatsAppService] Corps de la requête:', JSON.stringify(requestBody));
+      console.log('[WhatsAppService] URL de l\'API:', `https://graph.facebook.com/v22.0/${config.phone_number_id}/messages`);
       
       // Appel direct à l'API WhatsApp
       const response = await fetch(
@@ -125,21 +109,82 @@ export class WhatsAppService {
             'Authorization': `Bearer ${config.token}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            messaging_product: 'whatsapp',
-            to: to,
-            type: 'template',
-            template: {
-              name: templateName,
-              language: {
-                code: language
-              }
-            },
-          }),
+          body: JSON.stringify(requestBody),
         }
       );
       
+      console.log('[WhatsAppService] Réponse reçue, status:', response.status);
+      
       const result = await response.json();
+      console.log('[WhatsAppService] Réponse JSON:', result);
+      
+      if (!response.ok) {
+        const errorMsg = result?.error?.message || `Erreur ${response.status}: ${response.statusText}`;
+        console.error('[WhatsAppService] Erreur lors de l\'envoi du message WhatsApp:', errorMsg, result);
+        throw new Error(errorMsg);
+      }
+      
+      console.log('[WhatsAppService] Message WhatsApp envoyé avec succès:', result);
+      return result;
+    } catch (error) {
+      console.error('[WhatsAppService] Erreur lors de l\'envoi du message WhatsApp:', error);
+      console.error('[WhatsAppService] Détails de l\'erreur:', error instanceof Error ? error.message : error);
+      throw error;
+    }
+  }
+  
+  static async sendTemplate(to: string, templateName: string, language: string) {
+    console.log('[WhatsAppService] DEBUG v1.10.3 - Tentative d\'envoi de template WhatsApp:', { to, templateName, language });
+    
+    try {
+      // Récupérer la configuration WhatsApp
+      console.log('[WhatsAppService] Avant getConfig()');
+      const config = await this.getConfig();
+      console.log('[WhatsAppService] Après getConfig(), résultat:', config);
+      
+      if (!config) {
+        console.error('[WhatsAppService] Configuration WhatsApp non trouvée');
+        throw new Error('Configuration WhatsApp non trouvée');
+      }
+      
+      console.log('[WhatsAppService] Configuration récupérée, envoi du template...', {
+        phone_number_id: config.phone_number_id,
+        token_length: config.token ? config.token.length : 0
+      });
+      
+      // Préparer le corps de la requête
+      const requestBody = {
+        messaging_product: 'whatsapp',
+        to: to,
+        type: 'template',
+        template: {
+          name: templateName,
+          language: {
+            code: language
+          }
+        },
+      };
+      
+      console.log('[WhatsAppService] Corps de la requête:', JSON.stringify(requestBody));
+      console.log('[WhatsAppService] URL de l\'API:', `https://graph.facebook.com/v22.0/${config.phone_number_id}/messages`);
+      
+      // Appel direct à l'API WhatsApp
+      const response = await fetch(
+        `https://graph.facebook.com/v22.0/${config.phone_number_id}/messages`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${config.token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestBody),
+        }
+      );
+      
+      console.log('[WhatsAppService] Réponse reçue, status:', response.status);
+      
+      const result = await response.json();
+      console.log('[WhatsAppService] Réponse JSON:', result);
       
       if (!response.ok) {
         const errorMsg = result?.error?.message || `Erreur ${response.status}: ${response.statusText}`;
@@ -151,6 +196,7 @@ export class WhatsAppService {
       return result;
     } catch (error) {
       console.error('[WhatsAppService] Erreur lors de l\'envoi du template WhatsApp:', error);
+      console.error('[WhatsAppService] Détails de l\'erreur:', error instanceof Error ? error.message : error);
       throw error;
     }
   }
