@@ -7,6 +7,14 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Pour le débogage
+const logHeaders = (headers: Headers) => {
+  console.log('Headers reçus:');
+  for (const [key, value] of headers.entries()) {
+    console.log(`${key}: ${value}`);
+  }
+}
+
 serve(async (req) => {
   // Gestion des requêtes OPTIONS (pre-flight CORS)
   if (req.method === 'OPTIONS') {
@@ -14,31 +22,66 @@ serve(async (req) => {
   }
 
   try {
+    // Débogage des headers
+    logHeaders(req.headers);
+    
     // Récupération des variables d'environnement
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
     const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
     
+    // Récupération du token JWT
+    const authHeader = req.headers.get('Authorization');
+    console.log('Authorization header:', authHeader);
+    
+    if (!authHeader) {
+      console.error('Aucun header d\'autorisation trouvé');
+      return new Response(
+        JSON.stringify({ error: 'Aucun token d\'authentification fourni' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
     // Création du client Supabase avec le token d'autorisation de la requête
     const supabaseClient = createClient(supabaseUrl, supabaseKey, {
-      global: { headers: { Authorization: req.headers.get('Authorization')! } }
-    })
+      global: { headers: { Authorization: authHeader } }
+    });
+    
+    console.log('Client Supabase créé avec succès');
 
     // Vérification de l'authentification
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser()
+    const { data, error: authError } = await supabaseClient.auth.getUser();
+    console.log('Résultat getUser:', data, authError);
     
-    if (authError || !user) {
+    if (authError) {
+      console.error('Erreur d\'authentification:', authError);
       return new Response(
-        JSON.stringify({ error: 'Non authentifié' }),
+        JSON.stringify({ error: 'Erreur d\'authentification: ' + authError.message }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      );
     }
+    
+    if (!data.user) {
+      console.error('Utilisateur non trouvé');
+      return new Response(
+        JSON.stringify({ error: 'Utilisateur non authentifié' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    // L'utilisateur est authentifié, on continue
 
     // Traitement selon la méthode HTTP
     if (req.method === 'GET') {
       // Récupération de la configuration WhatsApp via la fonction RPC
-      const { data, error } = await supabaseClient.rpc('get_whatsapp_config')
+      console.log('Appel de la fonction RPC get_whatsapp_config');
+      const { data, error } = await supabaseClient.rpc('get_whatsapp_config');
       
-      if (error) throw error
+      if (error) {
+        console.error('Erreur lors de l\'appel à la fonction RPC:', error);
+        throw error;
+      }
+      
+      console.log('Données récupérées avec succès:', data);
 
       return new Response(
         JSON.stringify({ data }),
@@ -65,14 +108,20 @@ serve(async (req) => {
       }
       
       // Sauvegarde dans la table whatsapp_config
+      console.log('Sauvegarde des données dans la table whatsapp_config:', dataToSave);
       const { error } = await supabaseClient
         .from('whatsapp_config')
-        .upsert(dataToSave)
+        .upsert(dataToSave);
       
-      if (error) throw error
+      if (error) {
+        console.error('Erreur lors de la sauvegarde dans la table whatsapp_config:', error);
+        throw error;
+      }
+      
+      console.log('Données sauvegardées avec succès');
       
       return new Response(
-        JSON.stringify({ success: true }),
+        JSON.stringify({ success: true, message: 'Configuration WhatsApp sauvegardée avec succès' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
