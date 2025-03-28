@@ -45,8 +45,17 @@ export class TemplateService {
       throw new Error('Non authentifié');
     }
 
-    // Envoyer le template via la fonction Edge
-    const response = await fetch(`/.netlify/functions/send-whatsapp-template`, {
+    console.log('[TemplateService] Envoi du template via Edge Function Supabase:', {
+      template_name: template.name,
+      language: template.language,
+      to: guestPhone
+    });
+    
+    // Utiliser l'URL Supabase depuis l'environnement ou la valeur par défaut
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://tornfqtvnzkgnwfudxdb.supabase.co';
+    
+    // Envoyer le template via l'Edge Function Supabase
+    const response = await fetch(`${supabaseUrl}/functions/v1/send-whatsapp-template`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
