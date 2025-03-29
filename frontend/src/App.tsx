@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
+import { NotificationProcessorService } from './services/notification/notification-processor.service';
 import SetPassword from './pages/SetPassword';
 import Chat from './pages/Chat';
 import Login from './pages/Login';
@@ -89,6 +90,24 @@ function App() {
 
     return () => subscription.unsubscribe();
   }, []);
+  
+  // Démarrer/arrêter le traitement des notifications en fonction de la session
+  useEffect(() => {
+    if (session) {
+      // L'utilisateur est connecté, démarrer le traitement des notifications
+      console.log('[App] Démarrage du traitement des notifications');
+      NotificationProcessorService.startProcessing(120000); // Toutes les 2 minutes
+    } else {
+      // L'utilisateur est déconnecté, arrêter le traitement des notifications
+      console.log('[App] Arrêt du traitement des notifications');
+      NotificationProcessorService.stopProcessing();
+    }
+    
+    // Nettoyer lors du démontage du composant
+    return () => {
+      NotificationProcessorService.stopProcessing();
+    };
+  }, [session]);
 
   if (loading) {
     return <div>Chargement...</div>;
