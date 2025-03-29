@@ -82,24 +82,49 @@ export class NotificationProcessorService {
       // Traiter chaque notification
       for (const notification of notifications) {
         try {
-          // Appeler directement l'Edge Function fcm-proxy
-          const { data: fcmResponse, error: fcmError } = await supabase.functions.invoke('fcm-proxy', {
-            body: {
-              to: notification.token,
-              notification: {
-                title: notification.title,
-                body: notification.body,
-                icon: '/icons/icon-192x192.png',
-                badge: '/icons/icon-72x72.png',
-                tag: `message-${notification.data?.conversationId || 'general'}`,
-                vibrate: [100, 50, 100]
-              },
-              data: notification.data || {}
-            }
+          // Appeler directement l'Edge Function fcm-proxy avec fetch au lieu de supabase.functions.invoke
+          // pour éviter les problèmes CORS avec l'en-tête x-client-info
+          const serviceRoleKey = await this.getServiceRoleKey();
+          
+          const payload = {
+            to: notification.token,
+            notification: {
+              title: notification.title,
+              body: notification.body,
+              icon: '/icons/icon-192x192.png',
+              badge: '/icons/icon-72x72.png',
+              tag: `message-${notification.data?.conversationId || 'general'}`,
+              vibrate: [100, 50, 100]
+            },
+            data: notification.data || {}
+          };
+          
+          console.log(`[NotificationProcessor] Envoi de notification à ${notification.token.substring(0, 15)}...`);
+          
+          const response = await fetch('https://pnbfsiicxhckptlgtjoj.supabase.co/functions/v1/fcm-proxy', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${serviceRoleKey}`
+            },
+            body: JSON.stringify(payload)
           });
           
+          let fcmResponse, fcmError;
+          
+          if (response.ok) {
+            fcmResponse = await response.json();
+            fcmError = null;
+          } else {
+            fcmResponse = null;
+            fcmError = {
+              message: `Erreur HTTP ${response.status}: ${response.statusText}`,
+              status: response.status
+            };
+          }
+          
           // Vérifier si l'envoi a réussi
-          const success = fcmResponse && !fcmError;
+          const success = response.ok;
           
           // Mettre à jour le statut de la notification
           const { error: updateError } = await supabase
@@ -197,5 +222,27 @@ export class NotificationProcessorService {
    */
   public static isActive(): boolean {
     return this.processingInterval !== null;
+  }
+
+  /**
+   * Récupère la clé de service Supabase pour l'authentification
+   * @returns Clé de service
+   */
+  private static async getServiceRoleKey(): Promise<string> {
+    try {
+      // Utiliser directement la clé anonyme pour simplifier
+      // Dans un environnement de production réel, il faudrait utiliser une fonction Edge sécurisée
+      // pour récupérer la clé de service
+      const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+      
+      if (!anonKey) {
+        console.warn('[NotificationProcessor] Clé anonyme non disponible');
+      }
+      
+      return anonKey;
+    } catch (err) {
+      console.error('[NotificationProcessor] Erreur lors de la récupération de la clé:', err);
+      return '';
+    }
   }
 }
