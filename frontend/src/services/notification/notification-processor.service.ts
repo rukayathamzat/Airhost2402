@@ -56,16 +56,130 @@ export class NotificationProcessorService {
       this.isProcessing = true;
       console.log('[NotificationProcessor] Début du traitement des notifications');
       
-      // Appeler la fonction SQL via RPC
-      const { data, error } = await supabase.rpc('process_notification_queue');
+      // Récupérer les notifications en attente
+      const { data: notifications, error: fetchError } = await supabase
+        .from('notification_queue')
+        .select('*')
+        .eq('status', 'pending')
+        .order('created_at', { ascending: true })
+        .limit(20);
       
-      if (error) {
-        console.error('[NotificationProcessor] Erreur:', error);
-        throw error;
+      if (fetchError) {
+        console.error('[NotificationProcessor] Erreur lors de la récupération des notifications:', fetchError);
+        throw fetchError;
       }
       
-      console.log('[NotificationProcessor] Traitement terminé:', data);
-      return data;
+      console.log(`[NotificationProcessor] ${notifications?.length || 0} notifications à traiter`);
+      
+      if (!notifications || notifications.length === 0) {
+        console.log('[NotificationProcessor] Aucune notification en attente');
+        return { success: true, processed: 0, success_count: 0, error_count: 0 };
+      }
+      
+      let successCount = 0;
+      let errorCount = 0;
+      
+      // Traiter chaque notification
+      for (const notification of notifications) {
+        try {
+          // Appeler directement l'Edge Function fcm-proxy
+          const { data: fcmResponse, error: fcmError } = await supabase.functions.invoke('fcm-proxy', {
+            body: {
+              to: notification.token,
+              notification: {
+                title: notification.title,
+                body: notification.body,
+                icon: '/icons/icon-192x192.png',
+                badge: '/icons/icon-72x72.png',
+                tag: `message-${notification.data?.conversationId || 'general'}`,
+                vibrate: [100, 50, 100]
+              },
+              data: notification.data || {}
+            }
+          });
+          
+          // Vérifier si l'envoi a réussi
+          const success = fcmResponse && !fcmError;
+          
+          // Mettre à jour le statut de la notification
+          const { error: updateError } = await supabase
+            .from('notification_queue')
+            .update({
+              status: success ? 'sent' : 'failed',
+              processed_at: new Date().toISOString(),
+              error: success ? null : (fcmError ? fcmError.message : 'Erreur inconnue')
+            })
+            .eq('id', notification.id);
+          
+          if (updateError) {
+            console.error(`[NotificationProcessor] Erreur lors de la mise à jour du statut pour ${notification.id}:`, updateError);
+          }
+          
+          // Ajouter un log
+          await supabase
+            .from('logs')
+            .insert({
+              event: 'notification_processed',
+              details: {
+                id: notification.id,
+                success,
+                response: fcmResponse || {},
+                error: fcmError || null
+              }
+            });
+          
+          if (success) {
+            successCount++;
+            console.log(`[NotificationProcessor] ✅ Notification ${notification.id} envoyée avec succès`);
+          } else {
+            errorCount++;
+            console.error(`[NotificationProcessor] ❌ Échec d'envoi pour ${notification.id}:`, fcmError);
+          }
+        } catch (err) {
+          errorCount++;
+          
+          // Mettre à jour le statut en cas d'erreur
+          await supabase
+            .from('notification_queue')
+            .update({
+              status: 'failed',
+              processed_at: new Date().toISOString(),
+              error: err instanceof Error ? err.message : 'Erreur inconnue'
+            })
+            .eq('id', notification.id);
+          
+          // Ajouter un log d'erreur
+          await supabase
+            .from('logs')
+            .insert({
+              event: 'notification_error',
+              details: {
+                id: notification.id,
+                error: err instanceof Error ? err.message : 'Erreur inconnue'
+              }
+            });
+          
+          console.error(`[NotificationProcessor] ❌ Erreur lors du traitement de la notification ${notification.id}:`, err);
+        }
+      }
+      
+      // Ajouter un log de résumé
+      const result = {
+        success: true,
+        processed: successCount + errorCount,
+        success_count: successCount,
+        error_count: errorCount
+      };
+      
+      await supabase
+        .from('logs')
+        .insert({
+          event: 'notifications_batch_processed',
+          details: result
+        });
+      
+      console.log('[NotificationProcessor] Traitement terminé:', result);
+      return result;
     } catch (err) {
       console.error('[NotificationProcessor] Erreur lors du traitement:', err);
       return { 
