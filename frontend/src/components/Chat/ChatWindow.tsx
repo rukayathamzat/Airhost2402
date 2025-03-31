@@ -164,8 +164,12 @@ export default function ChatWindow({ conversationId, whatsappContactId, guestNam
   };
   
   const handleGeneratedResponse = (response: string) => {
-    setMessageInput(response);
+    // Fermer le modal
     setAiModalOpen(false);
+    // Effacer le champ de saisie (car on envoie directement)
+    setMessageInput('');
+    // Appeler directement la fonction d'envoi avec la réponse générée
+    handleSendMessage(response);
   };
   
   // Déterminer l'icône et la couleur en fonction du statut de connexion
