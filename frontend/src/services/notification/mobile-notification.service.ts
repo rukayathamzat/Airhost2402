@@ -247,6 +247,12 @@ export class MobileNotificationService extends BaseNotificationService {
   static async sendPushNotification(message: Message): Promise<void> {
     console.log('[NOTIF DEBUG] Tentative d\'envoi de notification push pour le message:', message.id);
     
+    // Vérification explicite: ne jamais envoyer de notification pour les messages sortants
+    if (message.direction !== 'inbound') {
+      console.log('[NOTIF DEBUG] Message sortant détecté, annulation de l\'envoi de notification push');
+      return;
+    }
+    
     // Vérifier tous les prérequis
     if (!this.fcmToken) {
       console.warn('[NOTIF DEBUG] Pas de token FCM disponible');

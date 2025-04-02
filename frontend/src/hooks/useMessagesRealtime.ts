@@ -210,7 +210,8 @@ export function useMessagesRealtime(conversationId: string): UseMessagesRealtime
             saveMessageLocally(newMessage);
             console.log(`${DEBUG_PREFIX} [${timestamp}] Message également sauvegardé localement via Realtime`);
             
-            // Déclencher une notification pour les messages entrants uniquement
+            // Déclencher une notification UNIQUEMENT pour les messages entrants
+            // et seulement si le message n'a pas été envoyé par l'utilisateur actuel
             if (newMessage.direction === 'inbound') {
               console.log(`${DEBUG_PREFIX} [${timestamp}] Message entrant détecté, déclenchement de la notification`);
               NotificationService.notifyNewMessage(newMessage);
