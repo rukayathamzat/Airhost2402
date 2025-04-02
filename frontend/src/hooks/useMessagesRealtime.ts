@@ -214,7 +214,15 @@ export function useMessagesRealtime(conversationId: string): UseMessagesRealtime
             // et seulement si le message n'a pas été envoyé par l'utilisateur actuel
             if (newMessage.direction === 'inbound') {
               console.log(`${DEBUG_PREFIX} [${timestamp}] Message entrant détecté, déclenchement de la notification`);
-              NotificationService.notifyNewMessage(newMessage);
+              // Ajouter un attribut spécial pour le suivi des notifications
+              const messageWithFlag = {
+                ...newMessage,
+                _notificationTracking: {
+                  source: 'useMessagesRealtime',
+                  timestamp: new Date().toISOString()
+                }
+              };
+              NotificationService.notifyNewMessage(messageWithFlag);
             } else {
               console.log(`${DEBUG_PREFIX} [${timestamp}] Message sortant, pas de notification`);
             }

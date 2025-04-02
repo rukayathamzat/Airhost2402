@@ -259,6 +259,11 @@ export class MobileNotificationService extends BaseNotificationService {
       return;
     }
     
+    // Logs de débogage supplémentaires
+    console.log('[NOTIF DEBUG] Message entrant confirmé dans MobileNotificationService');
+    console.log('[NOTIF DEBUG] Données de suivi:', message._notificationTracking || 'aucune');
+    console.log('[NOTIF DEBUG] Contenu du message:', message.content ? message.content.substring(0, 30) + '...' : 'vide');
+    
     // Vérifier tous les prérequis
     if (!this.fcmToken) {
       console.warn('[NOTIF DEBUG] Pas de token FCM disponible');

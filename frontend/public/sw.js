@@ -172,10 +172,19 @@ messaging.onBackgroundMessage((payload) => {
       
       // Vérifier si c'est un message sortant (envoyé par l'utilisateur)
       // Ne pas afficher de notification pour les messages sortants
-      if (payload.data.isOutbound === 'true' || payload.data.direction === 'outbound') {
-        console.log('[SW DEBUG] Message sortant détecté, pas de notification affichée');
+      // Vérification plus stricte avec plusieurs conditions
+      if (payload.data.isOutbound === 'true' || 
+          payload.data.direction === 'outbound' || 
+          payload.data.direction !== 'inbound') {
+        console.log('[SW DEBUG] Message sortant ou non entrant détecté, pas de notification affichée');
+        console.log('[SW DEBUG] Direction:', payload.data.direction);
+        console.log('[SW DEBUG] isOutbound:', payload.data.isOutbound);
         return; // Sortir immédiatement sans afficher de notification
       }
+      
+      // Logs de débogage supplémentaires
+      console.log('[SW DEBUG] Message entrant confirmé, notification autorisée');
+      console.log('[SW DEBUG] Données du message:', JSON.stringify(payload.data));
       
       // Construire les options de notification à partir des données
       const notificationTitle = payload.data.title || payload.notification?.title || 'Airhost';

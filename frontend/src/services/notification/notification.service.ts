@@ -28,11 +28,17 @@ export class NotificationService {
     console.log('[NOTIF DEBUG] Traitement d\'une notification de nouveau message');
 
     try {
-      // Vérifier si c'est un message entrant
+      // Vérification stricte: ne jamais envoyer de notification pour les messages sortants
+      // Double vérification pour être sûr
       if (message.direction !== 'inbound') {
-        console.log('[NOTIF DEBUG] Message non entrant, pas de notification');
+        console.log('[NOTIF DEBUG] Message non entrant ou sortant détecté, pas de notification');
+        console.log('[NOTIF DEBUG] Direction du message:', message.direction);
         return;
       }
+      
+      // Log de suivi pour débogage
+      console.log('[NOTIF DEBUG] Message entrant confirmé, direction:', message.direction);
+      console.log('[NOTIF DEBUG] Données de suivi:', message._notificationTracking || 'aucune');
 
       // Notifications web (navigateur)
       if (await WebNotificationService.areNotificationsEnabled()) {

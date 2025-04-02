@@ -11,6 +11,10 @@ export interface Message {
   error_message?: string;
   media_url?: string;
   media_type?: string;
+  _notificationTracking?: {
+    source: string;
+    timestamp: string;
+  };
 }
 
 export interface Conversation {
