@@ -248,8 +248,14 @@ export class MobileNotificationService extends BaseNotificationService {
     console.log('[NOTIF DEBUG] Tentative d\'envoi de notification push pour le message:', message.id);
     
     // Vérification explicite: ne jamais envoyer de notification pour les messages sortants
-    if (message.direction !== 'inbound') {
+    if (message.direction === 'outbound') {
       console.log('[NOTIF DEBUG] Message sortant détecté, annulation de l\'envoi de notification push');
+      return;
+    }
+    
+    // Vérification supplémentaire: s'assurer que c'est bien un message entrant
+    if (message.direction !== 'inbound') {
+      console.log('[NOTIF DEBUG] Message non entrant (ni sortant ni entrant), pas de notification');
       return;
     }
     
@@ -284,7 +290,7 @@ export class MobileNotificationService extends BaseNotificationService {
       
       // Utilisation de l'Edge Function Supabase au lieu de la fonction Netlify
       // Utiliser l'URL Supabase configurée dans l'environnement
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://tornfqtvnzkgnwfudxdb.supabase.co';
+      const supabaseUrl = (import.meta as any).env.VITE_SUPABASE_URL || 'https://tornfqtvnzkgnwfudxdb.supabase.co';
       const response = await fetch(`${supabaseUrl}/functions/v1/fcm-proxy`, {
         method: 'POST',
         headers: {
@@ -302,7 +308,7 @@ export class MobileNotificationService extends BaseNotificationService {
             conversationId: message.conversation_id,
             type: 'new_message',
             direction: message.direction, // Ajouter la direction du message pour que le service worker puisse filtrer
-            isOutbound: message.direction === 'outbound' // Flag explicite pour faciliter le filtrage côté service worker
+            isOutbound: (message.direction as string) === 'outbound' ? 'true' : 'false' // Cast en string pour éviter les problèmes de typage
           }
         })
       });
@@ -400,7 +406,7 @@ export class MobileNotificationService extends BaseNotificationService {
       console.log('[NOTIF DEBUG] Token JWT obtenu, envoi de la notification test');
       
       // URL de l'Edge Function Supabase (utilisation de l'URL configurée dans l'environnement)
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://tornfqtvnzkgnwfudxdb.supabase.co';
+      const supabaseUrl = (import.meta as any).env.VITE_SUPABASE_URL || 'https://tornfqtvnzkgnwfudxdb.supabase.co';
       const edgeFunctionUrl = `${supabaseUrl}/functions/v1/fcm-proxy`;
       console.log('[NOTIF DEBUG] URL de l\'Edge Function:', edgeFunctionUrl);
       
