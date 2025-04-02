@@ -170,6 +170,13 @@ messaging.onBackgroundMessage((payload) => {
     if (payload.data) {
       console.log('[SW DEBUG] Données FCM reçues:', payload.data);
       
+      // Vérifier si c'est un message sortant (envoyé par l'utilisateur)
+      // Ne pas afficher de notification pour les messages sortants
+      if (payload.data.isOutbound === 'true' || payload.data.direction === 'outbound') {
+        console.log('[SW DEBUG] Message sortant détecté, pas de notification affichée');
+        return; // Sortir immédiatement sans afficher de notification
+      }
+      
       // Construire les options de notification à partir des données
       const notificationTitle = payload.data.title || payload.notification?.title || 'Airhost';
       const notificationOptions = {

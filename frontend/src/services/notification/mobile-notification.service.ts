@@ -300,7 +300,9 @@ export class MobileNotificationService extends BaseNotificationService {
           data: {
             messageId: message.id,
             conversationId: message.conversation_id,
-            type: 'new_message'
+            type: 'new_message',
+            direction: message.direction, // Ajouter la direction du message pour que le service worker puisse filtrer
+            isOutbound: message.direction === 'outbound' // Flag explicite pour faciliter le filtrage côté service worker
           }
         })
       });
