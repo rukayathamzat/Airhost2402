@@ -120,6 +120,41 @@ serve(async (req) => {
     // Récupération du payload
     const payload: PushNotificationPayload = await req.json()
 
+    // IMPORTANT: Vérifier si c'est un message sortant (ne pas envoyer de notification)
+    if (payload.data) {
+      // Vérification 1: direction explicite
+      if (payload.data.direction === 'outbound') {
+        console.log('Message sortant détecté (direction=outbound), annulation de notification')
+        return new Response(JSON.stringify({
+          success: true,
+          filtered: true,
+          reason: 'outbound_message'
+        }), {
+          status: 200,
+          headers: { 
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+          }
+        })
+      }
+      
+      // Vérification 2: flag isOutbound
+      if (payload.data.isOutbound === 'true') {
+        console.log('Message sortant détecté (isOutbound=true), annulation de notification')
+        return new Response(JSON.stringify({
+          success: true,
+          filtered: true,
+          reason: 'outbound_message'
+        }), {
+          status: 200,
+          headers: { 
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+          }
+        })
+      }
+    }
+
     // Vérification que le token FCM appartient bien à l'utilisateur
     if (!isServiceKey) {
       // Récupérer les informations de l'utilisateur
