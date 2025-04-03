@@ -159,7 +159,11 @@ self.addEventListener('notificationclick', (event) => {
 
 // Gestionnaire de messages Firebase en arrière-plan (format mobile)
 messaging.onBackgroundMessage((payload) => {
-  if (payload.data && payload.data.direction !== 'incoming') return;
+  // Ne pas afficher de notification pour les messages sortants
+  if (payload.data && (payload.data.direction === 'outbound' || payload.data.isOutbound === 'true')) {
+    console.log('[SW DEBUG] Message sortant détecté, pas de notification');
+    return;
+  }
   console.log('[SW DEBUG] Message FCM en arrière-plan reçu', payload);
   console.log('[SW MOBILE] Message en arrière-plan détecté sur appareil mobile:', detectMobileDevice());
   
