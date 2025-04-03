@@ -159,6 +159,7 @@ self.addEventListener('notificationclick', (event) => {
 
 // Gestionnaire de messages Firebase en arrière-plan (format mobile)
 messaging.onBackgroundMessage((payload) => {
+  if (payload.data && payload.data.direction !== 'incoming') return;
   console.log('[SW DEBUG] Message FCM en arrière-plan reçu', payload);
   console.log('[SW MOBILE] Message en arrière-plan détecté sur appareil mobile:', detectMobileDevice());
   
@@ -412,4 +413,3 @@ self.addEventListener('message', (event) => {
     testMobileNotification();
   }
 });
-

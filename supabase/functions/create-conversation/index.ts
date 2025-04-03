@@ -72,14 +72,24 @@ serve(async (req) => {
     }
 
     // Vérifier si une conversation existe déjà avec ces critères
-    const { data: existingConversation, error: existingError } = await supabaseClient
+    // Construire la requête de base
+    let query = supabaseClient
       .from('conversations')
       .select('*')
       .eq('property_id', property_id)
-      .eq('guest_phone', guest_phone)
-      .eq('check_in_date', check_in_date)
-      .eq('check_out_date', check_out_date)
-      .maybeSingle();
+      .eq('guest_phone', guest_phone);
+    
+    // Ajouter les filtres de date uniquement si les dates sont fournies
+    // Cela permet de trouver une conversation même si les dates sont NULL
+    if (check_in_date && check_in_date !== 'null') {
+      query = query.eq('check_in_date', check_in_date);
+    }
+    
+    if (check_out_date && check_out_date !== 'null') {
+      query = query.eq('check_out_date', check_out_date);
+    }
+    
+    const { data: existingConversation, error: existingError } = await query.maybeSingle();
 
     if (existingConversation) {
       return new Response(

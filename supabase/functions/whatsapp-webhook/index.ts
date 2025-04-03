@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
@@ -71,16 +70,21 @@ async function saveMessage(message: any) {
     const phoneNumber = message.from
     console.log('Recherche de conversation pour le numéro:', phoneNumber)
     
+    // Rechercher une conversation existante avec ce numéro de téléphone et cette propriété
     let { data: conversation, error: conversationError } = await supabaseClient
       .from('conversations')
       .select('*')
       .eq('guest_phone', phoneNumber)
+      .eq('property_id', property.id) // Ajouter le filtre par property_id pour éviter les doublons
       .single()
 
     console.log('Résultat recherche conversation:', { conversation, conversationError })
 
     if (conversationError) {
       console.log('Création d\'une nouvelle conversation pour:', phoneNumber)
+      // Nettoyer le numéro de téléphone pour ne garder que les chiffres pour guest_number
+      const guest_number = phoneNumber.replace(/\D/g, '');
+      
       // Créer une nouvelle conversation
       const { data: newConversation, error: createError } = await supabaseClient
         .from('conversations')
@@ -88,6 +92,7 @@ async function saveMessage(message: any) {
           property_id: property.id,
           guest_name: 'Guest ' + phoneNumber,
           guest_phone: phoneNumber,
+          guest_number: guest_number, // Ajout du champ obligatoire
           status: 'active'
         }])
         .select('id')
