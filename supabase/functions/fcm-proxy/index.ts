@@ -53,6 +53,10 @@ function getFirebasePublicConfig() {
 const FCM_API_URL = 'https://fcm.googleapis.com/fcm/send'
 
 serve(async (req) => {
+  console.log('=== DÉBUT TRAITEMENT FCM-PROXY ===');
+  console.log('URL:', req.url);
+  console.log('Méthode:', req.method);
+  
   // Gérer les requêtes préflight OPTIONS pour CORS
   if (req.method === 'OPTIONS') {
     return new Response(null, {
@@ -118,13 +122,23 @@ serve(async (req) => {
     }
 
     // Récupération du payload
-    const payload: PushNotificationPayload = await req.json()
+    const requestBody = await req.text();
+    console.log('[FCM-PROXY DEBUG] Payload brut reçu:', requestBody);
+    
+    const payload: PushNotificationPayload = JSON.parse(requestBody);
+    console.log('[FCM-PROXY DEBUG] Payload parsé:', JSON.stringify(payload, null, 2));
+    console.log('[FCM-PROXY DEBUG] Données du message:', JSON.stringify(payload.data || {}, null, 2));
 
-    // IMPORTANT: Vérifier si c'est un message sortant (ne pas envoyer de notification)
+    // VÉRIFICATION RENFORCÉE: ne jamais envoyer de notification pour les messages sortants
     if (payload.data) {
+      console.log('[FCM-PROXY DEBUG] Vérification des attributs du message:');
+      console.log('- direction:', payload.data.direction);
+      console.log('- isOutbound:', payload.data.isOutbound);
+      console.log('- type:', payload.data.type);
+      
       // Vérification 1: direction explicite
       if (payload.data.direction === 'outbound') {
-        console.log('Message sortant détecté (direction=outbound), annulation de notification')
+        console.log('[FCM-PROXY DEBUG] Message sortant détecté (direction=outbound), annulation de notification');
         return new Response(JSON.stringify({
           success: true,
           filtered: true,
@@ -135,12 +149,12 @@ serve(async (req) => {
             'Content-Type': 'application/json',
             'Access-Control-Allow-Origin': '*'
           }
-        })
+        });
       }
       
       // Vérification 2: flag isOutbound
       if (payload.data.isOutbound === 'true') {
-        console.log('Message sortant détecté (isOutbound=true), annulation de notification')
+        console.log('[FCM-PROXY DEBUG] Message sortant détecté (isOutbound=true), annulation de notification');
         return new Response(JSON.stringify({
           success: true,
           filtered: true,
@@ -151,7 +165,33 @@ serve(async (req) => {
             'Content-Type': 'application/json',
             'Access-Control-Allow-Origin': '*'
           }
-        })
+        });
+      }
+      
+      // Vérification 3: vérifier si c'est un message envoyé par l'utilisateur actuel
+      if (payload.data.sender_id && !isServiceKey) {
+        try {
+          // Récupérer les informations de l'utilisateur
+          const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
+          
+          if (!authError && user && payload.data.sender_id === user.id) {
+            console.log('[FCM-PROXY DEBUG] Message envoyé par l\'utilisateur actuel, annulation de notification');
+            return new Response(JSON.stringify({
+              success: true,
+              filtered: true,
+              reason: 'self_message'
+            }), {
+              status: 200,
+              headers: { 
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*'
+              }
+            });
+          }
+        } catch (e) {
+          console.error('[FCM-PROXY DEBUG] Erreur lors de la vérification de l\'expéditeur:', e);
+          // En cas d'erreur, on continue pour ne pas bloquer les notifications légitimes
+        }
       }
     }
 
@@ -238,18 +278,17 @@ serve(async (req) => {
           aps: {
             sound: 'default',
             badge: 1,
-            category: 'NEW_MESSAGE'
+            content_available: 1,
+            mutable_content: 1
           }
-        },
-        headers: {
-          'apns-priority': '10'
         }
       }
     }
     
-    // Envoyer le message via l'API HTTP FCM
-    console.log("Envoi du message FCM via API HTTP...")
-    const fcmResponse = await fetch(FCM_API_URL, {
+    console.log('[FCM-PROXY DEBUG] Envoi de notification FCM:', JSON.stringify(fcmMessage, null, 2));
+    
+    // Envoi du message à l'API FCM
+    const response = await fetch(FCM_API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -258,17 +297,15 @@ serve(async (req) => {
       body: JSON.stringify(fcmMessage)
     })
     
-    const responseData = await fcmResponse.json()
+    // Récupération de la réponse
+    const responseData = await response.json()
     
-    if (!fcmResponse.ok) {
-      console.error("Erreur FCM:", responseData)
-      throw new Error(`Erreur FCM: ${fcmResponse.status} ${responseData.error || 'Unknown error'}`)
-    }
+    console.log('[FCM-PROXY DEBUG] Réponse FCM:', JSON.stringify(responseData, null, 2));
+    console.log('=== FIN TRAITEMENT FCM-PROXY ===');
     
-    console.log("Message FCM envoyé avec succès")
-    
-    return new Response(JSON.stringify({ success: true, messageId: responseData.multicast_id || responseData.message_id }), {
-      status: 200,
+    // Retour de la réponse
+    return new Response(JSON.stringify(responseData), {
+      status: response.status,
       headers: { 
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*'
@@ -276,6 +313,7 @@ serve(async (req) => {
     })
   } catch (error) {
     console.error("Erreur:", error.message)
+    console.log('=== FIN TRAITEMENT FCM-PROXY AVEC ERREUR ===');
     return new Response(JSON.stringify({ error: error.message }), {
       status: error.message === 'Non authentifié' ? 401 : 500,
       headers: { 
