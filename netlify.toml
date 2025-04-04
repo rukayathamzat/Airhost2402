@@ -20,8 +20,9 @@
   package = "@netlify/plugin-functions-install-core"
 
 # Configuration des Edge Functions pour injecter le script de correction
-[edge_functions]
-  directory = "netlify/edge-functions"
+[[edge_functions]]
+  path = "/*"
+  function = "transform"
 
 [build.environment]
   NODE_VERSION = "20"
