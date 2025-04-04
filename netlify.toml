@@ -19,6 +19,10 @@
 [[plugins]]
   package = "@netlify/plugin-functions-install-core"
 
+# Configuration des Edge Functions pour injecter le script de correction
+[edge_functions]
+  directory = "netlify/edge-functions"
+
 [build.environment]
   NODE_VERSION = "20"
   # Les variables d'environnement doivent être configurées dans le dashboard Netlify
