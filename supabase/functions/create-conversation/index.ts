@@ -132,25 +132,7 @@ serve(async (req) => {
       );
     }
 
-    // Ajouter un message de bienvenue automatique
-    const welcomeMessage = `Bonjour ${guest_name}, bienvenue à ${propertyData.name}! Je suis disponible ici pour répondre à vos questions concernant votre séjour du ${check_in_date} au ${check_out_date}.`;
-    
-    const { error: messageError } = await supabaseClient
-      .from('messages')
-      .insert([
-        {
-          conversation_id: newConversation.id,
-          content: welcomeMessage,
-          direction: 'outbound',
-          type: 'text',
-          created_at: now
-        }
-      ]);
-
-    if (messageError) {
-      console.error('Erreur lors de la création du message de bienvenue:', messageError);
-      // Ne pas échouer complètement si le message d'accueil échoue
-    }
+    // Le code qui ajoutait un message de bienvenue automatique a été supprimé
 
     return new Response(
       JSON.stringify({ 
