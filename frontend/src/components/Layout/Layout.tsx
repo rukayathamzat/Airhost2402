@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import MobileBottomMenu from './MobileBottomMenu';
 import SideMenu from '../SideMenu/SideMenu';
+import { WhatsAppService } from '../../services/chat/whatsapp.service';
 import './Layout.css';
 
 interface LayoutProps {
@@ -29,27 +30,23 @@ const Layout = ({ children }: LayoutProps) => {
 
   // Gestion de la configuration WhatsApp
   const openWhatsAppConfig = async () => {
-    console.log('Ouverture de la configuration WhatsApp');
+    console.log('Ouverture de la configuration WhatsApp via service WhatsApp');
     
     try {
-      const { data, error } = await supabase
-        .from('whatsapp_config')
-        .select('*')
-        .single();
-
-      if (error && error.code !== 'PGRST116') {
-        console.error('Erreur lors du chargement de la configuration WhatsApp:', error);
-      }
-
-      if (data) {
-        setPhoneNumberId(data.phone_number_id || '');
-        setWhatsappToken(data.token || '');
+      // Utiliser le service WhatsApp directement
+      const config = await WhatsAppService.getConfig();
+      
+      console.log('Configuration WhatsApp récupérée:', config);
+      
+      if (config) {
+        setPhoneNumberId(config.phone_number_id || '');
+        setWhatsappToken(config.token || '');
       }
       
       setConfigOpen(true);
       setMenuOpen(false); // Fermer le menu si ouvert
     } catch (error) {
-      console.error('Erreur:', error);
+      console.error('Erreur lors de la récupération de la configuration WhatsApp:', error);
     }
   };
 
@@ -57,37 +54,22 @@ const Layout = ({ children }: LayoutProps) => {
     setSaving(true);
     
     try {
-      const { data, error } = await supabase
-        .from('whatsapp_config')
-        .select('id')
-        .single();
+      // Préparer les données de configuration
+      const configData = {
+        phone_number_id: phoneNumberId,
+        token: whatsappToken
+      };
       
-      if (error && error.code !== 'PGRST116') {
-        throw error;
+      console.log("Sauvegarde de la configuration WhatsApp via service WhatsApp:", configData);
+      
+      // Utiliser le service WhatsApp directement
+      const success = await WhatsAppService.saveConfig(configData);
+      
+      if (!success) {
+        throw new Error('Erreur lors de la sauvegarde de la configuration WhatsApp');
       }
       
-      if (data) {
-        // Mise à jour de la configuration existante
-        const { error: updateError } = await supabase
-          .from('whatsapp_config')
-          .update({
-            phone_number_id: phoneNumberId,
-            token: whatsappToken
-          })
-          .eq('id', data.id);
-        
-        if (updateError) throw updateError;
-      } else {
-        // Création d'une nouvelle configuration
-        const { error: insertError } = await supabase
-          .from('whatsapp_config')
-          .insert({
-            phone_number_id: phoneNumberId,
-            token: whatsappToken
-          });
-        
-        if (insertError) throw insertError;
-      }
+      console.log("Configuration WhatsApp sauvegardée avec succès");
 
       console.log('Configuration WhatsApp enregistrée avec succès');
       setConfigOpen(false);

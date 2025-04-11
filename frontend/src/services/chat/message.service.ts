@@ -108,15 +108,10 @@ export class MessageService {
         if (payload.new) {
           const message = payload.new as Message;
           console.log(`[${receiveTimestamp}] REALTIME: Message traité, contenu:`, message.content);
-          console.log(`[${receiveTimestamp}] NOTIFICATION DEBUG: Direction du message:`, message.direction);
           callback(message);
           
-          // Appeler la notification pour tous les messages entrants
           if (message.direction === 'inbound') {
-            console.log(`[${receiveTimestamp}] NOTIFICATION DEBUG: Tentative d'appel à notifyNewMessage pour message ${message.id}`);
             MessageService.notifyNewMessage(message, conversationId);
-          } else {
-            console.log(`[${receiveTimestamp}] NOTIFICATION DEBUG: Message non entrant, pas de notification`, { id: message.id, direction: message.direction });
           }
         }
       })
@@ -158,7 +153,7 @@ export class MessageService {
   /**
    * Envoie une notification pour un nouveau message
    */
-  public static async notifyNewMessage(message: Message, conversationId: string) {
+  private static async notifyNewMessage(message: Message, conversationId: string) {
     try {
       console.log('[NOTIFICATION DEBUG] Tentative d\'envoi de notification pour le message:', message.id);
       
@@ -235,14 +230,6 @@ export class MessageService {
         timestamp: new Date(message.created_at).getTime()
       } as NotificationOptions;
       
-      // Créer l'objet de données pour FCM
-      const fcmData = {
-        url: `/chat?id=${conversationId}`,
-        conversationId,
-        messageId: message.id,
-        timestamp: new Date(message.created_at).getTime()
-      };
-      
       // Afficher la notification
       console.log('[NOTIFICATION DEBUG] Tentative d\'affichage de notification avec:', { 
         title, 
@@ -251,66 +238,40 @@ export class MessageService {
         permission: Notification.permission 
       });
       
-      // Récupérer l'abonnement push actuel
-      const subscription = await NotificationService.getSubscription();
-      
-      // Vérifier si c'est un abonnement FCM (mobile)
-      let fcmNotificationSent = false;
-      if (subscription && NotificationService.isFCMSubscription(subscription)) {
+      // Méthode 1: Utiliser l'API Notification directement
+      if ('Notification' in window && Notification.permission === 'granted') {
         try {
-          const fcmToken = NotificationService.extractFCMToken(subscription);
-          if (fcmToken) {
-            console.log('[NOTIFICATION DEBUG] Détecté comme appareil mobile, tentative d\'envoi FCM');
-            fcmNotificationSent = await NotificationService.sendFCMNotification(
-              title,
-              message.content,
-              fcmToken,
-              fcmData
-            );
-            console.log('[NOTIFICATION DEBUG] Notification FCM envoyée?', fcmNotificationSent);
-          }
-        } catch (fcmError) {
-          console.error('[NOTIFICATION DEBUG] Erreur lors de l\'envoi de la notification FCM:', fcmError);
+          const notification = new Notification(title, options);
+          console.log('[NOTIFICATION DEBUG] Notification créée avec succès (API directe):', notification);
+          
+          notification.onclick = function() {
+            console.log('[NOTIFICATION DEBUG] Notification cliquée (API directe)');
+            window.focus();
+            window.location.href = options.data.url;
+          };
+        } catch (notifError) {
+          console.error('[NOTIFICATION DEBUG] Erreur lors de la création de la notification (API directe):', notifError);
         }
+      } else {
+        console.warn('[NOTIFICATION DEBUG] Impossible d\'afficher la notification via API directe: support=', 'Notification' in window, 'permission=', Notification.permission);
       }
       
-      // Si la notification FCM n'a pas été envoyée ou n'est pas applicable, utiliser les méthodes standards
-      if (!fcmNotificationSent) {
-        // Méthode 1: Utiliser l'API Notification directement
-        if ('Notification' in window && Notification.permission === 'granted') {
-          try {
-            const notification = new Notification(title, options);
-            console.log('[NOTIFICATION DEBUG] Notification créée avec succès (API directe):', notification);
-            
-            notification.onclick = function() {
-              console.log('[NOTIFICATION DEBUG] Notification cliquée (API directe)');
-              window.focus();
-              window.location.href = options.data.url;
-            };
-          } catch (notifError) {
-            console.error('[NOTIFICATION DEBUG] Erreur lors de la création de la notification (API directe):', notifError);
-          }
-        } else {
-          console.warn('[NOTIFICATION DEBUG] Impossible d\'afficher la notification via API directe: support=', 'Notification' in window, 'permission=', Notification.permission);
+      // Méthode 2: Utiliser le Service Worker pour afficher la notification
+      if (swRegistration) {
+        try {
+          console.log('[NOTIFICATION DEBUG] Tentative d\'affichage via Service Worker');
+          const notificationPromise = swRegistration.showNotification(title, options);
+          
+          notificationPromise.then(() => {
+            console.log('[NOTIFICATION DEBUG] Notification affichée avec succès via Service Worker');
+          }).catch(error => {
+            console.error('[NOTIFICATION DEBUG] Erreur lors de l\'affichage de la notification via Service Worker:', error);
+          });
+        } catch (swError) {
+          console.error('[NOTIFICATION DEBUG] Erreur lors de la tentative d\'affichage via Service Worker:', swError);
         }
-        
-        // Méthode 2: Utiliser le Service Worker pour afficher la notification
-        if (swRegistration) {
-          try {
-            console.log('[NOTIFICATION DEBUG] Tentative d\'affichage via Service Worker');
-            const notificationPromise = swRegistration.showNotification(title, options);
-            
-            notificationPromise.then(() => {
-              console.log('[NOTIFICATION DEBUG] Notification affichée avec succès via Service Worker');
-            }).catch(error => {
-              console.error('[NOTIFICATION DEBUG] Erreur lors de l\'affichage de la notification via Service Worker:', error);
-            });
-          } catch (swError) {
-            console.error('[NOTIFICATION DEBUG] Erreur lors de la tentative d\'affichage via Service Worker:', swError);
-          }
-        } else {
-          console.warn('[NOTIFICATION DEBUG] Service Worker non disponible pour afficher la notification');
-        }
+      } else {
+        console.warn('[NOTIFICATION DEBUG] Service Worker non disponible pour afficher la notification');
       }
       
       console.log(`[NOTIFICATION DEBUG] Fin du processus de notification pour le message: ${message.id}`);

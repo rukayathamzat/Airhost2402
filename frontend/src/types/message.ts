@@ -1,27 +1,30 @@
-/**
- * Interface pour les messages dans l'application
- */
+// Types pour le système de messagerie
 export interface Message {
-  id?: string;
-  conversation_id: string;
+  id: string;
   content: string;
+  conversation_id: string;
   created_at: string;
-  sender_id: string;
-  sender_type: 'host' | 'guest' | 'system';
+  direction: 'inbound' | 'outbound';
   read?: boolean;
-  attachments?: any[];
+  sender_id?: string;
+  error?: boolean;
+  error_message?: string;
+  media_url?: string;
+  media_type?: string;
+  _notificationTracking?: {
+    source: string;
+    timestamp: string;
+  };
 }
 
-/**
- * Type pour les notifications de messages
- */
-export interface MessageNotification {
-  title: string;
-  body: string;
-  data?: {
-    conversationId?: string;
-    messageId?: string;
-    propertyId?: string;
-    [key: string]: any;
-  };
+export interface Conversation {
+  id: string;
+  guest_name: string;
+  guest_phone: string;
+  property_id: string;
+  status?: string;
+  check_in_date?: string;
+  check_out_date?: string;
+  created_at?: string;
+  last_message_at?: string;
 }

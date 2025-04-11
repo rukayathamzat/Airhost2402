@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { Message, MessageService } from '../services/chat/message.service';
 import { useMessageSender, saveMessageLocally } from './useMessageSender';
+import { NotificationService } from '../services/notification/notification.service';
 
 // Préfixe pour les logs liés à ce hook
 const DEBUG_PREFIX = 'DEBUG_USE_MESSAGES_REALTIME';
@@ -31,6 +32,12 @@ export function useMessagesRealtime(conversationId: string): UseMessagesRealtime
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const messagesChannelRef = useRef<any>(null);
   const { getLocalMessages } = useMessageSender();
+  
+  // Références pour les mécanismes de rafraîchissement spécifiques au mobile
+  const mobileRefreshAttempts = useRef<number>(0);
+  const mobileMessagesCache = useRef<Map<string, Message>>(new Map());
+  const isMobileDevice = useRef<boolean>(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
+  const forceMobileMode = useRef<boolean>(localStorage.getItem('force_mobile_mode') === 'true');
   
   // Fonction pour charger les messages
   const loadMessages = async (showRefreshing = true, forceNetwork = true) => {
@@ -107,8 +114,43 @@ export function useMessagesRealtime(conversationId: string): UseMessagesRealtime
         }
       }
       
-      // Mettre à jour l'état des messages
-      setMessages(sortedMessages);
+      // Spécifique mobile: s'assurer que les messages sont correctement mis à jour
+      if (isMobileDevice.current || forceMobileMode.current) {
+        // Ceci est critique pour les appareils mobiles: force un nouveau tableau
+        // pour garantir que React détecte le changement
+        console.log(`${DEBUG_PREFIX} [${timestamp}] [MOBILE] Application du traitement spécifique mobile`);
+        
+        // Sauvegarder en cache les messages pour pouvoir les restaurer si nécessaire
+        sortedMessages.forEach(msg => {
+          mobileMessagesCache.current.set(msg.id, { ...msg });
+        });
+        
+        // Forcer la mise à jour en créant un nouveau tableau
+        const mobileMessages = [...sortedMessages];
+        
+        // Forcer un délai pour s'assurer que le rendu se fait après l'update du DOM
+        setTimeout(() => {
+          setMessages(mobileMessages);
+          console.log(`${DEBUG_PREFIX} [${timestamp}] [MOBILE] État des messages mis à jour avec délai`);
+          
+          // Incrémenter le compteur de tentatives
+          mobileRefreshAttempts.current += 1;
+          
+          // Si on est à moins de 3 tentatives, programmer un nouveau rafraîchissement
+          if (mobileRefreshAttempts.current < 3) {
+            console.log(`${DEBUG_PREFIX} [${timestamp}] [MOBILE] Programmation d'un rafraîchissement supplémentaire (tentative ${mobileRefreshAttempts.current})`);
+            setTimeout(() => {
+              // Forcer un nouveau rendu avec les mêmes données mais une référence différente
+              const refreshedMessages = sortedMessages.map(msg => ({ ...msg }));
+              setMessages(refreshedMessages);
+            }, 800 * mobileRefreshAttempts.current);
+          }
+        }, 50);
+      } else {
+        // Comportement standard pour les autres appareils
+        setMessages(sortedMessages);
+      }
+      
       setLastMessageCount(sortedMessages.length);
     } catch (error) {
       console.error(`${DEBUG_PREFIX} [${timestamp}] Erreur lors du chargement des messages:`, error);
@@ -133,6 +175,10 @@ export function useMessagesRealtime(conversationId: string): UseMessagesRealtime
     const timestamp = new Date().toISOString();
     console.log(`${DEBUG_PREFIX} [${timestamp}] Nouveau message détecté via Realtime:`, payload);
     
+    // Log supplémentaire pour détecter si nous sommes sur mobile
+    const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    console.log(`${DEBUG_PREFIX} [${timestamp}] Environnement détecté: ${isMobileDevice ? 'Mobile' : 'Desktop'}`);
+    
     if (payload.new) {
       const newMessage = payload.new as Message;
       
@@ -141,14 +187,6 @@ export function useMessagesRealtime(conversationId: string): UseMessagesRealtime
         console.log(`${DEBUG_PREFIX} [${timestamp}] Ajout du nouveau message à la conversation - ID: ${newMessage.id}, Created: ${newMessage.created_at}`);
         console.log(`${DEBUG_PREFIX} [${timestamp}] Contenu du message: ${newMessage.content?.substring(0, 50)}${newMessage.content && newMessage.content.length > 50 ? '...' : ''}`);
         
-        // Vérifier si c'est un message entrant pour déclencher une notification
-        if (newMessage.direction === 'inbound') {
-          console.log(`${DEBUG_PREFIX} [${timestamp}] Message entrant détecté, tentative d'envoi de notification pour: ${newMessage.id}`);
-          MessageService.notifyNewMessage(newMessage, conversationId);
-        } else {
-          console.log(`${DEBUG_PREFIX} [${timestamp}] Message sortant ou direction non définie (${newMessage.direction}), pas de notification`);
-        }
-
         // Mettre à jour l'état des messages en évitant les doublons
         setMessages(prevMessages => {
           // Vérifier si le message existe déjà
@@ -171,6 +209,23 @@ export function useMessagesRealtime(conversationId: string): UseMessagesRealtime
             // Utiliser la fonction importée en haut du fichier
             saveMessageLocally(newMessage);
             console.log(`${DEBUG_PREFIX} [${timestamp}] Message également sauvegardé localement via Realtime`);
+            
+            // Déclencher une notification UNIQUEMENT pour les messages entrants
+            // et seulement si le message n'a pas été envoyé par l'utilisateur actuel
+            if (newMessage.direction === 'inbound') {
+              console.log(`${DEBUG_PREFIX} [${timestamp}] Message entrant détecté, déclenchement de la notification`);
+              // Ajouter un attribut spécial pour le suivi des notifications
+              const messageWithFlag = {
+                ...newMessage,
+                _notificationTracking: {
+                  source: 'useMessagesRealtime',
+                  timestamp: new Date().toISOString()
+                }
+              };
+              NotificationService.notifyNewMessage(messageWithFlag);
+            } else {
+              console.log(`${DEBUG_PREFIX} [${timestamp}] Message sortant, pas de notification`);
+            }
           } catch (error) {
             console.error(`${DEBUG_PREFIX} [${timestamp}] Erreur lors de la sauvegarde locale du message reçu:`, error);
           }
@@ -179,10 +234,23 @@ export function useMessagesRealtime(conversationId: string): UseMessagesRealtime
         });
         
         // Force un rafraîchissement après réception d'un message Realtime pour s'assurer que tout est synchronisé
+        // Délai plus court pour mobile pour assurer une synchronisation plus rapide
+        const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        const refreshDelay = isMobileDevice ? 300 : 1000; // Plus rapide sur mobile
+        
         setTimeout(() => {
-          console.log(`${DEBUG_PREFIX} [${timestamp}] Rafraîchissement après réception d'un message Realtime`);
+          console.log(`${DEBUG_PREFIX} [${timestamp}] Rafraîchissement après réception d'un message Realtime (${isMobileDevice ? 'Mobile' : 'Desktop'})`);
+          // Forcer un rafraîchissement complet avec priorité réseau pour les appareils mobiles
           loadMessages(false, true); // Ne pas montrer l'icône de chargement
-        }, 1000); // Petit délai pour éviter de surcharger
+          
+          // Sur mobile, forcez un second rafraîchissement pour plus de fiabilité
+          if (isMobileDevice) {
+            setTimeout(() => {
+              console.log(`${DEBUG_PREFIX} [${timestamp}] Second rafraîchissement pour mobile`);
+              loadMessages(false, true);
+            }, 1000);
+          }
+        }, refreshDelay);
       } else {
         console.log(`${DEBUG_PREFIX} [${timestamp}] Message ignoré car il n'appartient pas à la conversation active: ${payload.new.conversation_id} !== ${conversationId}`);
       }
@@ -272,7 +340,8 @@ export function useMessagesRealtime(conversationId: string): UseMessagesRealtime
   
   // Effet pour configurer Realtime et charger les messages initiaux
   useEffect(() => {
-    console.log(`${DEBUG_PREFIX} useEffect déclenché avec conversationId:`, conversationId);
+    const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    console.log(`${DEBUG_PREFIX} useEffect déclenché avec conversationId: ${conversationId}, environnement: ${isMobileDevice ? 'Mobile' : 'Desktop'}`);
     
     if (!conversationId) {
       console.error(`${DEBUG_PREFIX} ID de conversation invalide, impossible de configurer Realtime`);
@@ -293,6 +362,62 @@ export function useMessagesRealtime(conversationId: string): UseMessagesRealtime
       loadMessages(false, true); // Force une requête fraîche sans montrer l'indicateur de chargement
     }, AUTO_REFRESH_INTERVAL);
     
+    // Gestionnaire pour les messages du service worker (spécifique mobile)
+    const handleServiceWorkerMessage = (event: MessageEvent) => {
+      const timestamp = new Date().toISOString();
+      
+      if (event.data && (event.data.type === 'FORCE_REFRESH' || event.data.type === 'NEW_MESSAGE')) {
+        console.log(`${DEBUG_PREFIX} [${timestamp}] [MOBILE] Message reçu du service worker:`, event.data.type, event.data);
+        
+        // Vérifier si le message concerne la conversation actuelle
+        const payload = event.data.payload;
+        // Compatibilité avec différents formats de messages
+        const messageConversationId = payload?.conversation_id || payload?.conversationId;
+        
+        if (messageConversationId === conversationId || !messageConversationId) {
+          console.log(`${DEBUG_PREFIX} [${timestamp}] [MOBILE] Rafraîchissement forcé pour la conversation: ${conversationId}`);
+          
+          // Forcer un rafraîchissement immédiat
+          loadMessages(false, true);
+          
+          // Programmer plusieurs rafraîchissements avec délais variables pour s'assurer de la synchronisation complète
+          [1000, 3000, 7000].forEach(delay => {
+            setTimeout(() => {
+              console.log(`${DEBUG_PREFIX} [${timestamp}] [MOBILE] Rafraîchissement #${delay/1000} après message du service worker`);
+              loadMessages(false, true);
+            }, delay);
+          });
+          
+          // Confirmer la réception et le traitement au service worker si possible
+          if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+            navigator.serviceWorker.controller.postMessage({
+              type: 'MESSAGE_PROCESSED',
+              conversationId,
+              timestamp: Date.now()
+            });
+          }
+        } else {
+          console.log(`${DEBUG_PREFIX} [${timestamp}] [MOBILE] Message ignoré car il ne concerne pas la conversation actuelle`);
+        }
+      }
+    };
+    
+    // Enregistrer le gestionnaire de messages du service worker
+    if (isMobileDevice && navigator.serviceWorker) {
+      console.log(`${DEBUG_PREFIX} [MOBILE] Enregistrement du gestionnaire de messages du service worker`);
+      navigator.serviceWorker.addEventListener('message', handleServiceWorkerMessage);
+      
+      // Informer le service worker que le client est prêt à recevoir des messages
+      if (navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({
+          type: 'CLIENT_READY',
+          conversationId: conversationId,
+          timestamp: Date.now()
+        });
+        console.log(`${DEBUG_PREFIX} [MOBILE] Notification au service worker: client prêt`);
+      }
+    }
+    
     // Nettoyage
     return () => {
       console.log(`${DEBUG_PREFIX} Nettoyage: désinscription du canal Realtime, arrêt du polling et du rafraîchissement automatique`);
@@ -310,6 +435,12 @@ export function useMessagesRealtime(conversationId: string): UseMessagesRealtime
         clearInterval(autoRefreshInterval);
         autoRefreshInterval = null;
         console.log(`${DEBUG_PREFIX} Arrêt du rafraîchissement automatique`);  
+      }
+      
+      // Supprimer l'écouteur d'événements du service worker
+      if (isMobileDevice && navigator.serviceWorker) {
+        console.log(`${DEBUG_PREFIX} [MOBILE] Suppression du gestionnaire de messages du service worker`);
+        navigator.serviceWorker.removeEventListener('message', handleServiceWorkerMessage);
       }
     };
   }, [conversationId]);

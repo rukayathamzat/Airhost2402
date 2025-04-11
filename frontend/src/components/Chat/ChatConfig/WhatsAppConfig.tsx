@@ -11,7 +11,8 @@ import {
   Alert,
   CircularProgress
 } from '@mui/material';
-import { WhatsAppService } from '../../../services/chat/whatsapp.service';
+import { WhatsAppConfig as WhatsAppConfigType } from '../../../services/chat/whatsapp.service';
+import { supabase } from '../../../lib/supabase';
 
 interface WhatsAppConfigProps {
   open: boolean;
@@ -35,8 +36,20 @@ export default function WhatsAppConfig({ open, onClose }: WhatsAppConfigProps) {
   const loadConfig = async () => {
     setIsLoading(true);
     try {
-      const config = await WhatsAppService.getConfig();
-      if (config) {
+      console.log('Tentative de récupération de la configuration WhatsApp via RPC directe...');
+      
+      // Utiliser directement la fonction RPC sans passer par le service
+      const { data, error } = await supabase.rpc('get_whatsapp_config');
+      
+      if (error) {
+        console.error('Erreur lors de l\'appel RPC:', error);
+        throw error;
+      }
+      
+      console.log('Configuration WhatsApp récupérée via RPC directe:', data);
+      
+      if (data) {
+        const config = data as WhatsAppConfigType;
         setPhoneNumberId(config.phone_number_id || '');
         setWhatsappToken(config.token || '');
       }
@@ -67,10 +80,26 @@ export default function WhatsAppConfig({ open, onClose }: WhatsAppConfigProps) {
     setErrorMessage('');
     
     try {
-      await WhatsAppService.saveConfig({
+      console.log('Tentative de sauvegarde de la configuration WhatsApp via Supabase directe...');
+      
+      // Préparer les données avec updated_at
+      const dataToSave = {
         phone_number_id: phoneNumberId,
-        token: whatsappToken
-      });
+        token: whatsappToken,
+        updated_at: new Date().toISOString()
+      };
+      
+      // Utiliser directement l'API Supabase sans passer par le service
+      const { error } = await supabase
+        .from('whatsapp_config')
+        .upsert(dataToSave);
+      
+      if (error) {
+        console.error('Erreur lors de la sauvegarde via Supabase:', error);
+        throw error;
+      }
+      
+      console.log('Configuration WhatsApp sauvegardée avec succès via Supabase directe');
       setSuccessMessage('Configuration WhatsApp enregistrée avec succès');
       setTimeout(() => {
         onClose();

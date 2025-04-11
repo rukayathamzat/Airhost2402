@@ -1,14 +1,8 @@
 import { useState, useEffect } from 'react';
-import { TemplateService } from '../services/chat/template.service';
+import { TemplateService, Template } from '../services/chat/template.service';
 
 // Préfixe pour les logs liés à ce hook
 const DEBUG_PREFIX = 'DEBUG_USE_TEMPLATES';
-
-export interface Template {
-  id: string;
-  name: string;
-  content: string;
-}
 
 interface UseTemplatesResult {
   templates: Template[];

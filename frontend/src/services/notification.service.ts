@@ -1,9 +1,6 @@
 import { supabase } from '../lib/supabase';
 
 // Nous utilisons directement l'interface PushSubscription native du navigateur
-// Configuration FCM pour les notifications mobiles
-const FCM_SERVER_KEY = 'AAAA1B1SQm0:APA91bHKs7TwqV3OJzrMGqUe3kCzmV_HiCiCNP8uoiUXJ9vT_eDZ7-jrKnxvs2CLHkBNMvbXW7-FyuY-8jMv5oiTzcjXYL8EKG-bvEJh4UMvwEQJOyzrgvBTkxFtPxPDg3tQqqYeGl4Z';
-const FCM_SEND_URL = 'https://fcm.googleapis.com/fcm/send';
 
 export class NotificationService {
   private static swRegistration: ServiceWorkerRegistration | null = null;
@@ -197,9 +194,7 @@ export class NotificationService {
       if (subscription) {
         console.log('[NOTIF DEBUG] Détails de l\'abonnement:', {
           endpoint: subscription.endpoint,
-          expirationTime: subscription.expirationTime,
-          // Vérifier si l'endpoint contient FCM pour les notifications mobiles
-          isFCM: subscription.endpoint.includes('fcm.googleapis.com')
+          expirationTime: subscription.expirationTime
         });
       }
       return subscription;
@@ -340,62 +335,6 @@ export class NotificationService {
       console.error('[NOTIF DEBUG] Erreur lors de la vérification des notifications:', error);
       return false;
     }
-  }
-  
-  /**
-   * Envoie une notification via Firebase Cloud Messaging (pour les appareils mobiles)
-   */
-  static async sendFCMNotification(title: string, body: string, token: string, data: any = {}): Promise<boolean> {
-    console.log('[NOTIF DEBUG] Tentative d\'envoi de notification FCM:', { title, body, token: token.substring(0, 10) + '...' });
-    
-    try {
-      const message = {
-        to: token,
-        notification: {
-          title,
-          body,
-          icon: '/icons/icon-192x192.png',
-          badge: '/icons/icon-72x72.png',
-          click_action: data.url || '/chat'
-        },
-        data: data
-      };
-      
-      const response = await fetch(FCM_SEND_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `key=${FCM_SERVER_KEY}`
-        },
-        body: JSON.stringify(message)
-      });
-      
-      const responseData = await response.json();
-      console.log('[NOTIF DEBUG] Réponse FCM:', responseData);
-      
-      return response.ok;
-    } catch (error) {
-      console.error('[NOTIF DEBUG] Erreur lors de l\'envoi de la notification FCM:', error);
-      return false;
-    }
-  }
-
-  /**
-   * Vérifie si l'abonnement utilise FCM (pour les appareils mobiles)
-   */
-  static isFCMSubscription(subscription: PushSubscription): boolean {
-    return subscription.endpoint.includes('fcm.googleapis.com');
-  }
-
-  /**
-   * Extrait le token FCM de l'endpoint
-   */
-  static extractFCMToken(subscription: PushSubscription): string | null {
-    if (!this.isFCMSubscription(subscription)) return null;
-    
-    // Format typique: https://fcm.googleapis.com/fcm/send/[TOKEN]
-    const parts = subscription.endpoint.split('/');
-    return parts[parts.length - 1] || null;
   }
 
   /**

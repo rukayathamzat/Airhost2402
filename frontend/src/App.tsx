@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
+import { NotificationProcessorService } from './services/notification/notification-processor.service';
 import SetPassword from './pages/SetPassword';
 import Chat from './pages/Chat';
 import Login from './pages/Login';
@@ -10,33 +11,21 @@ import ChatSandbox from './pages/ChatSandbox';
 import Properties from './pages/Properties';
 import Settings from './pages/Settings';
 import Debug from './pages/Debug';
+import TestConversation from './pages/TestConversation';
+import NotificationTester from './components/NotificationTester';
 import Layout from './components/Layout/Layout';
 import { supabase } from './lib/supabase';
 import { Session } from '@supabase/supabase-js';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import './App.css'
-import { NotificationService } from './services/notification.service';
+import './App.css';
+// import NotificationTestButton from './components/NotificationTestButton';
 
 function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Initialiser le service de notifications
-    const initNotifications = async () => {
-      console.log('[APP] Initialisation du service de notifications');
-      try {
-        await NotificationService.init();
-        console.log('[APP] Service de notifications initialisé avec succès');
-      } catch (error) {
-        console.error('[APP] Erreur lors de l\'initialisation du service de notifications:', error);
-      }
-    };
-    
-    // Exécuter l'initialisation des notifications
-    initNotifications();
-    
     // Vérifier si l'URL contient un code d'authentification
     const handleAuthRedirect = async () => {
       const url = new URL(window.location.href);
@@ -101,6 +90,24 @@ function App() {
 
     return () => subscription.unsubscribe();
   }, []);
+  
+  // Démarrer/arrêter le traitement des notifications en fonction de la session
+  useEffect(() => {
+    if (session) {
+      // L'utilisateur est connecté, démarrer le traitement des notifications
+      console.log('[App] Démarrage du traitement des notifications');
+      NotificationProcessorService.startProcessing(120000); // Toutes les 2 minutes
+    } else {
+      // L'utilisateur est déconnecté, arrêter le traitement des notifications
+      console.log('[App] Arrêt du traitement des notifications');
+      NotificationProcessorService.stopProcessing();
+    }
+    
+    // Nettoyer lors du démontage du composant
+    return () => {
+      NotificationProcessorService.stopProcessing();
+    };
+  }, [session]);
 
   if (loading) {
     return <div>Chargement...</div>;
@@ -147,7 +154,12 @@ function App() {
         />
         <Route 
           path="/debug" 
-          element={<Debug />} 
+          element={
+            <>
+              <Debug />
+              {session && <NotificationTester />}
+            </>
+          } 
         />
         <Route
           path="/"
@@ -171,6 +183,7 @@ function App() {
                   <Route path="/properties" element={<Properties />} />
                   <Route path="/settings" element={<Settings />} />
                   <Route path="/debug" element={<Debug />} />
+                  <Route path="/test-conversation" element={<TestConversation />} />
                 </Routes>
               </Layout>
             ) : (
@@ -179,6 +192,9 @@ function App() {
           }
         />
       </Routes>
+      {/* Boutons de test de notification masqués 
+      {session && <NotificationTestButton />} 
+      */}
     </Router>
   );
 }

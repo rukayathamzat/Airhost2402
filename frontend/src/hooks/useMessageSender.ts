@@ -260,7 +260,7 @@ export function useMessageSender(): UseMessageSenderResult {
         console.log(`${DEBUG_PREFIX} Envoi du message à WhatsApp pour le contact ${contactId}`);
         
         try {
-          await WhatsAppService.sendMessage(content, contactId);
+          await WhatsAppService.sendMessage(contactId, content);
           console.log(`${DEBUG_PREFIX} Message envoyé avec succès à WhatsApp`);
         } catch (whatsappError) {
           console.error(`${DEBUG_PREFIX} Erreur lors de l'envoi à WhatsApp:`, whatsappError);

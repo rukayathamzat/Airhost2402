@@ -14,9 +14,15 @@
 
 [functions]
   directory = "frontend/netlify/functions"
+  included_files = ["!**/fcm-send.js"]
 
 [[plugins]]
   package = "@netlify/plugin-functions-install-core"
+
+# Configuration des Edge Functions pour injecter le script de correction
+[[edge_functions]]
+  path = "/*"
+  function = "transform"
 
 [build.environment]
   NODE_VERSION = "20"

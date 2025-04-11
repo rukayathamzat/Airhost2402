@@ -36,10 +36,13 @@ import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 import SettingsIcon from '@mui/icons-material/Settings';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import LogoutIcon from '@mui/icons-material/Logout';
+// Suppression de l'import TestIcon
 import ConversationList from '../components/Chat/ConversationList';
 import ChatWindow from '../components/Chat/ChatWindow';
 import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
+import { MobileNotificationService } from '../services/notification/mobile-notification.service';
+import { WhatsAppService } from '../services/chat/whatsapp.service';
 
 import { Conversation } from '../types/conversation';
 
@@ -58,6 +61,8 @@ export default function Chat() {
   const [phoneNumberId, setPhoneNumberId] = useState('');
   const [whatsappToken, setWhatsappToken] = useState('');
   const [saving, setSaving] = useState(false);
+  
+  // État pour le bouton de test de notification supprimé
 
   const navigate = useNavigate();
 
@@ -281,22 +286,17 @@ export default function Chat() {
   
   // Gestion de la configuration WhatsApp
   const openWhatsAppConfig = async () => {
-    console.log('Ouverture de la configuration WhatsApp');
+    console.log('Ouverture de la configuration WhatsApp via service WhatsApp');
     
     try {
-      const { data, error } = await supabase
-        .from('whatsapp_config')
-        .select('*')
-        .single();
-
-      if (error && error.code !== 'PGRST116') {
-        console.error('Erreur lors du chargement de la configuration WhatsApp:', error);
-      }
-
-      if (data) {
-        console.log('Configuration WhatsApp chargée:', data);
-        setPhoneNumberId(data.phone_number_id || '');
-        setWhatsappToken(data.token || '');
+      // Utiliser le service WhatsApp directement
+      const config = await WhatsAppService.getConfig();
+      
+      console.log('Configuration WhatsApp récupérée:', config);
+      
+      if (config) {
+        setPhoneNumberId(config.phone_number_id || '');
+        setWhatsappToken(config.token || '');
       } else {
         console.log('Aucune configuration WhatsApp trouvée, utilisation des valeurs par défaut');
       }
@@ -304,27 +304,34 @@ export default function Chat() {
       // Force l'ouverture de la popup
       setConfigOpen(true);
     } catch (error) {
-      console.error('Erreur:', error);
+      console.error('Erreur lors de la récupération de la configuration WhatsApp:', error);
     }
   };
+  
+  // Fonction de test des notifications supprimée
 
   const handleSaveConfig = async () => {
     try {
       setSaving(true);
       
-      const { error } = await supabase
-        .from('whatsapp_config')
-        .upsert({
-          phone_number_id: phoneNumberId,
-          token: whatsappToken,
-          updated_at: new Date().toISOString()
-        });
-
-      if (error) {
-        console.error('Erreur lors de la sauvegarde de la configuration:', error);
+      // Préparer les données de configuration
+      const configData = {
+        phone_number_id: phoneNumberId,
+        token: whatsappToken
+      };
+      
+      console.log("Sauvegarde de la configuration WhatsApp via service WhatsApp:", configData);
+      
+      // Utiliser le service WhatsApp directement
+      const success = await WhatsAppService.saveConfig(configData);
+      
+      if (!success) {
+        console.error("Erreur lors de la sauvegarde de la configuration WhatsApp");
         setSaving(false);
         return;
       }
+      
+      console.log("Configuration WhatsApp sauvegardée avec succès");
 
       setConfigOpen(false);
       setSaving(false);
@@ -421,9 +428,12 @@ export default function Chat() {
                 conversationId={selectedConversation.id}
                 isMobile={isMobile}
                 apartmentId={selectedConversation.property?.[0]?.id || 'default'}
+                whatsappContactId={selectedConversation.guest_phone || selectedConversation.guest_number}
                 guestName={selectedConversation.guest_name}
-                whatsappContactId={selectedConversation.guest_phone}
-                onBack={handleBackFromChat}
+                // Props temporairement commentées car interface mise à jour
+                // guestNumber={selectedConversation.guest_number || ''}
+                // conversationStartTime={selectedConversation.created_at || new Date().toISOString()}
+                // onBack={handleBackFromChat}
               />
             ) : navValue === 'messages' ? (
               // Afficher la liste des conversations
@@ -496,6 +506,24 @@ export default function Chat() {
                     </ListItemButton>
                   </ListItem>
                   <Divider sx={{ my: 1 }} />
+                  <ListItem disablePadding>
+                    <ListItemButton onClick={async () => {
+                      try {
+                        console.log('Test de notification FCM...');
+                        await MobileNotificationService.sendTestNotification();
+                        alert('Test de notification envoyé avec succès! Vérifiez la console pour plus de détails.');
+                      } catch (error) {
+                        console.error('Erreur lors du test de notification:', error);
+                        alert(`Erreur lors du test: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
+                      }
+                    }}>
+                      <ListItemIcon><NotificationsIcon /></ListItemIcon>
+                      <ListItemText 
+                        primary="Tester les notifications" 
+                        secondary="Envoyer une notification de test au token pré-configuré" />
+                    </ListItemButton>
+                  </ListItem>
+                  <Divider sx={{ my: 1 }} />
                   {/* Autres options de paramètres */}
                 </List>
               </Box>
@@ -558,8 +586,12 @@ export default function Chat() {
                 conversationId={selectedConversation.id}
                 isMobile={isMobile}
                 apartmentId={selectedConversation.property?.[0]?.id || 'default'}
+                whatsappContactId={selectedConversation.guest_phone || selectedConversation.guest_number}
                 guestName={selectedConversation.guest_name}
-                whatsappContactId={selectedConversation.guest_phone}
+                // Props temporairement commentées car interface mise à jour
+                // guestNumber={selectedConversation.guest_number || ''}
+                // conversationStartTime={selectedConversation.created_at || new Date().toISOString()}
+                // onBack={handleBackFromChat}
               />
             ) : (
               <Box

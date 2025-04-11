@@ -1,149 +1,17 @@
+import { BaseNotificationService } from './base-notification.service';
 import { supabase } from '../../lib/supabase';
+import { Message } from '../../types/message';
 // @ts-ignore - Ignorer l'erreur de type pour firebase
 import { requestFCMPermission, setMessagingCallback } from '../../lib/firebase';
-
-// Définition simplifiée de la classe abstraite BaseNotificationService
-abstract class BaseNotificationService {
-  abstract sendNotification(title: string, body: string, data?: any): Promise<boolean>;
-  abstract initialize(): Promise<boolean>;
-  abstract requestPermission(): Promise<boolean>;
-  abstract isSupported(): boolean;
-}
-
-// Définition simplifiée de Message pour éviter l'import externe
-interface Message {
-  id?: string;
-  conversation_id: string;
-  content: string;
-  created_at: string;
-  sender_id: string;
-  sender_type: 'host' | 'guest' | 'system';
-  read?: boolean;
-  attachments?: any[];
-}
 
 export class MobileNotificationService extends BaseNotificationService {
   private static fcmToken: string | null = null;
 
   /**
-   * Envoie une notification via le service de notification mobile
-   * @param title - Titre de la notification
-   * @param body - Corps de la notification
-   * @param data - Données supplémentaires (optionnel)
-   */
-  /**
-   * Obtient le token FCM à partir du cache ou en le demandant à Firebase
-   */
-  async getFCMToken(): Promise<string | null> {
-    // Vérifier si on a déjà un token en cache
-    if (MobileNotificationService.fcmToken) {
-      return MobileNotificationService.fcmToken;
-    }
-    
-    try {
-      // Sinon, demander un nouveau token
-      const token = await requestFCMPermission();
-      if (token) {
-        // Mettre en cache le token
-        MobileNotificationService.fcmToken = token;
-        console.log('[MOBILE NOTIFICATION] Token FCM obtenu:', token);
-        return token;
-      }
-      
-      return null;
-    } catch (error) {
-      console.error('[MOBILE NOTIFICATION] Erreur lors de l\'obtention du token FCM:', error);
-      return null;
-    }
-  }
-
-  async sendNotification(title: string, body: string, data?: any): Promise<boolean> {
-    console.log('[MOBILE NOTIFICATION] Envoi de notification:', title, body, data);
-    
-    try {
-      // Dans le cas mobile, on utilise FCM
-      // Les notifications sont gérées par le service worker Firebase
-      const token = await this.getFCMToken();
-      if (!token) {
-        console.error('[MOBILE NOTIFICATION] Impossible d\'envoyer la notification: pas de token FCM');
-        return false;
-      }
-      
-      // Nous utilisons notre Edge Function pour envoyer la notification
-      // URL de l'Edge Function Supabase (utilisation de l'URL configurée dans l'environnement)
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://tornfqtvnzkgnwfudxdb.supabase.co';
-      const edgeFunctionUrl = `${supabaseUrl}/functions/v1/fcm-proxy`;
-      
-      const response = await fetch(edgeFunctionUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
-        },
-        body: JSON.stringify({
-          to: token,
-          notification: {
-            title,
-            body,
-          },
-          data: data || {}
-        })
-      });
-      
-      if (!response.ok) {
-        console.error('[MOBILE NOTIFICATION] Erreur lors de l\'envoi de la notification:', await response.text());
-        return false;
-      }
-      
-      return true;
-    } catch (error) {
-      console.error('[MOBILE NOTIFICATION] Erreur lors de l\'envoi de la notification:', error);
-      return false;
-    }
-  }
-  
-  /**
-   * Vérifie si les notifications mobiles sont supportées
-   */
-  isSupported(): boolean {
-    // Vérifier si on est sur un appareil mobile et si FCM est disponible
-    return typeof window !== 'undefined' && 
-           'serviceWorker' in navigator && 
-           typeof requestFCMPermission === 'function';
-  }
-  
-  /**
-   * Initialise le service de notification mobile
-   */
-  async initialize(): Promise<boolean> {
-    try {
-      // Initialiser et charger le token FCM
-      await MobileNotificationService.init();
-      return true;
-    } catch (error) {
-      console.error('[MOBILE NOTIFICATION] Erreur lors de l\'initialisation:', error);
-      return false;
-    }
-  }
-  
-  /**
-   * Demande l'autorisation pour envoyer des notifications
-   */
-  async requestPermission(): Promise<boolean> {
-    try {
-      const token = await requestFCMPermission();
-      return !!token;
-    } catch (error) {
-      console.error('[MOBILE NOTIFICATION] Erreur lors de la demande de permission:', error);
-      return false;
-    }
-  }
-
-  /**
    * Initialise le service de notification mobile
    */
   static async init(): Promise<void> {
-    // Pas besoin d'initialiser la classe parent car elle est abstraite
+    await super.init();
     await this.loadFCMToken();
     
     // Configurer le callback pour les messages FCM reçus quand l'app est au premier plan
@@ -163,6 +31,88 @@ export class MobileNotificationService extends BaseNotificationService {
       } catch (error) {
         console.error('[NOTIF DEBUG] Erreur lors de l\'initialisation FCM:', error);
       }
+    } else {
+      // Vérifier que le token existant est bien enregistré dans Supabase
+      this.verifyTokenRegistration();
+    }
+    
+    // Configurer une vérification périodique du token
+    this.setupPeriodicTokenCheck();
+  }
+  
+  /**
+   * Configure une vérification périodique du token FCM
+   * Cela permet de s'assurer que le token est toujours valide et enregistré
+   */
+  private static setupPeriodicTokenCheck(): void {
+    // Vérifier le token toutes les 12 heures
+    const CHECK_INTERVAL = 12 * 60 * 60 * 1000; // 12 heures en millisecondes
+    
+    const performCheck = () => {
+      this.verifyTokenRegistration();
+    };
+    
+    // Première vérification après 5 minutes
+    setTimeout(performCheck, 5 * 60 * 1000);
+    
+    // Vérifications périodiques ensuite
+    setInterval(performCheck, CHECK_INTERVAL);
+    
+    // Vérifier également à chaque reprise de l'application (visibilitychange)
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        console.log('[NOTIF DEBUG] Application revenue au premier plan, vérification du token FCM');
+        performCheck();
+      }
+    });
+  }
+  
+  /**
+   * Vérifie que le token FCM actuel est bien enregistré dans Supabase
+   * Si ce n'est pas le cas, tente de le réenregistrer
+   */
+  private static async verifyTokenRegistration(): Promise<void> {
+    try {
+      if (!this.fcmToken) {
+        console.log('[NOTIF DEBUG] Pas de token FCM à vérifier');
+        return;
+      }
+      
+      console.log('[NOTIF DEBUG] Vérification de l\'enregistrement du token FCM:', this.fcmToken.substring(0, 10) + '...');
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.warn('[NOTIF DEBUG] Impossible de vérifier le token: utilisateur non authentifié');
+        return;
+      }
+      
+      // Vérifier si le token est enregistré dans Supabase
+      const { data, error } = await supabase
+        .from('push_subscriptions')
+        .select('id, updated_at')
+        .eq('user_id', user.id)
+        .eq('token', this.fcmToken)
+        .single();
+      
+      if (error || !data) {
+        console.warn('[NOTIF DEBUG] Token FCM non trouvé dans la base de données, réenregistrement...');
+        await this.registerToken(this.fcmToken);
+        return;
+      }
+      
+      // Vérifier si l'enregistrement date de plus de 7 jours
+      const lastUpdate = new Date(data.updated_at);
+      const now = new Date();
+      const daysSinceUpdate = Math.floor((now.getTime() - lastUpdate.getTime()) / (1000 * 60 * 60 * 24));
+      
+      if (daysSinceUpdate > 7) {
+        console.log(`[NOTIF DEBUG] Enregistrement du token datant de ${daysSinceUpdate} jours, mise à jour...`);
+        await this.registerToken(this.fcmToken);
+      } else {
+        console.log('[NOTIF DEBUG] Token FCM correctement enregistré et à jour');
+      }
+    } catch (error) {
+      console.error('[NOTIF DEBUG] Erreur lors de la vérification du token FCM:', error);
     }
   }
 
@@ -182,50 +132,80 @@ export class MobileNotificationService extends BaseNotificationService {
   }
 
   /**
-   * Enregistre un nouveau token FCM
+   * Enregistre un nouveau token FCM avec mécanisme de reprise
    */
   static async registerToken(token: string): Promise<void> {
-    console.log('[NOTIF DEBUG] Enregistrement du token FCM');
+    console.log('[NOTIF DEBUG] Enregistrement du token FCM:', token.substring(0, 10) + '...');
     
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
+    // Sauvegarder le token localement immédiatement
+    localStorage.setItem('fcm_token', token);
+    this.fcmToken = token;
+    
+    // Variable pour le nombre de tentatives
+    let attempts = 0;
+    const maxAttempts = 3;
+    
+    const registerWithRetry = async (): Promise<boolean> => {
+      attempts++;
       
-      if (!user) {
-        throw new Error('Utilisateur non authentifié');
-      }
-
-      // Sauvegarder le token localement
-      localStorage.setItem('fcm_token', token);
-      this.fcmToken = token;
-
-      // Enregistrer dans Supabase
-      const { error } = await supabase
-        .from('push_subscriptions')
-        .upsert({
-          user_id: user.id,
-          token,
-          platform: 'fcm',
-          subscription: {}, // Valeur par défaut pour satisfaire la contrainte NOT NULL
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'user_id'
-        });
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
         
-      console.log('[NOTIF DEBUG] Tentative d\'insertion dans push_subscriptions', {
-        user_id: user.id,
-        token,
-        platform: 'fcm',
-        subscription: {}
-      });
+        if (!user) {
+          console.warn(`[NOTIF DEBUG] Tentative ${attempts}/${maxAttempts}: Utilisateur non authentifié`);
+          return false;
+        }
+        
+        // Log des informations d'enregistrement du token
+        console.log(`[NOTIF DEBUG] Enregistrement du token FCM pour l'utilisateur ${user.id}`);
+        
+        console.log(`[NOTIF DEBUG] Tentative ${attempts}/${maxAttempts} d'insertion dans push_subscriptions`, {
+          user_id: user.id,
+          token: token.substring(0, 10) + '...',
+          platform: 'fcm'
+        });
 
-      if (error) {
-        throw error;
+        // Appeler la fonction Supabase qui gère l'upsert (mise à jour ou insertion)
+        // Cette fonction garantit qu'un seul token est conservé par utilisateur (le plus récent)
+        const { error: functionError } = await supabase
+          .rpc('upsert_push_token', {
+            p_user_id: user.id,
+            p_token: token,
+            p_platform: 'fcm'
+          });
+          
+        if (functionError) {
+          console.error(`[NOTIF DEBUG] Erreur lors de l'appel à upsert_push_token: ${functionError.message}`);
+          throw functionError;
+        }
+        
+        console.log('[NOTIF DEBUG] Token FCM mis à jour avec succès via la fonction upsert_push_token');
+
+        console.log('[NOTIF DEBUG] Token FCM enregistré avec succès');
+        return true;
+      } catch (error) {
+        console.error(`[NOTIF DEBUG] Erreur lors de la tentative ${attempts}/${maxAttempts}:`, error);
+        
+        // Vérifier si on peut réessayer
+        if (attempts < maxAttempts) {
+          // Attente exponentielle avant la prochaine tentative
+          const delay = Math.pow(2, attempts) * 1000;
+          console.log(`[NOTIF DEBUG] Nouvelle tentative dans ${delay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          return registerWithRetry();
+        }
+        
+        console.error('[NOTIF DEBUG] Nombre maximum de tentatives atteint. Échec de l\'enregistrement du token');
+        return false;
       }
-
-      console.log('[NOTIF DEBUG] Token FCM enregistré avec succès');
-    } catch (error) {
-      console.error('[NOTIF DEBUG] Erreur lors de l\'enregistrement du token FCM:', error);
-      throw error;
+    };
+    
+    // Démarrer le processus d'enregistrement avec retries
+    try {
+      await registerWithRetry();
+    } catch (finalError) {
+      console.error('[NOTIF DEBUG] Erreur fatale lors de l\'enregistrement du token FCM:', finalError);
+      // Ne pas propager l'erreur pour éviter de bloquer l'application
     }
   }
 
@@ -267,6 +247,23 @@ export class MobileNotificationService extends BaseNotificationService {
   static async sendPushNotification(message: Message): Promise<void> {
     console.log('[NOTIF DEBUG] Tentative d\'envoi de notification push pour le message:', message.id);
     
+    // Vérification explicite: ne jamais envoyer de notification pour les messages sortants
+    if (message.direction === 'outbound') {
+      console.log('[NOTIF DEBUG] Message sortant détecté, annulation de l\'envoi de notification push');
+      return;
+    }
+    
+    // Vérification supplémentaire: s'assurer que c'est bien un message entrant
+    if (message.direction !== 'inbound') {
+      console.log('[NOTIF DEBUG] Message non entrant (ni sortant ni entrant), pas de notification');
+      return;
+    }
+    
+    // Logs de débogage supplémentaires
+    console.log('[NOTIF DEBUG] Message entrant confirmé dans MobileNotificationService');
+    console.log('[NOTIF DEBUG] Données de suivi:', message._notificationTracking || 'aucune');
+    console.log('[NOTIF DEBUG] Contenu du message:', message.content ? message.content.substring(0, 30) + '...' : 'vide');
+    
     // Vérifier tous les prérequis
     if (!this.fcmToken) {
       console.warn('[NOTIF DEBUG] Pas de token FCM disponible');
@@ -298,7 +295,7 @@ export class MobileNotificationService extends BaseNotificationService {
       
       // Utilisation de l'Edge Function Supabase au lieu de la fonction Netlify
       // Utiliser l'URL Supabase configurée dans l'environnement
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://tornfqtvnzkgnwfudxdb.supabase.co';
+      const supabaseUrl = (import.meta as any).env.VITE_SUPABASE_URL || 'https://tornfqtvnzkgnwfudxdb.supabase.co';
       const response = await fetch(`${supabaseUrl}/functions/v1/fcm-proxy`, {
         method: 'POST',
         headers: {
@@ -314,7 +311,9 @@ export class MobileNotificationService extends BaseNotificationService {
           data: {
             messageId: message.id,
             conversationId: message.conversation_id,
-            type: 'new_message'
+            type: 'new_message',
+            direction: message.direction, // Ajouter la direction du message pour que le service worker puisse filtrer
+            isOutbound: (message.direction as string) === 'outbound' ? 'true' : 'false' // Cast en string pour éviter les problèmes de typage
           }
         })
       });
@@ -362,7 +361,7 @@ export class MobileNotificationService extends BaseNotificationService {
    */
   static isServiceWorkerRegistered(): boolean {
     // D'abord vérifier avec la méthode de la classe de base
-    const baseRegistration = null; // ServiceWorker géré par Firebase
+    const baseRegistration = super.isServiceWorkerRegistered();
     if (baseRegistration) {
       return true;
     }
@@ -412,7 +411,7 @@ export class MobileNotificationService extends BaseNotificationService {
       console.log('[NOTIF DEBUG] Token JWT obtenu, envoi de la notification test');
       
       // URL de l'Edge Function Supabase (utilisation de l'URL configurée dans l'environnement)
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://tornfqtvnzkgnwfudxdb.supabase.co';
+      const supabaseUrl = (import.meta as any).env.VITE_SUPABASE_URL || 'https://tornfqtvnzkgnwfudxdb.supabase.co';
       const edgeFunctionUrl = `${supabaseUrl}/functions/v1/fcm-proxy`;
       console.log('[NOTIF DEBUG] URL de l\'Edge Function:', edgeFunctionUrl);
       

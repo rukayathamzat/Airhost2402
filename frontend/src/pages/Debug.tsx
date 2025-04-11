@@ -1,5 +1,39 @@
 import React, { useState } from 'react';
-import { Box, Button, Container, Grid, Paper, TextField, Typography, CircularProgress, Divider } from '@mui/material';
+import { Box, Button, Container, Grid, Paper, TextField, Typography, CircularProgress, Divider, Tabs, Tab } from '@mui/material';
+import NotificationTest from '../components/NotificationTest';
+
+interface TabPanelProps {
+  children?: React.ReactNode;
+  index: number;
+  value: number;
+}
+
+function TabPanel(props: TabPanelProps) {
+  const { children, value, index, ...other } = props;
+
+  return (
+    <div
+      role="tabpanel"
+      hidden={value !== index}
+      id={`simple-tabpanel-${index}`}
+      aria-labelledby={`simple-tab-${index}`}
+      {...other}
+    >
+      {value === index && (
+        <Box sx={{ p: 3 }}>
+          {children}
+        </Box>
+      )}
+    </div>
+  );
+}
+
+function a11yProps(index: number) {
+  return {
+    id: `simple-tab-${index}`,
+    'aria-controls': `simple-tabpanel-${index}`,
+  };
+}
 
 const DebugPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
@@ -7,6 +41,7 @@ const DebugPage: React.FC = () => {
   const [apartmentId, setApartmentId] = useState('');
   const [conversationId, setConversationId] = useState('');
   const [testType, setTestType] = useState('env');
+  const [tabValue, setTabValue] = useState(0);
 
   const runTest = async (type: string) => {
     setLoading(true);
@@ -43,13 +78,25 @@ const DebugPage: React.FC = () => {
     }
   };
 
+  const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
+    setTabValue(newValue);
+  };
+
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       <Typography variant="h4" gutterBottom>
         Page de débogage
       </Typography>
+
+      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
+        <Tabs value={tabValue} onChange={handleTabChange} aria-label="debug tabs">
+          <Tab label="API Tests" {...a11yProps(0)} />
+          <Tab label="Notifications Tests" {...a11yProps(1)} />
+        </Tabs>
+      </Box>
       
-      <Grid container spacing={3}>
+      <TabPanel value={tabValue} index={0}>
+        <Grid container spacing={3}>
         <Grid item xs={12} md={4}>
           <Paper
             sx={{
@@ -170,6 +217,11 @@ const DebugPage: React.FC = () => {
           </Paper>
         </Grid>
       </Grid>
+      </TabPanel>
+      
+      <TabPanel value={tabValue} index={1}>
+        <NotificationTest />
+      </TabPanel>
     </Container>
   );
 };

@@ -1,21 +1,18 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { 
   Box, 
   IconButton, 
   Card, 
   Typography, 
+  Divider,
   Chip,
   Menu,
   MenuItem,
   ListItemIcon,
   ListItemText,
   CircularProgress,
-  Fab,
-  Zoom,
-  Badge,
-  Tooltip,
-  Paper,
-  useTheme
+  Snackbar,
+  Alert
 } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
@@ -23,15 +20,15 @@ import SignalCellularAltIcon from '@mui/icons-material/SignalCellularAlt';
 import SignalCellularConnectedNoInternet0BarIcon from '@mui/icons-material/SignalCellularConnectedNoInternet0Bar';
 import FormatListBulletedIcon from '@mui/icons-material/FormatListBulleted';
 import PaletteIcon from '@mui/icons-material/Palette';
-import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
 import ChatMessages from './ChatMessages';
 import ChatInput from './ChatInput';
 import AIResponseModal from '../AIResponseModal';
+import TemplateMenu from './ChatTemplates/TemplateMenu';
 import { useMessagesRealtime } from '../../hooks/useMessagesRealtime';
 import { useMessageSender } from '../../hooks/useMessageSender';
-import { useTemplates, Template } from '../../hooks/useTemplates';
+import { useTemplates } from '../../hooks/useTemplates';
+import { TemplateService, Template } from '../../services/chat/template.service';
 
 // Préfixe pour les logs liés à ce composant
 const DEBUG_PREFIX = 'DEBUG_CHAT_WINDOW';
@@ -42,31 +39,17 @@ interface ChatWindowProps {
   guestName?: string;
   isMobile?: boolean;
   apartmentId?: string; // ID de l'appartement pour les requêtes IA
-  onBack?: () => void; // Fonction pour revenir à la liste des conversations (utile en mobile)
 }
 
-export default function ChatWindow({ 
-  conversationId, 
-  whatsappContactId, 
-  guestName, 
-  isMobile = false, 
-  apartmentId,
-  onBack
-}: ChatWindowProps) {
+export default function ChatWindow({ conversationId, whatsappContactId, guestName, isMobile = false, apartmentId }: ChatWindowProps) {
   // États locaux
   const [messageInput, setMessageInput] = useState('');
   const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null);
   const [templatesMenuAnchorEl, setTemplatesMenuAnchorEl] = useState<null | HTMLElement>(null);
   const [aiModalOpen, setAiModalOpen] = useState(false);
-  const [showScrollButton, setShowScrollButton] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
-  
-  // Référence pour le défilement vers le bas
-  const messagesEndRef = useRef<null | HTMLDivElement>(null);
-  const messagesContainerRef = useRef<null | HTMLDivElement>(null);
-  
-  // Thème
-  const theme = useTheme();
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
   
   // Utilisation des hooks personnalisés
   const { 
@@ -80,47 +63,17 @@ export default function ChatWindow({
   const { sendMessage, sending, error: sendError } = useMessageSender();
   const { templates } = useTemplates();
   
-  // Fonction pour faire défiler vers le bas
-  const scrollToBottom = (instant = false) => {
-    console.log(`${DEBUG_PREFIX} Tentative de défilement vers le bas, instant: ${instant}`);
-    try {
-      messagesEndRef.current?.scrollIntoView({
-        behavior: instant ? 'auto' : 'smooth',
-        block: 'end'
-      });
-      setUnreadCount(0);
-      console.log(`${DEBUG_PREFIX} Défilement exécuté`);
-    } catch (error) {
-      console.error(`${DEBUG_PREFIX} Erreur lors du défilement:`, error);
-    }
-  };
-  
-  // Gestion du défilement
-  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const element = e.currentTarget;
-    const isAtBottom = Math.abs(element.scrollHeight - element.scrollTop - element.clientHeight) < 50;
-    setShowScrollButton(!isAtBottom);
-    
-    if (isAtBottom) {
-      setUnreadCount(0);
-    }
-  };
-  
-  // Mise à jour du compteur non lu quand un nouveau message arrive et qu'on n'est pas en bas
-  useEffect(() => {
-    if (messages.length > 0 && showScrollButton) {
-      setUnreadCount(prev => prev + 1);
-    }
-  }, [messages.length, showScrollButton]);
-  
   // Gestionnaire pour l'envoi de message
-  const handleSendMessage = useCallback(async () => {
-    if (!messageInput.trim()) return;
+  const handleSendMessage = useCallback(async (messageToSend: string = messageInput) => {
+    const contentToSend = messageToSend.trim();
+    if (!contentToSend) return;
     
     try {
-      console.log(`${DEBUG_PREFIX} Envoi du message: ${messageInput}`);
+      console.log(`${DEBUG_PREFIX} Envoi du message: ${contentToSend}`);
+      console.log(`${DEBUG_PREFIX} ID WhatsApp utilisé: ${whatsappContactId || 'NON DÉFINI'}`);
+      
       const sentMessage = await sendMessage(
-        messageInput,
+        contentToSend,
         conversationId,
         whatsappContactId
       );
@@ -128,19 +81,55 @@ export default function ChatWindow({
       if (sentMessage) {
         console.log(`${DEBUG_PREFIX} Message envoyé avec succès:`, sentMessage);
         setMessageInput('');
-        // Défiler automatiquement vers le bas après l'envoi
-        setTimeout(scrollToBottom, 100);
       }
     } catch (error) {
       console.error(`${DEBUG_PREFIX} Erreur lors de l'envoi du message:`, error);
     }
   }, [messageInput, conversationId, whatsappContactId, sendMessage]);
   
-  // Gestionnaire pour la sélection d'un template
+  // Cette fonction est gérée par le composant ChatInput
+  // Aucun gestionnaire handleKeyPress direct n'est nécessaire ici
+  
+  // Gestionnaire pour la sélection d'un template (copier son contenu dans le champ de message)
   const handleTemplateSelect = useCallback((template: Template) => {
     setMessageInput(template.content);
     setTemplatesMenuAnchorEl(null);
   }, []);
+  
+  // Gestionnaire pour l'envoi d'un template WhatsApp
+  const handleSendWhatsAppTemplate = useCallback(async (template: Template) => {
+    if (!whatsappContactId) {
+      setSnackbarMessage('Impossible d\'envoyer le template : numéro WhatsApp manquant');
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
+      return;
+    }
+    
+    try {
+      console.log(`${DEBUG_PREFIX} Envoi du template WhatsApp:`, {
+        template_name: template.name,
+        to: whatsappContactId
+      });
+      
+      await TemplateService.sendTemplate(conversationId, whatsappContactId, template);
+      
+      setSnackbarMessage('Template WhatsApp envoyé avec succès');
+      setSnackbarSeverity('success');
+      setSnackbarOpen(true);
+      
+      // Force le rafraîchissement des messages pour voir le template envoyé
+      forceRefresh();
+    } catch (error) {
+      console.error(`${DEBUG_PREFIX} Erreur lors de l'envoi du template WhatsApp:`, error);
+      setSnackbarMessage(
+        `Erreur lors de l'envoi du template: ${error instanceof Error ? error.message : 'Erreur inconnue'}`
+      );
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
+    }
+  }, [conversationId, whatsappContactId, forceRefresh]);
+  
+  // Cette fonctionnalité est déléguée au composant ChatInput
   
   // Fonctions pour les menus
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
@@ -161,6 +150,10 @@ export default function ChatWindow({
     setTemplatesMenuAnchorEl(null);
   };
   
+  const handleSnackbarClose = () => {
+    setSnackbarOpen(false);
+  };
+  
   // Fonctions pour le modal IA
   const handleOpenAIModal = () => {
     setAiModalOpen(true);
@@ -171,16 +164,13 @@ export default function ChatWindow({
   };
   
   const handleGeneratedResponse = (response: string) => {
-    setMessageInput(response);
+    // Fermer le modal
     setAiModalOpen(false);
+    // Effacer le champ de saisie (car on envoie directement)
+    setMessageInput('');
+    // Appeler directement la fonction d'envoi avec la réponse générée
+    handleSendMessage(response);
   };
-  
-  // Défilement automatique lors du chargement initial
-  useEffect(() => {
-    if (messages.length > 0) {
-      scrollToBottom(true);
-    }
-  }, []);
   
   // Déterminer l'icône et la couleur en fonction du statut de connexion
   const connectionStatusIcon = realtimeStatus === 'SUBSCRIBED'
@@ -197,61 +187,28 @@ export default function ChatWindow({
 
   console.log(`${DEBUG_PREFIX} Rendu avec ${messages.length} messages, status: ${realtimeStatus}, isMobile: ${isMobile}`);
   
-  // Utilisation de Box avec component pour dynamiquement choisir le rendu
-  
   return (
-    <Box component={isMobile ? Paper : Card} sx={{ 
-      height: isMobile ? 'calc(100vh - 56px)' : '100%',
+    <Card sx={{ 
+      height: '100%', 
       display: 'flex', 
       flexDirection: 'column', 
-      borderRadius: isMobile ? 0 : 1,
-      width: '100%',
-      maxWidth: '100%',
-      overflow: 'hidden',
-      position: 'relative',
-      m: 0,
-      p: 0,
-      bgcolor: theme.palette.mode === 'dark' ? '#121212' : '#f5f7f9',
-      ...(isMobile ? { boxShadow: 'none', elevation: 0 } : {})
+      borderRadius: 1,
+      ...(isMobile ? { boxShadow: 'none' } : {})
     }}>
-      {/* En-tête de la conversation - optimisé pour mobile */}
-      <Box sx={{ 
-        px: 2, 
-        py: 1.5, 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'space-between',
-        bgcolor: theme.palette.background.paper,
-        borderBottom: '1px solid',
-        borderColor: theme.palette.divider
-      }}>
+      {/* En-tête de la conversation */}
+      <Box sx={{ px: 2, py: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          {isMobile && onBack && (
-            <IconButton 
-              size="small" 
-              edge="start"
-              onClick={onBack}
-              sx={{ mr: 1 }}
-            >
-              <ArrowBackIcon />
-            </IconButton>
-          )}
-          <Typography variant="h6" component="div" sx={{ 
-            fontSize: isMobile ? '1rem' : '1.25rem', 
-            fontWeight: 600
-          }}>
+          <Typography variant="h6" component="div">
             {guestName || 'Conversation'}
           </Typography>
-          {!isMobile && (
-            <Chip
-              size="small"
-              icon={connectionStatusIcon}
-              label={connectionStatusText}
-              color={connectionStatusColor}
-              variant="outlined"
-              sx={{ ml: 2, height: 24 }}
-            />
-          )}
+          <Chip
+            size="small"
+            icon={connectionStatusIcon}
+            label={connectionStatusText}
+            color={connectionStatusColor}
+            variant="outlined"
+            sx={{ ml: 2, height: 24 }}
+          />
         </Box>
         <Box>
           <IconButton 
@@ -272,67 +229,32 @@ export default function ChatWindow({
         </Box>
       </Box>
       
-      {/* Zone de messages avec gestion du défilement */}
-      <Box 
-        ref={messagesContainerRef}
-        sx={{ 
-          flexGrow: 1, 
-          overflowY: 'auto',
-          py: 2,
-          px: { xs: 1.5, sm: 2.5 },
-          backgroundImage: theme.palette.mode === 'dark' 
-            ? 'linear-gradient(rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%)'
-            : 'linear-gradient(rgba(224, 242, 254, 0.5) 0%, rgba(186, 230, 253, 0.4) 100%)',
-          backgroundAttachment: 'fixed',
-          backgroundSize: 'cover',
-          display: 'flex',
-          flexDirection: 'column'
-        }}
-        onScroll={handleScroll}
-      >
+      <Divider />
+      
+      {/* Zone de messages */}
+      <Box sx={{ 
+        flexGrow: 1, 
+        overflow: 'auto', 
+        p: 2,
+        display: 'flex',
+        flexDirection: 'column'
+      }}>
         <ChatMessages 
           messages={messages}
           isInitialLoad={true}
         />
-        <div ref={messagesEndRef} style={{ height: 1 }} />
       </Box>
       
-      {/* Bouton de défilement vers le bas (présent uniquement si nécessaire) */}
-      <Zoom in={showScrollButton}>
-        <Tooltip title="Nouveaux messages">
-          <Fab 
-            color="primary" 
-            size="small" 
-            onClick={() => scrollToBottom()}
-            sx={{ 
-              position: 'absolute', 
-              bottom: 80, 
-              right: 16,
-              zIndex: 2,
-              boxShadow: 3
-            }}
-          >
-            <Badge 
-              badgeContent={unreadCount > 0 ? unreadCount : null}
-              color="error"
-              max={99}
-            >
-              <KeyboardArrowDownIcon />
-            </Badge>
-          </Fab>
-        </Tooltip>
-      </Zoom>
+      <Divider />
       
       {/* Zone de saisie de message - Utilisation de ChatInput */}
-      <Box sx={{ 
-        borderTop: '1px solid',
-        borderColor: theme.palette.divider,
-        bgcolor: theme.palette.background.paper
-      }}>
+      <Box sx={{ bgcolor: 'background.default' }}>
         <ChatInput
           onSendMessage={async (message) => {
-            setMessageInput(message);
-            await handleSendMessage();
+            // Passage direct du message à handleSendMessage pour éviter le problème de timing du state
+            await handleSendMessage(message);
+            // On met quand même à jour le state pour garder une cohérence
+            setMessageInput('');
           }}
           onOpenAIModal={handleOpenAIModal}
           onOpenTemplates={handleTemplatesMenuOpen}
@@ -366,24 +288,33 @@ export default function ChatWindow({
         </MenuItem>
       </Menu>
       
-      {/* Menu des templates */}
-      <Menu
+      {/* Menu des templates avec la nouvelle interface */}
+      <TemplateMenu
         anchorEl={templatesMenuAnchorEl}
         open={Boolean(templatesMenuAnchorEl)}
         onClose={handleTemplatesMenuClose}
+        templates={templates}
+        onSelectTemplate={handleTemplateSelect}
+        onSendWhatsAppTemplate={handleSendWhatsAppTemplate}
+        whatsappContactId={whatsappContactId}
+      />
+      
+      {/* Notification pour l'envoi de template */}
+      <Snackbar 
+        open={snackbarOpen} 
+        autoHideDuration={6000} 
+        onClose={handleSnackbarClose}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
-        {templates.length === 0 ? (
-          <MenuItem disabled>
-            <ListItemText>Aucun modèle disponible</ListItemText>
-          </MenuItem>
-        ) : (
-          templates.map(template => (
-            <MenuItem key={template.id} onClick={() => handleTemplateSelect(template)}>
-              <ListItemText primary={template.name} />
-            </MenuItem>
-          ))
-        )}
-      </Menu>
+        <Alert 
+          onClose={handleSnackbarClose} 
+          severity={snackbarSeverity} 
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
       
       {/* Modal pour la génération de réponse IA */}
       <AIResponseModal
@@ -394,6 +325,6 @@ export default function ChatWindow({
         guestName={guestName || ''}
         apartmentId={apartmentId} // Transmettre l'ID de l'appartement
       />
-    </Box>
+    </Card>
   );
 }

@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import useMediaQuery from '@mui/material/useMediaQuery';
 import { 
   Box, 
   TextField, 
@@ -26,7 +25,6 @@ export default function ChatInput({
   disabled 
 }: ChatInputProps) {
   const [newMessage, setNewMessage] = useState('');
-  const isMobile = useMediaQuery('(max-width:600px)');
 
   const handleSend = async () => {
     if (!newMessage.trim()) return;
@@ -108,7 +106,7 @@ export default function ChatInput({
           value={newMessage}
           onChange={(e) => setNewMessage(e.target.value)}
           onKeyPress={handleKeyPress}
-          placeholder={isMobile ? "Message..." : "Écrivez votre message..."}
+          placeholder="Message"
           disabled={disabled}
           variant="standard"
           InputProps={{

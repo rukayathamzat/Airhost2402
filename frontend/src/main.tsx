@@ -5,7 +5,7 @@ import CssBaseline from '@mui/material/CssBaseline'
 import './index.css'
 import App from './App.tsx'
 import theme from './theme'
-import { NotificationService } from './services/notification.service'
+import { NotificationService } from './services/notification/notification.service'
 
 // Initialiser le service de notification
 if ('serviceWorker' in navigator) {
