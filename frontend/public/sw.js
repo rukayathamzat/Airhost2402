@@ -342,27 +342,7 @@ function simulateNotification(payload) {
   return self.registration.showNotification(notificationTitle, notificationOptions);
 }
 
-/**
- * Fonction spécifique pour tester les notifications sur mobile
- * Cette fonction peut être appelée depuis l'application principale
- */
-function testMobileNotification() {
-  console.log('[SW MOBILE] Test de notification mobile initié');
-  isMobileDevice = true; // Force le mode mobile
-  
-  const testPayload = {
-    data: {
-      title: 'Test Mobile Airhost',
-      body: 'Cette notification est un test spécifique pour mobile',
-      url: '/chat',
-      conversationId: 'test-mobile-' + Date.now(),
-      timestamp: Date.now(),
-      isMobileDevice: true
-    }
-  };
-  
-  return simulateNotification(testPayload);
-}
+// Fonction de test mobile supprimée pour éviter les notifications automatiques
 
 /**
  * Gestionnaire de messages entre le client et le service worker
@@ -411,9 +391,9 @@ self.addEventListener('message', (event) => {
     }
   }
   
-  // Traitement des messages de type TEST_MOBILE
+  // Traitement des messages de type TEST_MOBILE - désactivé
   if (event.data && event.data.type === 'TEST_MOBILE') {
-    console.log('[SW MOBILE] Test mobile demandé');
-    testMobileNotification();
+    console.log('[SW MOBILE] Test mobile demandé mais fonctionnalité désactivée');
+    // Fonction de test supprimée pour éviter les notifications automatiques
   }
 });
