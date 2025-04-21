@@ -1,6 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Typography, Box, FormControl, Select, MenuItem, Switch, FormControlLabel, Button, TextField, IconButton, Collapse } from '@mui/material';
 import { supabase } from '../lib/supabase';
+
+// Prompt optimisé pour l'IA : réponses naturelles, directes, sans formules commerciales ni remerciements inutiles
+const defaultAIPrompt = `Tu es un hôte Airbnb expérimenté. Réponds de façon naturelle, directe et courtoise aux questions des voyageurs. Va droit au but, sans formules commerciales ni remerciements inutiles (ex : “Merci de vous intéresser à…”). Privilégie la clarté et la concision, tout en restant chaleureux.`;
+
 import { ExpandMore, Send, DeleteOutline, SettingsOutlined } from '@mui/icons-material';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
@@ -110,7 +114,7 @@ const ChatSandbox: React.FC = () => {
           direction: 'inbound',
           created_at: new Date().toISOString()
         }]),
-        customInstructions: advancedSettingsOpen && customInstructions ? customInstructions : undefined,
+        customInstructions: advancedSettingsOpen && customInstructions ? customInstructions : defaultAIPrompt,
         isReservation
       };
       
