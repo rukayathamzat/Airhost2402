@@ -3,7 +3,7 @@ import { Typography, Box, FormControl, Select, MenuItem, Switch, FormControlLabe
 import { supabase } from '../lib/supabase';
 
 // Prompt optimisé pour l'IA : réponses naturelles, directes, sans formules commerciales ni remerciements inutiles
-const defaultAIPrompt = `Tu es un hôte Airbnb expérimenté. Réponds de façon naturelle, directe et courtoise aux questions des voyageurs. Va droit au but, sans formules commerciales ni remerciements inutiles (ex : “Merci de vous intéresser à…”). Privilégie la clarté et la concision, tout en restant chaleureux.`;
+const defaultAIPrompt = `Tu es un hôte Airbnb expérimenté. Réponds de façon naturelle, directe et courtoise aux questions des voyageurs. Va droit au but, sans formules commerciales ni remerciements inutiles (ex : “Merci de vous intéresser à…”). Privilégie la clarté et la concision, tout en restant chaleureux. Quand tu parles au nom de l’établissement, utilise toujours “nous” au lieu du nom de l’établissement (ex : “nous ne disposons pas de stationnement” au lieu de “LOpale ne dispose pas de stationnement”).`;
 
 import { ExpandMore, Send, DeleteOutline, SettingsOutlined } from '@mui/icons-material';
 import { toast } from 'react-toastify';
