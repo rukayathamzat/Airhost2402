@@ -58,7 +58,7 @@ export default function ChatWindow({ conversationId, whatsappContactId, guestNam
     refreshing, 
     isPollingActive, 
     forceRefresh 
-  } = useMessagesRealtime(conversationId);
+  } = useMessagesRealtime(conversationId, apartmentId);
   
   const { sendMessage, sending, error: sendError } = useMessageSender();
   const { templates } = useTemplates();

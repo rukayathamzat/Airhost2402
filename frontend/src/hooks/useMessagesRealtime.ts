@@ -22,7 +22,9 @@ interface UseMessagesRealtimeResult {
   lastMessageCount: number;
 }
 
-export function useMessagesRealtime(conversationId: string): UseMessagesRealtimeResult {
+import { AIResponseService } from '../services/ai-response.service';
+
+export function useMessagesRealtime(conversationId: string, apartmentId?: string): UseMessagesRealtimeResult {
   const [messages, setMessages] = useState<Message[]>([]);
   const [realtimeStatus, setRealtimeStatus] = useState<'SUBSCRIBED' | 'CONNECTING' | 'DISCONNECTED' | 'ERROR'>('CONNECTING');
   const [refreshing, setRefreshing] = useState(false);
@@ -184,6 +186,23 @@ export function useMessagesRealtime(conversationId: string): UseMessagesRealtime
       
       // Vérifier si le message appartient à la conversation active
       if (payload.new.conversation_id === conversationId) {
+        // --- AJOUT AUTOMATIQUE DE LA RÉPONSE IA ---
+        if (newMessage.direction === 'inbound' && apartmentId) {
+          // Vérifier qu'il ne s'agit pas déjà d'une réponse IA (éviter boucle infinie)
+          if (!newMessage.metadata || !newMessage.metadata.isAIResponse) {
+            (async () => {
+              try {
+                console.log(`${DEBUG_PREFIX} Déclenchement automatique de la génération de réponse IA pour conversation ${conversationId} (apartmentId: ${apartmentId})`);
+                const aiResponse = await AIResponseService.generateResponse(apartmentId, conversationId);
+                // Envoyer la réponse IA comme message sortant avec un flag metadata
+                await MessageService.sendMessage(conversationId, aiResponse, 'text');
+                console.log(`${DEBUG_PREFIX} Réponse IA envoyée automatiquement.`);
+              } catch (err) {
+                console.error(`${DEBUG_PREFIX} Erreur lors de la génération/envoi de la réponse IA automatique:`, err);
+              }
+            })();
+          }
+        }
         console.log(`${DEBUG_PREFIX} [${timestamp}] Ajout du nouveau message à la conversation - ID: ${newMessage.id}, Created: ${newMessage.created_at}`);
         console.log(`${DEBUG_PREFIX} [${timestamp}] Contenu du message: ${newMessage.content?.substring(0, 50)}${newMessage.content && newMessage.content.length > 50 ? '...' : ''}`);
         
