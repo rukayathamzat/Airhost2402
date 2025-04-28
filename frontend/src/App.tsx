@@ -1,3 +1,4 @@
+// Branche new-feature - Test de déploiement automatique sur Netlify
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { NotificationProcessorService } from './services/notification/notification-processor.service';
