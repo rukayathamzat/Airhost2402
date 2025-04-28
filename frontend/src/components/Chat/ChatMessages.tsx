@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
-import { Box, Typography, Paper, Chip, Avatar, Tooltip, useTheme, CircularProgress } from '@mui/material';
+import { useEffect, useRef } from 'react';
+import { Box, Typography, Chip, Avatar, useTheme, CircularProgress } from '@mui/material';
 import { format, isToday, isYesterday, isSameDay } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Message } from '../../services/chat/message.service';
+import EditableMessageBubble from './EditableMessageBubble';
 
 // Préfixe pour les logs liés à ce composant
 const DEBUG_PREFIX = 'DEBUG_CHAT_MESSAGES';
@@ -10,11 +11,17 @@ const DEBUG_PREFIX = 'DEBUG_CHAT_MESSAGES';
 interface ChatMessagesProps {
   messages: Message[];
   isInitialLoad: boolean;
+  onSendEditedMessage?: (messageId: string, content: string) => void;
+  onRegenerateMessage?: (messageId: string) => void;
 }
 
-export default function ChatMessages({ messages, isInitialLoad }: ChatMessagesProps) {
+export default function ChatMessages({ 
+  messages, 
+  isInitialLoad,
+  onSendEditedMessage,
+  onRegenerateMessage
+}: ChatMessagesProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [loading, setLoading] = useState(isInitialLoad);
   const theme = useTheme();
   
   // Log important pour déboguer
@@ -62,11 +69,8 @@ export default function ChatMessages({ messages, isInitialLoad }: ChatMessagesPr
       if (isInitialLoad) {
         console.log(`${DEBUG_PREFIX} Chargement initial - défilement immédiat`);
         scrollToBottom(true);
-        // Délai pour simuler le chargement et améliorer l'UX
-        const timer = setTimeout(() => {
-          setLoading(false);
-        }, 500);
-        return () => clearTimeout(timer);
+        // Délai pour améliorer l'UX
+        return undefined;
       } else {
         const scrollContainer = messagesEndRef.current?.parentElement;
         if (scrollContainer) {
@@ -144,6 +148,12 @@ export default function ChatMessages({ messages, isInitialLoad }: ChatMessagesPr
           );
         }
         
+        // Vérifier si le message est un message IA déjà envoyé (ne pas l'afficher)
+        if (message.metadata?.isAIResponse === true && message.metadata?.isSent === true) {
+          console.log(`${DEBUG_PREFIX} Message IA déjà envoyé, on ne l'affiche pas:`, message.id);
+          return messageGroups;
+        }
+        
         // Ajouter le message actuel au groupe
         const isInbound = message.direction === 'inbound';
         
@@ -178,34 +188,32 @@ export default function ChatMessages({ messages, isInitialLoad }: ChatMessagesPr
                 </Avatar>
               )}
 
-              <Tooltip 
-                title={format(new Date(message.created_at), 'HH:mm')}
-                placement={isInbound ? 'right' : 'left'}
-                arrow
-              >
-                <Paper
-                  sx={{
-                    p: 1.5,
-                    borderRadius: 2,
-                    maxWidth: '100%',
-                    backgroundColor: isInbound 
-                      ? theme.palette.background.paper
-                      : theme.palette.primary.main,
-                    color: isInbound
-                      ? theme.palette.text.primary
-                      : theme.palette.primary.contrastText,
-                    wordBreak: 'break-word',
-                    boxShadow: theme.shadows[1],
-                    opacity: loading ? 0.7 : 1,
-                    transform: `translateY(${loading ? '10px' : '0'})`,
-                    transition: 'opacity 0.3s ease, transform 0.3s ease'
-                  }}
-                >
-                  <Typography variant="body1">
-                    {message.content}
-                  </Typography>
-                </Paper>
-              </Tooltip>
+              <EditableMessageBubble
+                message={message}
+                onSave={(id, content) => {
+                  if (onSendEditedMessage) {
+                    onSendEditedMessage(id, content);
+                  } else {
+                    console.warn(`${DEBUG_PREFIX} onSendEditedMessage non défini, impossible d'envoyer le message édité`);
+                  }
+                }}
+                onCancel={() => console.log(`${DEBUG_PREFIX} Édition annulée`)}
+                onSend={(content) => {
+                  if (onSendEditedMessage) {
+                    onSendEditedMessage(message.id, content);
+                  } else {
+                    console.warn(`${DEBUG_PREFIX} onSendEditedMessage non défini, impossible d'envoyer le message édité`);
+                  }
+                }}
+                onRegenerateRequest={() => {
+                  if (onRegenerateMessage) {
+                    onRegenerateMessage(message.id);
+                  } else {
+                    console.warn(`${DEBUG_PREFIX} onRegenerateMessage non défini, impossible de régénérer le message`);
+                  }
+                }}
+                isEditable={message.metadata?.isAIResponse === true && message.metadata?.isSent !== true}
+              />
             </Box>
           </Box>
         );

@@ -51,20 +51,35 @@ const TestConversationCreation = () => {
       };
 
       const { conversation, isNew } = await conversationService.createConversation({
-        host_id: userId,
-        guest_name: guestName,
-        guest_phone: guestPhone,
         property_id: propertyId,
-        check_in_date: formatDate(checkInDate),
-        check_out_date: formatDate(checkOutDate)
+        title: `Réservation de ${guestName}`,
+        metadata: {
+          guest_name: guestName,
+          guest_phone: guestPhone,
+          check_in_date: formatDate(checkInDate),
+          check_out_date: formatDate(checkOutDate),
+          host_id: userId
+        }
       });
 
+      // Adapter l'objet conversation pour correspondre à l'interface attendue
+      const adaptedConversation = {
+        ...conversation,
+        guest_name: guestName,
+        guest_phone: guestPhone,
+        property: [{ id: propertyId, name: propertyName }], // Convertir en tableau
+        check_in_date: formatDate(checkInDate),
+        check_out_date: formatDate(checkOutDate),
+        status: 'active', // Ajouter le statut manquant
+        last_message_at: new Date().toISOString() // Ajouter last_message_at requis
+      };
+      
       setResult({
         success: true,
         message: isNew 
           ? `Nouvelle conversation créée avec succès pour la propriété "${propertyName}"` 
           : `Conversation existante trouvée pour la propriété "${propertyName}"`,
-        conversation
+        conversation: adaptedConversation
       });
 
     } catch (error) {

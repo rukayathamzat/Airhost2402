@@ -16,7 +16,7 @@ const getConversationStorageKey = (conversationId: string): string => {
 };
 
 export interface UseMessageSenderResult {
-  sendMessage: (content: string, conversationId: string, contactId: string | undefined) => Promise<Message | null>;
+  sendMessage: (content: string, conversationId: string, contactId: string | undefined, metadata?: Record<string, any>) => Promise<Message | null>;
   sending: boolean;
   error: string | null;
   getLocalMessages: (conversationId: string) => Message[];
@@ -218,7 +218,8 @@ export function useMessageSender(): UseMessageSenderResult {
   const sendMessage = async (
     content: string,
     conversationId: string,
-    contactId: string | undefined
+    contactId: string | undefined,
+    metadata?: Record<string, any>
   ): Promise<Message | null> => {
     if (!content || !conversationId) {
       setError('Contenu du message ou ID de conversation manquant');
@@ -232,11 +233,13 @@ export function useMessageSender(): UseMessageSenderResult {
       console.log(`${DEBUG_PREFIX} Envoi du message à la conversation ${conversationId}`);
       
       // 1. Insérer le message dans la base de données
-      const newMessage = await MessageService.sendMessage(
-        conversationId,
+      const newMessage = await MessageService.sendMessage({
+        conversation_id: conversationId,
         content,
-        'text'
-      );
+        sender_type: 'user',
+        message_type: 'text',
+        metadata
+      });
       
       if (!newMessage) {
         throw new Error('Échec lors de l\'insertion du message');

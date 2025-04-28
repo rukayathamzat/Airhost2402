@@ -29,6 +29,7 @@ import { useMessagesRealtime } from '../../hooks/useMessagesRealtime';
 import { useMessageSender } from '../../hooks/useMessageSender';
 import { useTemplates } from '../../hooks/useTemplates';
 import { TemplateService, Template } from '../../services/chat/template.service';
+import { MessageService } from '../../services/chat/message.service';
 
 // Préfixe pour les logs liés à ce composant
 const DEBUG_PREFIX = 'DEBUG_CHAT_WINDOW';
@@ -172,6 +173,59 @@ export default function ChatWindow({ conversationId, whatsappContactId, guestNam
     handleSendMessage(response);
   };
   
+  // Fonction pour gérer l'envoi d'un message édité
+  const handleSendEditedMessage = async (messageId: string, editedContent: string) => {
+    try {
+      console.log(`${DEBUG_PREFIX} Envoi du message édité: ${editedContent}`);
+      
+      // Trouver le message original pour obtenir ses métadonnées
+      const originalMessage = messages.find(msg => msg.id === messageId);
+      
+      if (!originalMessage) {
+        console.error(`${DEBUG_PREFIX} Message original non trouvé: ${messageId}`);
+        return;
+      }
+      
+      // 1. Mettre à jour les métadonnées du message original pour le marquer comme envoyé
+      // Cela le fera disparaître de l'interface
+      await MessageService.updateMessageMetadata(messageId, {
+        isSent: true
+      });
+      
+      // 2. Créer un nouveau message avec le contenu édité
+      const sentMessage = await sendMessage(
+        editedContent,
+        conversationId,
+        whatsappContactId,
+        {
+          ...originalMessage.metadata,
+          isEdited: true,
+          isSent: true
+        }
+      );
+      
+      if (sentMessage) {
+        console.log(`${DEBUG_PREFIX} Message édité envoyé avec succès:`, sentMessage);
+        // Forcer le rafraîchissement des messages pour voir les changements
+        forceRefresh();
+      }
+    } catch (error) {
+      console.error(`${DEBUG_PREFIX} Erreur lors de l'envoi du message édité:`, error);
+    }
+  };
+  
+  // Fonction pour régénérer un message IA
+  const handleRegenerateMessage = async (messageId: string) => {
+    try {
+      console.log(`${DEBUG_PREFIX} Régénération du message IA: ${messageId}`);
+      
+      // Ouvrir le modal IA pour générer une nouvelle réponse
+      setAiModalOpen(true);
+    } catch (error) {
+      console.error(`${DEBUG_PREFIX} Erreur lors de la régénération du message:`, error);
+    }
+  };
+  
   // Déterminer l'icône et la couleur en fonction du statut de connexion
   const connectionStatusIcon = realtimeStatus === 'SUBSCRIBED'
     ? <SignalCellularAltIcon sx={{ fontSize: 16, color: 'success.main' }} />
@@ -242,6 +296,8 @@ export default function ChatWindow({ conversationId, whatsappContactId, guestNam
         <ChatMessages 
           messages={messages}
           isInitialLoad={true}
+          onSendEditedMessage={handleSendEditedMessage}
+          onRegenerateMessage={handleRegenerateMessage}
         />
       </Box>
       
