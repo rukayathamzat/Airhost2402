@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Génération d'icônes</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f5f5f5;
+        }
+        .icon-container {
+            text-align: center;
+        }
+        canvas {
+            margin: 20px;
+            border: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+    <div class="icon-container">
+        <h1>Icônes de notification Airhost</h1>
+        <canvas id="icon512" width="512" height="512"></canvas>
+        <canvas id="icon384" width="384" height="384"></canvas>
+        <canvas id="icon192" width="192" height="192"></canvas>
+        <canvas id="icon152" width="152" height="152"></canvas>
+        <canvas id="icon144" width="144" height="144"></canvas>
+        <canvas id="icon128" width="128" height="128"></canvas>
+        <canvas id="icon96" width="96" height="96"></canvas>
+        <canvas id="icon72" width="72" height="72"></canvas>
+        <div>
+            <button onclick="downloadIcons()">Télécharger les icônes</button>
+        </div>
+    </div>
+
+    <script>
+        // Fonction pour dessiner une icône de notification
+        function drawIcon(canvas, size) {
+            const ctx = canvas.getContext('2d');
+            
+            // Fond
+            ctx.fillStyle = '#3498db';
+            ctx.fillRect(0, 0, size, size);
+            
+            // Cercle central
+            ctx.fillStyle = 'white';
+            ctx.beginPath();
+            ctx.arc(size/2, size/2, size/3, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Lettre A
+            ctx.fillStyle = '#3498db';
+            ctx.font = `bold ${size/2}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('A', size/2, size/2);
+            
+            // Nous avons supprimé le petit cercle rouge de notification qui apparaissait sur l'icône
+        }
+        
+        // Dessiner les icônes
+        drawIcon(document.getElementById('icon512'), 512);
+        drawIcon(document.getElementById('icon384'), 384);
+        drawIcon(document.getElementById('icon192'), 192);
+        drawIcon(document.getElementById('icon152'), 152);
+        drawIcon(document.getElementById('icon144'), 144);
+        drawIcon(document.getElementById('icon128'), 128);
+        drawIcon(document.getElementById('icon96'), 96);
+        drawIcon(document.getElementById('icon72'), 72);
+        
+        // Fonction pour télécharger les icônes
+        function downloadIcons() {
+            // Télécharger toutes les icônes
+            const icones = [
+                { id: 'icon512', nom: 'icon-512x512.png' },
+                { id: 'icon384', nom: 'icon-384x384.png' },
+                { id: 'icon192', nom: 'icon-192x192.png' },
+                { id: 'icon152', nom: 'icon-152x152.png' },
+                { id: 'icon144', nom: 'icon-144x144.png' },
+                { id: 'icon128', nom: 'icon-128x128.png' },
+                { id: 'icon96', nom: 'icon-96x96.png' },
+                { id: 'icon72', nom: 'icon-72x72.png' }
+            ];
+            
+            icones.forEach(icone => {
+                const canvas = document.getElementById(icone.id);
+                const link = document.createElement('a');
+                link.download = icone.nom;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            });
+        }
+    </script>
+</body>
+</html>

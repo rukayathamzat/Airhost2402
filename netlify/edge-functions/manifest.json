@@ -1,0 +1,10 @@
+{
+  "functions": [
+    {
+      "path": "/*",
+      "function": "transform"
+    }
+  ],
+  "import_map": {},
+  "version": 1
+}

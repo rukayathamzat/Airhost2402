@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json.schemastore.org/package.json",
+  "name": "generate-ai-response",
+  "version": "1.0.0",
+  "description": "Netlify function to generate AI responses",
+  "main": "generate-ai-response.js",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0",
+    "openai": "^4.0.0"
+  }
+} 

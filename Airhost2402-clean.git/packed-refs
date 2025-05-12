@@ -1,0 +1,140 @@
+# pack-refs with: peeled fully-peeled sorted 
+0c14ff09961068a326b0641823d608115721f142 refs/heads/clean-fcm-fix
+27e9011eecf5219cc98e296ff22ba36c8920f8c3 refs/heads/clean-feature
+6dbd4e549a3a80fcab43a6bda656bbc3c7fdf64e refs/heads/deploy-clean
+826684716355281d522f67bedb6a708528aef8b9 refs/heads/feature/remove-welcome-message
+f7e22cd582efad1433e9cadef9b9f0fce9dc5df2 refs/heads/fix/fcm-notifications
+1960d5123a2ec06f43ce574efeab1f0e31c93546 refs/heads/fix/firebase-notifications
+46a4eb894cbd297604558658d6c4d253d2cf2910 refs/heads/fix/notifications-outbound
+c3b28a6d636b864b58a5c8cd79415d99c4a64c5e refs/heads/fix/remove-mobile-notification
+8a66b53b02441b1b20b3dc851f6229c7c7188ad8 refs/heads/main
+1960d5123a2ec06f43ce574efeab1f0e31c93546 refs/heads/mobile-chat-fix-test
+39734c3e921c203b3d1731d33dd983132f737d37 refs/heads/mobile-fullwidth
+4228630e31464c41b993e5581b05cd1ffcb37451 refs/heads/new-feature
+60f478612e7c49871f5a22dcdbf2f1007849522b refs/heads/nouvelle-fonctionnalité
+f3353e882de98e69ffbad5ef5ab9b0afb39ecee5 refs/heads/production
+60f478612e7c49871f5a22dcdbf2f1007849522b refs/heads/recette
+a1f02041198d80c7efce31270892066f24d7580b refs/heads/recette-v0.1.1
+58985444e642468d8cf2cb45f082f071cb43a4d8 refs/tags/v0.0.1
+^1c8e89be7048b7af164ffab1eea229751e3ddddc
+32d443fc48d2ebc65a1a938ead5fd7eb386db4d6 refs/tags/v0.0.2
+^f5658ef7a27d47c9632dd58795c95bcfd5ed1502
+eece7e67ac7dfb60697fb91d87a06e41d0e2b3c1 refs/tags/v0.0.3
+^06a3dbb12b98f2a1b7681c8d3f6bdd8cfb374395
+1056bc234f2dc0b57edb3f3284211bc362704bde refs/tags/v0.0.4
+^cc0775eaf6f247b9e7f0bdcfb15f6681d9d48365
+7be060d2a2f1e41a3d796c7de471e79f6a9eefec refs/tags/v0.0.5
+^cc0775eaf6f247b9e7f0bdcfb15f6681d9d48365
+91ccecf1f1947262aeb0f938ec4ed27d82af560c refs/tags/v0.0.6
+^9a1957d388d3eb570b47d0ccccdd67396e6a678f
+4c738b6009532602124aa2bd6ec7206af55aa14d refs/tags/v0.0.6-int
+^b2ef878fb9e550cc449a7e9f05e4aa61dec34cd2
+3122d6b706c480ae38f964bd9c0d92dc619a352a refs/tags/v0.0.6-int2
+ee782c67cbe996d08aea6f430d2c8c23030ad3da refs/tags/v0.0.6-int3
+^5d637c7e0649bd75f6ee3837443a7d840bdd8510
+fe2e49ff414c6edb5256857cdd94937fe1f787f2 refs/tags/v0.0.7
+^ee5836ef8678ad4313d2cb42f62eb53b24a93467
+b3628b8822f29d5f0b70948eef973c5ff4c6232f refs/tags/v0.0.7-patch1
+^782a5c137bad1f8d4867ada45aa445e02120b69f
+fa4346f6dce2de596aa39c82e8f282315fd0c309 refs/tags/v0.0.7-patch2
+^7a38e25f3eaef54d13da806dfa815eb6bf07adbb
+37a0cd64adc7b0c846e87600e7ca8555d26520df refs/tags/v0.0.8
+^7a38e25f3eaef54d13da806dfa815eb6bf07adbb
+967bb1e2ee5f037953ec73a6421c53d080e3f1ae refs/tags/v0.0.9
+^877da9e39c921f353d23dda9d52b8753bc3f8930
+99ca52b5ebcbfabe68db0f537ee6c40c05e348b1 refs/tags/v0.0.9-fix
+^06faea9de73b9f0c1e73de0de78901bf644547e5
+ec0d039f54a7eda055e5b314ce8478a1f5b61f54 refs/tags/v0.1.0
+^9e0f2a325b2d6fc6b50003b51a64e361f8e21691
+960342ddbbf28e3b73fe9c8b2aa509b163e00083 refs/tags/v0.1.0-db-harmonized
+^e94420079860ced87ce2a42cf88b8d9ed47acc24
+90c59dec904eedabfee21195adfca14535e72bdb refs/tags/v0.1.0-smtp-provisoire
+^e94420079860ced87ce2a42cf88b8d9ed47acc24
+7836c7297eb4d1d24b45f5bd1e6545e577a46155 refs/tags/v0.1.1-beta
+^13103e10474190cbfa265dccdd9912233360a4a3
+63f4c1fa2f44ac6fc248eb77c1aaece379d78ca1 refs/tags/v0.1.1-recette
+^a1f02041198d80c7efce31270892066f24d7580b
+91d670dba7b90093393be18730d604ec71363be6 refs/tags/v0.1.2
+^7632b762d57320b917c12e1bd505292bd89d8260
+f5d7e71b16d4c733f0e15265b314b5722f3d2a52 refs/tags/v0.1.2-recette
+^38196aa6905c7e56e01dd4558c38948b6c5b0ec1
+38c7ea538eafe947b5cc2ed51a74f34c3f3e749c refs/tags/v0.1.3-recette
+^a1f02041198d80c7efce31270892066f24d7580b
+51b7b5be6fb7fe78bb1f0ac99154380f077c0008 refs/tags/v0.1.4-recette
+^4dc357a8e22f6bbe853b5df3957cbfeae42b1c33
+f8baeffead76e11a40017619a73c6705a0ffe951 refs/tags/v0.1.5-recette
+^2c88186969dc62fa6cec9b0be79b1c6ce894e3c6
+0750fd8c6a1b033b7a30ddf11785a9f47f8f82f1 refs/tags/v0.3.0-realtime
+^5d614b867418a592c2549706ab820df2c8e4d744
+64b5e211076270521f39b80411ccd394d5f76174 refs/tags/v0.3.1-realtime
+^67e88e2e4c143641258c508a75a415ff93275159
+e508de136b19bb58167ea29a625487687acb793c refs/tags/v0.3.2-realtime
+^1946ef396ad3e4ef4c44cd51db78cabc73a3ca30
+bcd3e0bd80fc8c4efd4aa11e97aab41f460e091d refs/tags/v0.3.3-realtime
+^d03a78407351406089048f13ddfbffe85c6cd3ed
+8623974b4ecdc72e9b216cfc85c74e51fadd4909 refs/tags/v0.5.0-mobile-ux-optimized
+^2618da612d9629d86ddd9bd1a67713db43d3b818
+58617625429e54103f0580839ec9f37d8730995c refs/tags/v0.5.1-messages-persist
+^b60e0938dc7c164d063fec57ee363ca159a87dca
+787996a855ca5bdfbc5b349a1203d08298551863 refs/tags/v0.5.1-mobile-ux-fullwidth
+^afcd4b42d156ca7c6400258b40db59fe76745e85
+146e3587d89eee92ecec26688dfc8bc4c99dd431 refs/tags/v0.5.2-chat-header-optimized
+^39734c3e921c203b3d1731d33dd983132f737d37
+e3d8923f016a634eed85b5b3ea8e89b174801dfe refs/tags/v0.5.3-typescript-fixes
+^c349f5dbc1c74bfcbc4e8243376b56c0e063f5b3
+8715e0dfb5fd8cdae5d78bc8e86fab723027583a refs/tags/v0.6.0-whatsapp-config-improved
+^b28ed21853e4d2721c78ea1ae8ecd13a9592cef6
+34dd76d55ad57d1643f4fa5b5bb0011c47e2bccd refs/tags/v0.6.1-whatsapp-token-fix
+^467157decfa18bf47c35a982d2b48bf72c14a3ff
+faa6cd70eb732a94bb3d095a10178d210f5d1897 refs/tags/v0.6.2-whatsapp-webhook-improved
+^98cb2f7989a5fe17d22b9a69928b9030ff7188c2
+1310e4b36b65768b8a1481b1764e52a8f31bab7f refs/tags/v1.10.6-whatsapp-message-fix
+^d7e8fd6fb21923f48d624c7ce3c6c1e2ffc72e3a
+a00609372587a7c530935b87395c4f7a4bfef68d refs/tags/v1.2.0-whatsapp-persistence
+^42563b22381091183d1596c8d460763b8af11c81
+37ed24238220054ca384420331d9e50080cc6ade refs/tags/v1.2.0-whatsapp-realtime
+^dd802a20602dd558d88ea5596805c2470f535f80
+d0266027b6267b5f8ee4a338a62c1cfef687a6dd refs/tags/v1.3.0-ai-response-fixed
+^58894ddb61fc541ba15634d94a1608dc32e3bca5
+745a21416b553b4799c09ed46572f17cd59976fd refs/tags/v1.3.1-fix-property-id
+^6bb82f3ab73be645f939d51bacdc7bade612faaa
+64fe55afbd2dc159f2cc6eb42bd0d9c7bda8aa88 refs/tags/v1.3.2-fix-typescript
+^97ca70185cc00665dbdfadaea2f62030e78b52c7
+655e78d7b37c1d10ef0e20a00279a3741e696a28 refs/tags/v1.4.0-push-notifications
+^0e87b513a8aa5adc0c12f08285785e2ad7677091
+4adf6e78859843ebd602b509e114f37813c4a994 refs/tags/v1.4.0-push-notifications-working
+^da9d1525b4e857524f56953712437439986c8c2e
+8ec0a33660308390452140341b7f51e1a3ffe9f2 refs/tags/v1.4.0-recette-whatsapp-ai
+^97ca70185cc00665dbdfadaea2f62030e78b52c7
+488870d8afa76bfd7dca05fec06f3dc147e9488a refs/tags/v1.4.0-whatsapp-ai-stable
+^97ca70185cc00665dbdfadaea2f62030e78b52c7
+ff04ba43e63e7e8b099c3d3f6e5760564014336e refs/tags/v1.4.1-menu-email-attempt-20250314-1413
+^946e80d4394c5349e10c78add7c2d3fcfa058a26
+ffaea57e2b3cbef20fe30721c33a762de0d8249c refs/tags/v1.4.5
+^c73c9733a94a64ac11da150bed6ae9fa85f657c0
+42beefe015fdc1ea33c763f0b488cef1976933ab refs/tags/v1.4.6
+^b4e5ca4720ca5269a8c597a3cb709b3ac59e79ed
+9f203353468c6a39a79bcf727b58b2deee2dbc3d refs/tags/v1.5.0
+^db6b4e0f44ba6c593da855e8c505942fbb6a7a97
+870cde7469582fb9d73417a0bb64c622fd27ec2d refs/tags/v1.5.0-chat-unified
+^db6b4e0f44ba6c593da855e8c505942fbb6a7a97
+97eaf57828bddc3f1ce223606fb20826f54bd071 refs/tags/v1.5.1
+^9ee71aba2b954e882ebef49d841f58c2c3be38a5
+3b3dc0f8cfa275cb5bc49a844e7c00fbcf65610c refs/tags/v1.7.1-fcm-secure
+^c6c0640bb65e9e977cef4b4f15055626a436d818
+ac8782be2bb42ca91459eb0c5365c75818cfa513 refs/tags/v1.7.3-fcm-diagnostics
+^84e9ba7423bee7f9281d4f4a5a3ea1dd031739d6
+33ccf90d7966d5d87e5c33d21fef009824c80221 refs/tags/v1.7.9-fcm-push-fix
+^0ce859bba1fa9ae15e7a4497c607d023ed15da10
+38a8dcbb2dca8ac0c737acb6a5f4ad70f9a19a0f refs/tags/v1.8.0-fcm-fix
+^f7e22cd582efad1433e9cadef9b9f0fce9dc5df2
+6d57bf797280dbf76457d4ad46cf52a9bb4d4b11 refs/tags/v1.9.0-conversation-api
+^7c2a4fc455bbb2241e4f2f875cf14e3bebf2ddd7
+37d4f1ee39aaf23bfa97232bf012d0027f6ebabe refs/tags/v20250331-1036-ai-send-fix
+^8a9c14ffcbf17c732eb11d596acf0d8c15f10652
+e727dac2ac599abad06de46ce9972766b81b256d refs/tags/v20250404-1341-fix-notifications-outbound
+^b9cc93ae3775097c6bd3b143766808b29a99761c
+f0528df0b180ad60e4bbc52066f6ac707b0e5ae9 refs/tags/v20250404-1519-optimize-edge-functions
+^16fe37f3cb3240ba8e8f05abcdb07cf215dc3a05
+b9cc93ae3775097c6bd3b143766808b29a99761c refs/tags/v20250404-mise-a-jour-initiale
+826684716355281d522f67bedb6a708528aef8b9 refs/tags/v20250411-1119-deploy
