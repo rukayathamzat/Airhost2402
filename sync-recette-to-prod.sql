@@ -1,0 +1,75 @@
+-- Tables présentes en recette mais pas en production
+-- Créer la table 'faqs' en production
+-- CREATE TABLE public.faqs (...); -- Définition à compléter
+
+-- Différences de structure pour la table 'conversations'
+-- Modifier la colonne 'id' en production:
+-- ALTER TABLE public.conversations ALTER COLUMN id TYPE uuid;
+-- ALTER TABLE public.conversations ALTER COLUMN id SET DEFAULT uuid_generate_v4();
+-- Colonne différente: guest_number (recette) vs guest_name (prod)
+-- Colonne différente: unread_count (recette) vs guest_phone (prod)
+-- Modifier la colonne 'guest_phone' en production:
+-- ALTER TABLE public.conversations ALTER COLUMN guest_phone TYPE integer;
+-- ALTER TABLE public.conversations ALTER COLUMN guest_phone DROP NOT NULL;
+-- ALTER TABLE public.conversations ALTER COLUMN guest_phone SET DEFAULT 0;
+-- Modifier la colonne 'guest_phone' en production:
+-- ALTER TABLE public.conversations ALTER COLUMN guest_phone TYPE integer;
+-- ALTER TABLE public.conversations ALTER COLUMN guest_phone DROP NOT NULL;
+-- ALTER TABLE public.conversations ALTER COLUMN guest_phone SET DEFAULT 0;
+-- Modifier la colonne 'guest_phone' en production:
+-- ALTER TABLE public.conversations ALTER COLUMN guest_phone TYPE integer;
+-- ALTER TABLE public.conversations ALTER COLUMN guest_phone DROP NOT NULL;
+-- ALTER TABLE public.conversations ALTER COLUMN guest_phone SET DEFAULT 0;
+-- Colonne différente: last_message (recette) vs check_in_date (prod)
+-- Modifier la colonne 'check_in_date' en production:
+-- ALTER TABLE public.conversations ALTER COLUMN check_in_date TYPE text;
+-- Colonne différente: last_message_at (recette) vs check_out_date (prod)
+-- Modifier la colonne 'check_out_date' en production:
+-- ALTER TABLE public.conversations ALTER COLUMN check_out_date TYPE timestamp with time zone;
+-- ALTER TABLE public.conversations ALTER COLUMN check_out_date SET DEFAULT timezone('utc'::text, now());
+-- Modifier la colonne 'check_out_date' en production:
+-- ALTER TABLE public.conversations ALTER COLUMN check_out_date TYPE timestamp with time zone;
+-- ALTER TABLE public.conversations ALTER COLUMN check_out_date SET DEFAULT timezone('utc'::text, now());
+-- Colonne différente: created_at (recette) vs status (prod)
+-- Modifier la colonne 'status' en production:
+-- ALTER TABLE public.conversations ALTER COLUMN status TYPE timestamp with time zone;
+-- ALTER TABLE public.conversations ALTER COLUMN status SET NOT NULL;
+-- ALTER TABLE public.conversations ALTER COLUMN status SET DEFAULT timezone('utc'::text, now());
+-- Modifier la colonne 'status' en production:
+-- ALTER TABLE public.conversations ALTER COLUMN status TYPE timestamp with time zone;
+-- ALTER TABLE public.conversations ALTER COLUMN status SET NOT NULL;
+-- ALTER TABLE public.conversations ALTER COLUMN status SET DEFAULT timezone('utc'::text, now());
+-- Modifier la colonne 'status' en production:
+-- ALTER TABLE public.conversations ALTER COLUMN status TYPE timestamp with time zone;
+-- ALTER TABLE public.conversations ALTER COLUMN status SET NOT NULL;
+-- ALTER TABLE public.conversations ALTER COLUMN status SET DEFAULT timezone('utc'::text, now());
+-- Colonne différente: guest_name (recette) vs last_message_at (prod)
+-- Modifier la colonne 'last_message_at' en production:
+-- ALTER TABLE public.conversations ALTER COLUMN last_message_at TYPE text;
+-- ALTER TABLE public.conversations ALTER COLUMN last_message_at DROP DEFAULT;
+-- Modifier la colonne 'last_message_at' en production:
+-- ALTER TABLE public.conversations ALTER COLUMN last_message_at TYPE text;
+-- ALTER TABLE public.conversations ALTER COLUMN last_message_at DROP DEFAULT;
+-- Colonne différente: guest_phone (recette) vs created_at (prod)
+-- Modifier la colonne 'created_at' en production:
+-- ALTER TABLE public.conversations ALTER COLUMN created_at TYPE text;
+-- ALTER TABLE public.conversations ALTER COLUMN created_at DROP DEFAULT;
+-- Modifier la colonne 'created_at' en production:
+-- ALTER TABLE public.conversations ALTER COLUMN created_at TYPE text;
+-- ALTER TABLE public.conversations ALTER COLUMN created_at DROP DEFAULT;
+-- Colonne différente: check_in_date (recette) vs last_message (prod)
+-- Modifier la colonne 'last_message' en production:
+-- ALTER TABLE public.conversations ALTER COLUMN last_message TYPE date;
+-- Colonne différente: check_out_date (recette) vs guest_number (prod)
+-- Modifier la colonne 'guest_number' en production:
+-- ALTER TABLE public.conversations ALTER COLUMN guest_number TYPE date;
+-- Colonne différente: status (recette) vs unread_count (prod)
+-- Modifier la colonne 'unread_count' en production:
+-- ALTER TABLE public.conversations ALTER COLUMN unread_count TYPE text;
+-- ALTER TABLE public.conversations ALTER COLUMN unread_count SET DEFAULT 'active'::text;
+-- Modifier la colonne 'unread_count' en production:
+-- ALTER TABLE public.conversations ALTER COLUMN unread_count TYPE text;
+-- ALTER TABLE public.conversations ALTER COLUMN unread_count SET DEFAULT 'active'::text;
+
+-- Différences de structure pour la table 'messages'
+
