@@ -23,6 +23,18 @@ export default tseslint.config(
         'warn',
         { allowConstantExport: true },
       ],
+      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-unused-vars': ['error', { 
+        'argsIgnorePattern': '^_',
+        'varsIgnorePattern': '^_'
+      }],
+      '@typescript-eslint/ban-ts-comment': ['error', {
+        'ts-expect-error': 'allow-with-description',
+        'ts-ignore': false,
+        'ts-nocheck': false,
+        'ts-check': false
+      }],
+      'react-hooks/exhaustive-deps': 'warn'
     },
   },
 )
