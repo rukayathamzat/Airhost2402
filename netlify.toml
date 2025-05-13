@@ -1,6 +1,16 @@
 [build]
   command = "cd frontend && npm install && npm run build"
   publish = "frontend/dist"
+  functions = "frontend/netlify/functions"
+
+[dev]
+  framework = "vite"
+  command = "cd frontend && npm run dev"
+  port = 8888
+  targetPort = 5173
+  publish = "frontend/dist"
+  functions = "frontend/netlify/functions"
+  functionsPort = 9999
 
 [[redirects]]
   from = "/*"
@@ -14,6 +24,7 @@
 
 [functions]
   directory = "frontend/netlify/functions"
+  node_bundler = "esbuild"
   included_files = ["!**/fcm-send.js"]
 
 [[plugins]]
@@ -26,9 +37,5 @@
 
 [build.environment]
   NODE_VERSION = "20"
-  # Les variables d'environnement doivent être configurées dans le dashboard Netlify
-  # Ne pas définir les variables ici car elles ne sont pas correctement substituées
-
-[dev]
-  framework = "vite"
-  targetPort = 5173
+  # Environment variables should be configured in the Netlify dashboard
+  # Do not define variables here as they are not properly substituted
