@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { Message, MessageService } from '../services/chat/message.service';
 import { useMessageSender, saveMessageLocally } from './useMessageSender';
-import { NotificationService } from '../services/notification.service';
+import { NotificationService } from '../services/notification/notification.service';
 
 // Préfixe pour les logs liés à ce hook
 const DEBUG_PREFIX = 'DEBUG_USE_MESSAGES_REALTIME';

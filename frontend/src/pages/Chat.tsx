@@ -41,7 +41,7 @@ import ConversationList from '../components/Chat/ConversationList';
 import ChatWindow from '../components/Chat/ChatWindow';
 import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
-import { MobileNotificationService } from '../services/mobile-notification.service';
+import { MobileNotificationService } from '../services/notification/mobile-notification.service';
 import { WhatsAppService } from '../services/chat/whatsapp.service';
 
 import { Conversation } from '../types/conversation';

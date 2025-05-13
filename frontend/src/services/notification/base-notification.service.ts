@@ -1,4 +1,3 @@
-
 export class BaseNotificationService {
   protected static swRegistration: ServiceWorkerRegistration | null = null;
   protected static vapidPublicKey = 'BLBz9KoUgbH9aWFN_ftRGQQYYDKbCDPrVYvKlKKLiDDrBwiOLLkOK_DP1REzqgTcO0Qe2ZO0GCZqPpX_5_Vpcvs';
@@ -65,4 +64,4 @@ export class BaseNotificationService {
     
     return outputArray;
   }
-}
+} 

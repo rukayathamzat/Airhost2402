@@ -58,4 +58,4 @@ export class WebNotificationService extends BaseNotificationService {
   static async areNotificationsEnabled(): Promise<boolean> {
     return this.isSupported() && Notification.permission === 'granted';
   }
-}
+} 

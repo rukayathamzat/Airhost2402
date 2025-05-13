@@ -91,4 +91,4 @@ export class NotificationService {
   private static isMobileDevice(): boolean {
     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
   }
-}
+} 
