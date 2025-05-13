@@ -1,22 +1,40 @@
 import { WebNotificationService } from './web-notification.service';
 import { MobileNotificationService } from './mobile-notification.service';
 import { Message } from '../../types/message';
+import { supabase } from '../../lib/supabase';
 
 export class NotificationService {
+  private static instance: NotificationService;
+  private initialized = false;
+
+  private constructor() {}
+
+  public static getInstance(): NotificationService {
+    if (!NotificationService.instance) {
+      NotificationService.instance = new NotificationService();
+    }
+    return NotificationService.instance;
+  }
+
   /**
    * Initialise les services de notification
    */
-  static async init(): Promise<void> {
-    console.log('[NOTIF DEBUG] Initialisation des services de notification');
-    
-    try {
-      // Initialiser les deux services
-      await WebNotificationService.init();
-      await MobileNotificationService.init();
+  public static async init(): Promise<void> {
+    const instance = NotificationService.getInstance();
+    if (!instance.initialized) {
+      console.log('[NOTIF DEBUG] Initialisation des services de notification');
       
-      console.log('[NOTIF DEBUG] Services de notification initialisés');
-    } catch (error) {
-      console.error('[NOTIF DEBUG] Erreur lors de l\'initialisation des services:', error);
+      try {
+        // Initialiser les deux services
+        await WebNotificationService.init();
+        await MobileNotificationService.init();
+        
+        console.log('[NOTIF DEBUG] Services de notification initialisés');
+      } catch (error) {
+        console.error('[NOTIF DEBUG] Erreur lors de l\'initialisation des services:', error);
+      }
+
+      instance.initialized = true;
     }
   }
 
@@ -90,5 +108,24 @@ export class NotificationService {
    */
   private static isMobileDevice(): boolean {
     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  }
+
+  public async sendNotification(userId: string, message: string): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .insert([
+          {
+            user_id: userId,
+            message,
+            read: false,
+          },
+        ]);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error sending notification:', error);
+      throw error;
+    }
   }
 } 

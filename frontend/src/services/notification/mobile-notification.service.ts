@@ -6,38 +6,56 @@ import { requestFCMPermission, setMessagingCallback } from '../../lib/firebase';
 
 export class MobileNotificationService extends BaseNotificationService {
   private static fcmToken: string | null = null;
+  private static instance: MobileNotificationService;
+  private initialized = false;
+
+  private constructor() {
+    super();
+  }
+
+  public static getInstance(): MobileNotificationService {
+    if (!MobileNotificationService.instance) {
+      MobileNotificationService.instance = new MobileNotificationService();
+    }
+    return MobileNotificationService.instance;
+  }
 
   /**
    * Initialise le service de notification mobile
    */
-  static async init(): Promise<void> {
-    await super.init();
-    await this.loadFCMToken();
-    
-    // Configurer le callback pour les messages FCM reçus quand l'app est au premier plan
-    setMessagingCallback((payload: any) => {
-      console.log('[NOTIF DEBUG] Message FCM reçu au premier plan:', payload);
-      // Vous pouvez ajouter ici une logique pour gérer les notifications au premier plan
-      // Par exemple, afficher une notification dans l'interface utilisateur
-    });
-    
-    // Demander la permission et obtenir un token si on n'en a pas déjà un
-    if (!this.fcmToken) {
-      try {
-        const token = await requestFCMPermission();
-        if (token) {
-          await this.registerToken(token);
+  public static async init(): Promise<void> {
+    const instance = MobileNotificationService.getInstance();
+    if (!instance.initialized) {
+      await super.init();
+      await instance.loadFCMToken();
+      
+      // Configurer le callback pour les messages FCM reçus quand l'app est au premier plan
+      setMessagingCallback((payload: any) => {
+        console.log('[NOTIF DEBUG] Message FCM reçu au premier plan:', payload);
+        // Vous pouvez ajouter ici une logique pour gérer les notifications au premier plan
+        // Par exemple, afficher une notification dans l'interface utilisateur
+      });
+      
+      // Demander la permission et obtenir un token si on n'en a pas déjà un
+      if (!MobileNotificationService.fcmToken) {
+        try {
+          const token = await requestFCMPermission();
+          if (token) {
+            await instance.registerToken(token);
+          }
+        } catch (error) {
+          console.error('[NOTIF DEBUG] Erreur lors de l\'initialisation FCM:', error);
         }
-      } catch (error) {
-        console.error('[NOTIF DEBUG] Erreur lors de l\'initialisation FCM:', error);
+      } else {
+        // Vérifier que le token existant est bien enregistré dans Supabase
+        instance.verifyTokenRegistration();
       }
-    } else {
-      // Vérifier que le token existant est bien enregistré dans Supabase
-      this.verifyTokenRegistration();
+      
+      // Configurer une vérification périodique du token
+      instance.setupPeriodicTokenCheck();
+
+      instance.initialized = true;
     }
-    
-    // Configurer une vérification périodique du token
-    this.setupPeriodicTokenCheck();
   }
   
   /**
@@ -49,7 +67,7 @@ export class MobileNotificationService extends BaseNotificationService {
     const CHECK_INTERVAL = 12 * 60 * 60 * 1000; // 12 heures en millisecondes
     
     const performCheck = () => {
-      this.verifyTokenRegistration();
+      MobileNotificationService.verifyTokenRegistration();
     };
     
     // Première vérification après 5 minutes
@@ -73,12 +91,12 @@ export class MobileNotificationService extends BaseNotificationService {
    */
   private static async verifyTokenRegistration(): Promise<void> {
     try {
-      if (!this.fcmToken) {
+      if (!MobileNotificationService.fcmToken) {
         console.log('[NOTIF DEBUG] Pas de token FCM à vérifier');
         return;
       }
       
-      console.log('[NOTIF DEBUG] Vérification de l\'enregistrement du token FCM:', this.fcmToken.substring(0, 10) + '...');
+      console.log('[NOTIF DEBUG] Vérification de l\'enregistrement du token FCM:', MobileNotificationService.fcmToken.substring(0, 10) + '...');
       
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -91,12 +109,12 @@ export class MobileNotificationService extends BaseNotificationService {
         .from('push_subscriptions')
         .select('id, updated_at')
         .eq('user_id', user.id)
-        .eq('token', this.fcmToken)
+        .eq('token', MobileNotificationService.fcmToken)
         .single();
       
       if (error || !data) {
         console.warn('[NOTIF DEBUG] Token FCM non trouvé dans la base de données, réenregistrement...');
-        await this.registerToken(this.fcmToken);
+        await MobileNotificationService.registerToken(MobileNotificationService.fcmToken);
         return;
       }
       
@@ -107,7 +125,7 @@ export class MobileNotificationService extends BaseNotificationService {
       
       if (daysSinceUpdate > 7) {
         console.log(`[NOTIF DEBUG] Enregistrement du token datant de ${daysSinceUpdate} jours, mise à jour...`);
-        await this.registerToken(this.fcmToken);
+        await MobileNotificationService.registerToken(MobileNotificationService.fcmToken);
       } else {
         console.log('[NOTIF DEBUG] Token FCM correctement enregistré et à jour');
       }
@@ -123,7 +141,7 @@ export class MobileNotificationService extends BaseNotificationService {
     try {
       const token = localStorage.getItem('fcm_token');
       if (token) {
-        this.fcmToken = token;
+        MobileNotificationService.fcmToken = token;
         console.log('[NOTIF DEBUG] Token FCM chargé depuis le stockage local');
       }
     } catch (error) {
@@ -139,7 +157,7 @@ export class MobileNotificationService extends BaseNotificationService {
     
     // Sauvegarder le token localement immédiatement
     localStorage.setItem('fcm_token', token);
-    this.fcmToken = token;
+    MobileNotificationService.fcmToken = token;
     
     // Variable pour le nombre de tentatives
     let attempts = 0;
@@ -232,7 +250,7 @@ export class MobileNotificationService extends BaseNotificationService {
 
       // Supprimer du stockage local
       localStorage.removeItem('fcm_token');
-      this.fcmToken = null;
+      MobileNotificationService.fcmToken = null;
 
       console.log('[NOTIF DEBUG] Token FCM supprimé avec succès');
     } catch (error) {
@@ -311,13 +329,13 @@ export class MobileNotificationService extends BaseNotificationService {
   static async arePushNotificationsAvailable(): Promise<boolean> {
     try {
       // Vérifier si le service worker est enregistré
-      if (!this.isServiceWorkerRegistered()) {
+      if (!MobileNotificationService.isServiceWorkerRegistered()) {
         console.log('[NOTIF DEBUG] Service Worker non enregistré');
         return false;
       }
 
       // Vérifier si on a un token FCM
-      if (!this.fcmToken) {
+      if (!MobileNotificationService.fcmToken) {
         console.log('[NOTIF DEBUG] Pas de token FCM');
         return false;
       }
@@ -334,7 +352,7 @@ export class MobileNotificationService extends BaseNotificationService {
         .from('push_subscriptions')
         .select('id')
         .eq('user_id', user.id)
-        .eq('token', this.fcmToken)
+        .eq('token', MobileNotificationService.fcmToken)
         .single();
 
       if (error || !data) {
@@ -376,9 +394,22 @@ export class MobileNotificationService extends BaseNotificationService {
         created_at: new Date().toISOString()
       };
 
-      await this.sendPushNotification(testMessage);
+      await MobileNotificationService.sendPushNotification(testMessage);
     } catch (error) {
       console.error('[NOTIF DEBUG] Erreur lors de l\'envoi de la notification de test:', error);
+    }
+  }
+
+  public async sendMobileNotification(userId: string, title: string, body: string): Promise<void> {
+    try {
+      const { error } = await supabase.functions.invoke('send-push-notification', {
+        body: { userId, title, body }
+      });
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error sending mobile notification:', error);
+      throw error;
     }
   }
 } 
