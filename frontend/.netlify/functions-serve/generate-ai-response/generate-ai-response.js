@@ -1,0 +1,1 @@
+module.exports = require('./netlify/functions/generate-ai-response/generate-ai-response.js')
