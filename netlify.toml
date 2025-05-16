@@ -1,5 +1,5 @@
 [build]
-  command = "cd frontend && npm install --legacy-peer-deps && npx vite build"
+  command = "cd frontend && npm install --legacy-peer-deps && npm run build"
   publish = "frontend/dist"
 
 [build.environment]
