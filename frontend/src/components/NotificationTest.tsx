@@ -1,7 +1,8 @@
 import { Button, Container, Grid, TextField, Typography, Paper } from '@mui/material';
 import { useState, useEffect } from 'react';
-import { MobileNotificationService } from '../services/mobile-notification.service';
-import { NotificationService } from '../services/notification.service';
+import { MobileNotificationService } from "../services/notification/mobile-notification.service";
+import { NotificationService } from "../services/notification/notification.service";
+import { supabase } from "../lib/supabase";
 
 const NotificationTest = () => {
   const [fcmToken, setFcmToken] = useState('test-fcm-token');
@@ -71,7 +72,11 @@ const NotificationTest = () => {
   const registerToken = async () => {
     try {
       setStatus('Enregistrement du token FCM...');
-      await MobileNotificationService.registerToken(fcmToken);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('Utilisateur non authentifié');
+      }
+      await MobileNotificationService.getInstance().registerDeviceToken(user.id, fcmToken);
       setStatus('Token enregistré avec succès');
     } catch (err: any) {
       console.error('Erreur d\'enregistrement:', err);

@@ -1,5 +1,5 @@
 import { supabase } from '../../lib/supabase';
-import { NotificationService } from '../notification.service';
+import { NotificationService } from "../notification/notification.service";
 
 export interface Message {
   id: string;

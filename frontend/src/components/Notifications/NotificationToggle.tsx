@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Button, Typography, Box, Switch, FormControlLabel, Paper, Alert, Tooltip } from '@mui/material';
-import { NotificationService } from '../../services/notification.service';
+import { NotificationService } from "../../services/notification/notification.service";
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import NotificationsOffIcon from '@mui/icons-material/NotificationsOff';
 

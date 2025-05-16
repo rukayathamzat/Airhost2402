@@ -62,16 +62,59 @@ export class AutoPilotService {
 
   static async getConfig(propertyId: string): Promise<AutoPilotConfig> {
     try {
+      // First try to get existing config
       const { data, error } = await supabase
         .from('auto_pilot_configs')
         .select('*')
         .eq('property_id', propertyId)
-        .single();
+        .maybeSingle(); // Use maybeSingle instead of single to handle no rows case
 
-      if (error) throw error;
-      return data || this.defaultConfig;
+      if (error) {
+        console.error('Error fetching auto-pilot config:', error);
+        return this.defaultConfig;
+      }
+
+      // If no config exists, create one with default values
+      if (!data) {
+        console.log('No config found for property, creating default config');
+        const defaultDbConfig = {
+          property_id: propertyId,
+          is_enabled: this.defaultConfig.isEnabled,
+          response_delay: this.defaultConfig.responseDelay,
+          max_daily_responses: this.defaultConfig.maxDailyResponses,
+          working_hours: this.defaultConfig.workingHours,
+          excluded_keywords: this.defaultConfig.excludedKeywords,
+          priority_rules: this.defaultConfig.priorityRules,
+          scheduled_responses: this.defaultConfig.scheduledResponses,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+
+        const { error: insertError } = await supabase
+          .from('auto_pilot_configs')
+          .insert(defaultDbConfig);
+
+        if (insertError) {
+          console.error('Error creating default config:', insertError);
+          return this.defaultConfig;
+        }
+
+        // Return the default config after creating it
+        return this.defaultConfig;
+      }
+
+      // Convert snake_case to camelCase for frontend
+      return {
+        isEnabled: data.is_enabled,
+        responseDelay: data.response_delay,
+        maxDailyResponses: data.max_daily_responses,
+        workingHours: data.working_hours,
+        excludedKeywords: data.excluded_keywords,
+        priorityRules: data.priority_rules,
+        scheduledResponses: data.scheduled_responses
+      };
     } catch (error) {
-      console.error('Error fetching auto-pilot config:', error);
+      console.error('Error in getConfig:', error);
       return this.defaultConfig;
     }
   }
@@ -91,13 +134,22 @@ export class AutoPilotService {
         throw new Error(`Database table error: ${tableError.message}`);
       }
 
+      // Convert camelCase to snake_case for database
+      const dbConfig = {
+        property_id: propertyId,
+        is_enabled: config.isEnabled,
+        response_delay: config.responseDelay,
+        max_daily_responses: config.maxDailyResponses,
+        working_hours: config.workingHours,
+        excluded_keywords: config.excludedKeywords,
+        priority_rules: config.priorityRules,
+        scheduled_responses: config.scheduledResponses,
+        updated_at: new Date().toISOString()
+      };
+
       const { error } = await supabase
         .from('auto_pilot_configs')
-        .upsert({
-          property_id: propertyId,
-          ...config,
-          updated_at: new Date().toISOString()
-        });
+        .upsert(dbConfig);
 
       if (error) {
         console.error('Update error:', error);
