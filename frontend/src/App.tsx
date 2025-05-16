@@ -1,6 +1,7 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Navigate } from 'react-router-dom/dist';
 import { useEffect, useState } from 'react';
-import { NotificationService } from './services/notification.service';
+import { NotificationService } from './services/notification/notification.service';
 import SetPassword from './pages/SetPassword';
 import Chat from './pages/Chat';
 import Login from './pages/Login';
@@ -15,7 +16,7 @@ import TestConversation from './pages/TestConversation';
 import NotificationTester from './components/NotificationTester';
 import Layout from './components/Layout/Layout';
 import { supabase } from './lib/supabase';
-import { Session } from '@supabase/supabase-js';
+import { Session, AuthResponse, AuthChangeEvent, User } from '@supabase/supabase-js';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import './App.css';
@@ -63,14 +64,14 @@ function App() {
     handleAuthRedirect();
     
     // Vérifier la session actuelle
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
       console.log('Session initiale:', session);
       setSession(session);
       setLoading(false);
     });
 
     // Écouter les changements de session
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
       console.log('Changement de session:', _event, session);
       setSession(session);
       setLoading(false);
