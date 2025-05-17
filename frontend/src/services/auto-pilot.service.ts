@@ -62,12 +62,14 @@ export class AutoPilotService {
 
   static async getConfig(propertyId: string): Promise<AutoPilotConfig> {
     try {
-      // First try to get existing config
+      // Get the most recent config for the property
       const { data, error } = await supabase
         .from('auto_pilot_configs')
         .select('*')
         .eq('property_id', propertyId)
-        .maybeSingle(); // Use maybeSingle instead of single to handle no rows case
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .single();
 
       if (error) {
         console.error('Error fetching auto-pilot config:', error);

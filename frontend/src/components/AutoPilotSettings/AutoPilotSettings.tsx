@@ -223,7 +223,7 @@ export default function AutoPilotSettings({ propertyId, open, onClose }: AutoPil
           />
         </Paper>
       </DialogContent>
-      <DialogActions>
+      <DialogActions sx={{ px: 3, pb: 2 }}>
         <Button onClick={onClose}>Cancel</Button>
         <Button
           variant="contained"

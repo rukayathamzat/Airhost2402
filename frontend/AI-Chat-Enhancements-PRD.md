@@ -23,29 +23,40 @@ This project aims to enhance the Airhost2402 chat application with advanced AI-d
 ### 2.1. AI-Suggested Answers Integration
 
 **Goal:**  
-Display AI-generated suggested answers directly within the chat window, styled as per the provided design.
+Display a single AI-generated suggested answer directly within the chat window, styled as per the provided design.
 
 **Requirements:**
-- Suggested answers should appear contextually in the chat interface, not as a separate popup.
-- UI/UX should match the provided reference images (ensure clear, clickable suggestions).
-- Suggestions should be easily selectable and sendable by the host.
-- The system should support multiple suggestions per message.
+- A single, editable AI suggestion should appear in the chat interface when a new message is received from the guest.
+- The suggestion should appear as a conversation bubble within the chat window (not as a separate pop-up).
+- The suggestion box should only appear when a new message is received, allowing hosts to quickly respond.
+- The suggestion should be editable by the host before sending.
+- The suggestion should be easily sendable with a single click.
+- The UI/UX should match the provided reference images.
+- The suggestion should be contextually relevant to the guest's message.
+- One AI suggestion is sufficient; hosts can manually edit if needed.
 
 ---
 
 ### 2.2. Emergency & Unknown Response Detection
 
 **Goal:**  
-Automatically analyze guest messages to detect emergencies or unknown queries.
+Automatically analyze guest messages to detect emergencies or unknown queries using AI analysis.
 
 **Requirements:**
-- Use GPT (OpenAI or similar) to analyze the entire conversation for each guest.
-- Emergency cases must be configurable by the host (e.g., keywords, scenarios).
+- Use GPT-4 or similar AI model to analyze the entire conversation for each guest.
+- Emergency detection should be based on AI analysis, not keyword matching.
+- Emergency cases must be configurable by the host through a dedicated emergency cases tab in the settings:
+  - Hosts should be able to define custom emergency scenarios (e.g., missing laundry, blocked door)
+  - Each emergency case should be configurable per apartment
+  - Emergency cases should be testable through a testing interface
+  - Emergency cases should be manageable (add, edit, delete) by hosts
 - When an emergency is detected:
-  - Auto-pilot mode is deactivated for that conversation.
-  - The host receives a push notification and an email alert.
-- If the AI cannot answer a question, flag it as "unknown" and notify the host.
-- Emergency and unknown detection logic should be extensible for future scenarios.
+  - Auto-pilot mode is automatically deactivated for that conversation
+  - The host receives a push notification and an email alert
+  - The emergency case is clearly marked in the chat interface
+- Emergency detection should be testable through a dedicated testing interface
+- If the AI cannot answer a question, flag it as "unknown" and notify the host using the existing notification service
+- Emergency and unknown detection logic should be extensible for future scenarios
 
 ---
 
@@ -55,12 +66,14 @@ Automatically analyze guest messages to detect emergencies or unknown queries.
 Allow the AI to automatically respond to guests when enabled.
 
 **Requirements:**
-- Add an "Auto-Pilot" toggle next to each guest's name in the chat window.
-- When enabled, AI answers are sent directly to the guest.
-- When disabled, AI answers are shown as suggestions only.
-- Auto-pilot can be toggled per conversation and at the property level.
-- UI should clearly indicate the current auto-pilot status.
-- Ensure manual override is always possible for the host.
+- Add a clearly visible "Auto-Pilot" button/toggle next to each guest's name in the chat window header
+- The auto-pilot button should be prominently displayed and easily accessible
+- When enabled, AI answers are sent directly to the guest
+- When disabled, AI answers are shown as suggestions only
+- Auto-pilot can be toggled per conversation and at the property level
+- UI should clearly indicate the current auto-pilot status with visual feedback
+- Ensure manual override is always possible for the host
+- The auto-pilot status should be clearly visible in the chat interface
 
 ---
 
@@ -164,10 +177,12 @@ Maintain a clean, collaborative development process.
 
 ## 5. Open Questions
 
-- Are there specific emergency scenarios to pre-configure?
+- What are the specific emergency scenarios that should be pre-configured by default?
 - Should the emergency configuration UI be accessible to all hosts or only admins?
 - What email service should be used for notifications?
-- Is there a preferred design for the auto-pilot toggle?
+- What is the preferred design for the auto-pilot button placement and appearance?
+- What testing interface should be provided for emergency detection?
+- How should we handle the transition between multiple suggestions and a single editable suggestion?
 
 ---
 

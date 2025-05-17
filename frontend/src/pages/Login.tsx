@@ -37,11 +37,27 @@ export default function Login() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    setSuccess(false);
     setLoading(true);
 
     try {
-      console.log('Tentative de connexion avec:', { email, password });
+      // Check internet connection first
+      console.log('Checking internet connection...');
+      const connectionCheck = await fetch('https://tornfqtvnzkgnwfudxdb.supabase.co/rest/v1/', {
+        method: 'HEAD',
+        headers: {
+          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY
+        }
+      }).catch(err => {
+        console.error('Connection check failed:', err);
+        throw new Error('No internet connection. Please check your network and try again.');
+      });
+
+      if (!connectionCheck.ok) {
+        console.error('Supabase connection check failed:', connectionCheck.status);
+        throw new Error('Unable to reach Supabase. Please check your internet connection.');
+      }
+
+      console.log('Internet connection OK, attempting login...');
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,

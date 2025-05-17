@@ -66,6 +66,8 @@ export default function Chat() {
 
   const navigate = useNavigate();
 
+  const [dialogOpen, setDialogOpen] = useState(false);
+
   useEffect(() => {
     console.log('Chat component mounted', new Date().toISOString());
     checkSession();
@@ -341,6 +343,29 @@ export default function Chat() {
     }
   };
 
+  // Add handler for dialog close
+  const handleDialogClose = () => {
+    setDialogOpen(false);
+    // Small delay before clearing the conversation to ensure smooth transition
+    setTimeout(() => {
+      setSelectedConversation(null);
+    }, 100);
+  };
+
+  // Update conversation selection handler
+  const handleSelectConversation = (conversation: Conversation) => {
+    // Close any open dialog first
+    setDialogOpen(false);
+    // Small delay before opening new dialog
+    setTimeout(() => {
+      if (conversation.unread_count && conversation.unread_count > 0) {
+        markConversationAsRead(conversation.id);
+      }
+      setSelectedConversation(conversation);
+      setDialogOpen(true);
+    }, 100);
+  };
+
   return (
     <Container maxWidth="xl" sx={{ 
       height: '100vh', 
@@ -364,14 +389,7 @@ export default function Chat() {
           }}>
             <ConversationList
               conversations={conversations}
-              onSelectConversation={(conversation) => {
-                // Marquer la conversation comme lue
-                if (conversation.unread_count && conversation.unread_count > 0) {
-                  markConversationAsRead(conversation.id);
-                }
-                // Puis sélectionner la conversation
-                setSelectedConversation(conversation);
-              }}
+              onSelectConversation={handleSelectConversation}
               onConversationUpdate={fetchConversations}
             />
           </Box>
@@ -423,160 +441,22 @@ export default function Chat() {
           {/* Affichage du contenu en fonction de l'état de navigation */}
           {isMobile ? (
             selectedConversation ? (
-              // Afficher la conversation sélectionnée
               <ChatWindow
                 conversationId={selectedConversation.id}
                 isMobile={isMobile}
                 apartmentId={selectedConversation.property?.[0]?.id || 'default'}
                 whatsappContactId={selectedConversation.guest_phone || selectedConversation.guest_number}
                 guestName={selectedConversation.guest_name}
-                // Props temporairement commentées car interface mise à jour
-                // guestNumber={selectedConversation.guest_number || ''}
-                // conversationStartTime={selectedConversation.created_at || new Date().toISOString()}
-                // onBack={handleBackFromChat}
+                onClose={handleDialogClose}
+                open={dialogOpen}
               />
-            ) : navValue === 'messages' ? (
-              // Afficher la liste des conversations
+            ) : (
               <Box sx={{ height: '100%', overflow: 'auto', p: 0 }}>
                 <ConversationList
                   conversations={conversations}
-                  onSelectConversation={(conversation) => {
-                    // Marquer la conversation comme lue
-                    if (conversation.unread_count && conversation.unread_count > 0) {
-                      markConversationAsRead(conversation.id);
-                    }
-                    // Puis sélectionner la conversation
-                    setSelectedConversation(conversation);
-                  }}
+                  onSelectConversation={handleSelectConversation}
                   onConversationUpdate={fetchConversations}
                 />
-              </Box>
-            ) : navValue === 'apartments' ? (
-              // Afficher la page Appartements (charger le contenu de la page properties ici)
-              <Box sx={{ p: 2, height: '100%', overflow: 'auto' }}>
-                <Typography variant="h5" gutterBottom>Mes Appartements</Typography>
-                <Typography variant="body1" paragraph>
-                  Gérez vos propriétés et réservations.
-                </Typography>
-                
-                {/* Liste des appartements */}
-                <Box sx={{ mt: 3 }}>
-                  <List>
-                    <ListItem>
-                      <Paper sx={{ p: 2, width: '100%' }}>
-                        <Typography variant="h6">Loft Moderne Montmartre</Typography>
-                        <Typography variant="body2" color="text.secondary">Paris, France</Typography>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>
-                          <Button variant="outlined" size="small">Détails</Button>
-                          <Button variant="contained" size="small">Réservations</Button>
-                        </Box>
-                      </Paper>
-                    </ListItem>
-                    <ListItem>
-                      <Paper sx={{ p: 2, width: '100%' }}>
-                        <Typography variant="h6">Studio Saint-Germain</Typography>
-                        <Typography variant="body2" color="text.secondary">Paris, France</Typography>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>
-                          <Button variant="outlined" size="small">Détails</Button>
-                          <Button variant="contained" size="small">Réservations</Button>
-                        </Box>
-                      </Paper>
-                    </ListItem>
-                  </List>
-                </Box>
-              </Box>
-            ) : navValue === 'urgency' ? (
-              // Afficher la page Urgences
-              <Box sx={{ p: 2, height: '100%', overflow: 'auto' }}>
-                <Typography variant="h5" gutterBottom>Urgences</Typography>
-                <Typography variant="body1">
-                  Notifications et situations nécessitant votre attention.
-                </Typography>
-                {/* Contenu des urgences */}
-              </Box>
-            ) : navValue === 'settings' ? (
-              // Afficher la page Paramètres
-              <Box sx={{ p: 2, height: '100%', overflow: 'auto' }}>
-                <Typography variant="h5" gutterBottom>Paramètres</Typography>
-                <List>
-                  <ListItem disablePadding>
-                    <ListItemButton onClick={openWhatsAppConfig}>
-                      <ListItemIcon><WhatsAppIcon /></ListItemIcon>
-                      <ListItemText primary="Configuration WhatsApp" secondary="Gérez vos paramètres WhatsApp" />
-                    </ListItemButton>
-                  </ListItem>
-                  <Divider sx={{ my: 1 }} />
-                  <ListItem disablePadding>
-                    <ListItemButton onClick={async () => {
-                      try {
-                        console.log('Test de notification FCM...');
-                        await MobileNotificationService.sendTestNotification();
-                        alert('Test de notification envoyé avec succès! Vérifiez la console pour plus de détails.');
-                      } catch (error) {
-                        console.error('Erreur lors du test de notification:', error);
-                        alert(`Erreur lors du test: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
-                      }
-                    }}>
-                      <ListItemIcon><NotificationsIcon /></ListItemIcon>
-                      <ListItemText 
-                        primary="Tester les notifications" 
-                        secondary="Envoyer une notification de test au token pré-configuré" />
-                    </ListItemButton>
-                  </ListItem>
-                  <Divider sx={{ my: 1 }} />
-                  {/* Autres options de paramètres */}
-                </List>
-              </Box>
-            ) : (
-              // Afficher le menu
-              <Box sx={{ p: 2, height: '100%', overflow: 'auto' }}>
-                <List>
-                  <ListItem disablePadding>
-                    <ListItemButton onClick={() => setNavValue('apartments')}>
-                      <ListItemIcon><ApartmentIcon /></ListItemIcon>
-                      <ListItemText primary="Appartements" />
-                    </ListItemButton>
-                  </ListItem>
-                  <ListItem disablePadding>
-                    <ListItemButton onClick={() => setNavValue('urgency')}>
-                      <ListItemIcon><NotificationsIcon /></ListItemIcon>
-                      <ListItemText primary="Urgences" />
-                    </ListItemButton>
-                  </ListItem>
-                  <ListItem disablePadding>
-                    <ListItemButton onClick={() => setNavValue('messages')}>
-                      <ListItemIcon>
-                        <Badge 
-                          badgeContent={conversations.reduce((total, conv) => total + (conv.unread_count || 0), 0)} 
-                          color="error"
-                          max={99}
-                        >
-                          <ChatIcon />
-                        </Badge>
-                      </ListItemIcon>
-                      <ListItemText primary="Messages" />
-                    </ListItemButton>
-                  </ListItem>
-                  <Divider sx={{ my: 2 }} />
-                  <ListItem disablePadding>
-                    <ListItemButton onClick={() => setNavValue('settings')}>
-                      <ListItemIcon><SettingsIcon /></ListItemIcon>
-                      <ListItemText primary="Paramètres" />
-                    </ListItemButton>
-                  </ListItem>
-                  <ListItem disablePadding>
-                    <ListItemButton>
-                      <ListItemIcon><HelpOutlineIcon /></ListItemIcon>
-                      <ListItemText primary="Aide" />
-                    </ListItemButton>
-                  </ListItem>
-                  <ListItem disablePadding>
-                    <ListItemButton onClick={handleSignOut}>
-                      <ListItemIcon><LogoutIcon /></ListItemIcon>
-                      <ListItemText primary="Déconnexion" />
-                    </ListItemButton>
-                  </ListItem>
-                </List>
               </Box>
             )
           ) : (
@@ -588,10 +468,8 @@ export default function Chat() {
                 apartmentId={selectedConversation.property?.[0]?.id || 'default'}
                 whatsappContactId={selectedConversation.guest_phone || selectedConversation.guest_number}
                 guestName={selectedConversation.guest_name}
-                // Props temporairement commentées car interface mise à jour
-                // guestNumber={selectedConversation.guest_number || ''}
-                // conversationStartTime={selectedConversation.created_at || new Date().toISOString()}
-                // onBack={handleBackFromChat}
+                onClose={handleDialogClose}
+                open={dialogOpen}
               />
             ) : (
               <Box

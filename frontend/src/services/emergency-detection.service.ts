@@ -1,148 +1,223 @@
 import { supabase } from '../lib/supabase';
+import { EmergencyNotificationService } from './emergency-notification.service';
 
-// Emergency keywords in multiple languages
-const EMERGENCY_KEYWORDS = {
-  en: [
-    'emergency', 'urgent', 'help', 'danger', 'fire', 'flood', 'break-in',
-    'accident', 'injury', 'medical', 'police', 'ambulance', '911'
-  ],
-  fr: [
-    'urgence', 'urgent', 'aide', 'danger', 'feu', 'inondation', 'cambriolage',
-    'accident', 'blessure', 'médical', 'police', 'ambulance', 'pompier'
-  ]
-};
+export interface EmergencyCase {
+  id: string;
+  name: string;
+  description: string;
+  keywords: string[];
+  severity: 'immediate' | 'urgent' | 'standard';
+  response_template: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
 
-// Emergency response templates
-const EMERGENCY_RESPONSES = {
-  en: {
-    immediate: "EMERGENCY DETECTED: Please call emergency services immediately at 911. I'll notify the property manager right away.",
-    urgent: "URGENT: I've notified the property manager. Please provide more details about the situation.",
-    standard: "I've detected an emergency situation. Please confirm if you need immediate assistance."
-  },
-  fr: {
-    immediate: "URGENCE DÉTECTÉE : Veuillez appeler les services d'urgence au 112. Je vais prévenir le gestionnaire immédiatement.",
-    urgent: "URGENT : J'ai prévenu le gestionnaire. Veuillez fournir plus de détails sur la situation.",
-    standard: "J'ai détecté une situation d'urgence. Veuillez confirmer si vous avez besoin d'une assistance immédiate."
-  }
-};
+export interface EmergencyDetectionResult {
+  detected: boolean;
+  severity: 'immediate' | 'urgent' | 'standard' | null;
+  matchedCase: Pick<EmergencyCase, 'id' | 'name' | 'description' | 'response_template' | 'severity'> | null;
+  matchedKeywords: string[];
+}
 
 export class EmergencyDetectionService {
-  static async detectEmergency(message: string, language: string = 'en'): Promise<{
-    isEmergency: boolean;
-    severity: 'immediate' | 'urgent' | 'standard' | null;
-    response: string | null;
-    detectedKeywords: string[];
-  }> {
+  private static instance: EmergencyDetectionService;
+  private propertyId: string | null = null;
+
+  private constructor() {}
+
+  static getInstance(): EmergencyDetectionService {
+    if (!EmergencyDetectionService.instance) {
+      EmergencyDetectionService.instance = new EmergencyDetectionService();
+    }
+    return EmergencyDetectionService.instance;
+  }
+
+  setPropertyId(propertyId: string) {
+    this.propertyId = propertyId;
+  }
+
+  async detectEmergency(message: string): Promise<EmergencyDetectionResult> {
+    if (!this.propertyId) {
+      throw new Error('Property ID not set');
+    }
+
     try {
-      // Convert message to lowercase for case-insensitive matching
+      // Get all active emergency cases for the property
+      const { data: cases, error } = await supabase
+        .from('emergency_cases')
+        .select('*')
+        .eq('property_id', this.propertyId)
+        .eq('is_active', true);
+
+      if (error) throw error;
+
       const lowerMessage = message.toLowerCase();
-      
-      // Get keywords for the specified language
-      const keywords = EMERGENCY_KEYWORDS[language as keyof typeof EMERGENCY_KEYWORDS] || EMERGENCY_KEYWORDS.en;
-      
-      // Check for emergency keywords
-      const foundKeywords = keywords.filter(keyword => lowerMessage.includes(keyword.toLowerCase()));
-      
-      if (foundKeywords.length === 0) {
-        return { isEmergency: false, severity: null, response: null, detectedKeywords: [] };
+      let matchedCase: Pick<EmergencyCase, 'id' | 'name' | 'description' | 'response_template' | 'severity'> | null = null;
+      let matchedKeywords: string[] = [];
+
+      // Check each case's keywords against the message
+      for (const case_ of (cases as EmergencyCase[]) || []) {
+        const foundKeywords = case_.keywords.filter((keyword: string) => 
+          lowerMessage.includes(keyword.toLowerCase())
+        );
+
+        if (foundKeywords.length > 0) {
+          matchedCase = {
+            id: case_.id,
+            name: case_.name,
+            description: case_.description,
+            response_template: case_.response_template,
+            severity: case_.severity
+          };
+          matchedKeywords = foundKeywords;
+          break;
+        }
       }
 
-      // Determine severity based on keywords and context
-      let severity: 'immediate' | 'urgent' | 'standard' = 'standard';
-      
-      // Immediate severity keywords
-      const immediateKeywords = ['fire', 'flood', 'break-in', 'accident', 'injury', 'medical', 'police', 'ambulance', '911',
-                               'feu', 'inondation', 'cambriolage', 'accident', 'blessure', 'médical', 'police', 'ambulance', 'pompier'];
-      
-      // Urgent severity keywords
-      const urgentKeywords = ['emergency', 'urgent', 'help', 'danger', 'urgence', 'urgent', 'aide', 'danger'];
-      
-      if (foundKeywords.some(keyword => immediateKeywords.includes(keyword))) {
-        severity = 'immediate';
-      } else if (foundKeywords.some(keyword => urgentKeywords.includes(keyword))) {
-        severity = 'urgent';
+      // Log the detection if an emergency was found
+      if (matchedCase) {
+        await this.logEmergencyDetection(message, matchedCase, matchedKeywords);
       }
-
-      // Get appropriate response template
-      const responses = EMERGENCY_RESPONSES[language as keyof typeof EMERGENCY_RESPONSES] || EMERGENCY_RESPONSES.en;
-      const response = responses[severity];
-
-      // Log the emergency detection
-      await this.logEmergencyDetection(message, severity, foundKeywords);
 
       return {
-        isEmergency: true,
-        severity,
-        response,
-        detectedKeywords: foundKeywords
+        detected: !!matchedCase,
+        severity: matchedCase?.severity || null,
+        matchedCase,
+        matchedKeywords
       };
     } catch (error) {
-      console.error('Error in emergency detection:', error);
-      // In case of error, assume it's an emergency to be safe
-      return {
-        isEmergency: true,
-        severity: 'standard',
-        response: EMERGENCY_RESPONSES.en.standard,
-        detectedKeywords: []
-      };
+      console.error('Error detecting emergency:', error);
+      throw error;
     }
   }
 
-  private static async logEmergencyDetection(
+  private async logEmergencyDetection(
     message: string,
-    severity: 'immediate' | 'urgent' | 'standard',
-    detectedKeywords: string[]
-  ): Promise<void> {
+    matchedCase: Pick<EmergencyCase, 'id' | 'name'>,
+    matchedKeywords: string[]
+  ) {
     try {
-      await supabase
-        .from('emergency_logs')
+      const { error } = await supabase
+        .from('emergency_detection_logs')
         .insert({
+          property_id: this.propertyId,
+          emergency_case_id: matchedCase.id,
           message,
-          severity,
-          detected_keywords: detectedKeywords,
-          timestamp: new Date().toISOString()
+          matched_keywords: matchedKeywords,
+          detected_at: new Date().toISOString()
         });
+
+      if (error) throw error;
     } catch (error) {
       console.error('Error logging emergency detection:', error);
+      // Don't throw the error as this is a non-critical operation
     }
   }
 
-  static async notifyPropertyManager(
-    propertyId: string,
-    emergencyDetails: {
-      message: string;
-      severity: 'immediate' | 'urgent' | 'standard';
-      detectedKeywords: string[];
+  async getEmergencyCases(): Promise<EmergencyCase[]> {
+    if (!this.propertyId) {
+      throw new Error('Property ID not set');
     }
-  ): Promise<void> {
+
     try {
-      // Get property manager contact information
-      const { data: property } = await supabase
-        .from('properties')
-        .select('manager_email, manager_phone')
-        .eq('id', propertyId)
+      const { data, error } = await supabase
+        .from('emergency_cases')
+        .select('*')
+        .eq('property_id', this.propertyId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data as EmergencyCase[];
+    } catch (error) {
+      console.error('Error fetching emergency cases:', error);
+      throw error;
+    }
+  }
+
+  async createEmergencyCase(caseData: Omit<EmergencyCase, 'id' | 'property_id' | 'created_at' | 'updated_at'>) {
+    if (!this.propertyId) {
+      throw new Error('Property ID not set');
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('emergency_cases')
+        .insert({
+          ...caseData,
+          property_id: this.propertyId,
+          is_active: caseData.is_active ?? true
+        })
+        .select()
         .single();
 
-      if (!property) {
-        throw new Error('Property not found');
-      }
+      if (error) throw error;
+      return data as EmergencyCase;
+    } catch (error) {
+      console.error('Error creating emergency case:', error);
+      throw error;
+    }
+  }
 
-      // Create notification record
-      await supabase
-        .from('emergency_notifications')
-        .insert({
-          property_id: propertyId,
-          manager_email: property.manager_email,
-          manager_phone: property.manager_phone,
-          emergency_details: emergencyDetails,
-          status: 'pending',
-          created_at: new Date().toISOString()
-        });
+  async updateEmergencyCase(
+    id: string,
+    caseData: Partial<Omit<EmergencyCase, 'id' | 'property_id' | 'created_at' | 'updated_at'>>
+  ) {
+    if (!this.propertyId) {
+      throw new Error('Property ID not set');
+    }
 
-      // TODO: Implement actual notification sending (email, SMS, etc.)
-      console.log('Emergency notification created for property manager:', {
+    try {
+      const { data, error } = await supabase
+        .from('emergency_cases')
+        .update(caseData)
+        .eq('id', id)
+        .eq('property_id', this.propertyId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data as EmergencyCase;
+    } catch (error) {
+      console.error('Error updating emergency case:', error);
+      throw error;
+    }
+  }
+
+  async deleteEmergencyCase(id: string) {
+    if (!this.propertyId) {
+      throw new Error('Property ID not set');
+    }
+
+    try {
+      const { error } = await supabase
+        .from('emergency_cases')
+        .delete()
+        .eq('id', id)
+        .eq('property_id', this.propertyId);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error deleting emergency case:', error);
+      throw error;
+    }
+  }
+
+  static async notifyPropertyManager(propertyId: string, data: {
+    message: string;
+    severity: 'immediate' | 'urgent' | 'standard';
+    detectedKeywords: string[];
+    emergencyCaseId?: string;
+    emergencyCaseName?: string;
+  }) {
+    try {
+      await EmergencyNotificationService.getInstance().sendEmergencyNotification({
         propertyId,
-        emergencyDetails
+        message: data.message,
+        severity: data.severity,
+        detectedKeywords: data.detectedKeywords,
+        emergencyCaseId: data.emergencyCaseId,
+        emergencyCaseName: data.emergencyCaseName
       });
     } catch (error) {
       console.error('Error notifying property manager:', error);
